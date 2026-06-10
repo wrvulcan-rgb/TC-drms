@@ -775,7 +775,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
     <div id="w-tasks-content"></div>
   </div>
 
-  <div class="footer" style="margin-top:20px"><span>嘉義合心 行政組系統 · 大埔地震（模擬演練）</span><span id="footer-mode">full · peacetime</span></div>
+  <div class="footer" style="margin-top:20px"><span>嘉義合心 行政組系統 · 大埔地震（模擬演練）</span><span id="footer-phil" style="color:var(--text3);font-family:'Noto Sans TC',sans-serif"></span><span id="footer-mode">full · peacetime</span></div>
 </div>
 
 <!-- ══ 志工報名 ══ -->
@@ -920,6 +920,8 @@ textarea.iep-inp{resize:vertical;min-height:56px}
           <button class="btn btn-green" style="margin-top:8px;width:100%;justify-content:center" onclick="syncSheets()">↻ 立即同步一次</button>
         </div>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="card-title" style="margin-bottom:10px">🗺 本會作業區對照表</div>
+          <div id="org-zones-content" style="margin-bottom:14px"></div>
           <div class="card-title" style="margin-bottom:10px">🧪 戰時模擬工具</div>
           <button class="btn btn-amber" style="width:100%;justify-content:center;margin-bottom:6px" onclick="simPermRequest()">模擬前線發送提權請求</button>
           <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="showPage('monitor')">📋 查看系統事件紀錄</button>
@@ -973,6 +975,20 @@ textarea.iep-inp{resize:vertical;min-height:56px}
   </div>
 
   <!-- ROLE PERMISSION MATRIX -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">⚡ 中樞神經 — 動態任務權限與個資隔離模擬器</div>
+    <div style="font-size:11px;color:var(--text4);margin-bottom:12px">模擬大型災防（安心關懷家訪）時，動態核發臨時權限金鑰並隔離個資</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+      <div><div class="iep-lbl" style="margin-top:0">選取動線</div>
+        <select class="inp" id="ddr-route"><option>動線A（竹崎）</option><option>動線B（梅山）</option><option>動線C（大埔）</option></select></div>
+      <div><div class="iep-lbl" style="margin-top:0">指派組別</div>
+        <select class="inp" id="ddr-group"><option>行政組 1 隊</option><option>醫護組 C 隊</option><option>後勤組 B 隊</option></select></div>
+      <div><div class="iep-lbl" style="margin-top:0">臨時權限</div>
+        <select class="inp" id="ddr-perm"><option>P2 修正</option><option>P1 編輯</option><option>P3 閱讀</option></select></div>
+      <button class="btn btn-purple" style="white-space:nowrap" onclick="execDynamicDispatch()">🔑 核發金鑰並推播</button>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title" style="margin-bottom:0">角色全責規範矩陣</div>
     <div style="font-size:11px;color:var(--text4);margin-bottom:16px">點擊格子切換權限等級 · 平時模組：總控 P0，其他角色預設 P1</div>
@@ -985,6 +1001,26 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 
     <div id="perm-matrix"></div>
   </div>
+</div>
+
+<div class="page" id="page-case_mgt">
+  <div class="pg-hdr"><div><div class="pg-title">🗂️ 個案管理系統</div><div class="pg-sub">個案訪視紀錄 · 動線規劃</div></div></div>
+  <div id="case-mgt-content"></div>
+</div>
+
+<div class="page" id="page-care_rec">
+  <div class="pg-hdr"><div><div class="pg-title">💚 關懷行動紀錄</div><div class="pg-sub">訪視 · 線上 · 定點 · 法訊</div></div></div>
+  <div id="care-rec-content"></div>
+</div>
+
+<div class="page" id="page-warehouse">
+  <div class="pg-hdr"><div><div class="pg-title">📦 物資倉儲管理</div><div class="pg-sub">三級分類造冊 · 大車物流調度</div></div></div>
+  <div id="warehouse-content"></div>
+</div>
+
+<div class="page" id="page-shelter_mgt">
+  <div class="pg-hdr"><div><div class="pg-title">🏕️ 安置收容管理</div><div class="pg-sub">災民造冊 · 慰問金 · 清掃修繕</div></div></div>
+  <div id="shelter-mgt-content"></div>
 </div>
 
 </div><!-- /main -->
@@ -1057,6 +1093,7 @@ var CONFIG_DEFAULTS = {
   sysSubtitle: 'v4.0 · 災害應變中心',
   dashTitle:   '📊 總控儀表板',
   dashSub:     '即時災情 · 大埔地震模擬演練',
+  philosophicalCore: '「所謂救將，即非救將，是名救將」',
 };
 // Load from localStorage, fall back to defaults
 var _saved = localStorage.getItem('drms_config');
@@ -1177,6 +1214,51 @@ const DATA = {
 // ══════════════════════════════════════════════════════
 //  RENDER FUNCTIONS
 // ══════════════════════════════════════════════════════
+DATA.case_mgt={
+  title:'個案與動線管理',
+  addrNote:'電子地圖 + 公部門開源地址清冊已對接',
+  items:[
+    {caseId:'C001',name:'張本個案',address:'竹崎鄉中正路 123 號',status:'待訪視',route:'動線A'},
+    {caseId:'C002',name:'李本個案',address:'梅山鄉中山路 45 號', status:'訪視中',route:'動線B'},
+    {caseId:'C003',name:'王本個案',address:'大埔鄉和平街 67 號', status:'已完成',route:'動線A'},
+  ]
+};
+DATA.care_rec={
+  title:'多元關懷行動紀錄',
+  stats:{online:45,visit:28,fixedPointMeals:350},
+  logs:[
+    {type:'訪視關懷',target:'竹崎受災戶',     summary:'發放生活包、情緒安撫',     recorder:'林師姐'},
+    {type:'定點關懷',target:'梅山國小收容所', summary:'午餐供應熱食 150 份',      recorder:'陳師兄'},
+    {type:'線上關懷',target:'大埔獨居長者',   summary:'電話問安 12 戶，2 戶需回訪',recorder:'張師姐'},
+    {type:'法訊關懷',target:'竹崎收容所',     summary:'晚間祈禱共修 40 人參與',   recorder:'李師兄'},
+  ]
+};
+DATA.warehouse={
+  title:'物資倉儲與大車物流',
+  classification:'三級分類法（大宗、中型民生、小型醫藥）已啟動',
+  trucks:[
+    {truckId:'卡車A',driver:'王師兄',route:'竹崎倉儲 → 梅山國小',status:'配送中'},
+    {truckId:'卡車B',driver:'張師兄',route:'本會 → 竹崎倉儲',     status:'待命'},
+    {truckId:'卡車C',driver:'林師兄',route:'環保站 → 大埔活動中心',status:'回程中'},
+  ]
+};
+DATA.shelter_mgt={
+  title:'安置收容與清修動態',
+  currentMode:'應急慰問金發放模式',
+  modes:['安心家訪模式','應急慰問金發放模式','清掃與修繕模式'],
+  records:[
+    {id:'R001',shelter:'竹崎國小',    evacueeCount:187,reliefStatus:'已發放應急金',cleanStatus:'待清掃'},
+    {id:'R002',shelter:'梅山國小',    evacueeCount:143,reliefStatus:'審核中',      cleanStatus:'修繕規劃中'},
+    {id:'R003',shelter:'大埔活動中心',evacueeCount:61, reliefStatus:'已發放應急金',cleanStatus:'清掃完成'},
+  ]
+};
+var ORGANIZATIONAL_ZONES=[
+  {zone:'本會應變中心',mapping:'綜理全台運作'},
+  {zone:'北部作業區',  mapping:'北區(北一、二、三)、桃園、新竹'},
+  {zone:'中部作業區',  mapping:'苗栗、中區(中區、港區)、彰化、南投'},
+  {zone:'南部作業區',  mapping:'雲林、嘉義、台南、高雄、屏東'},
+  {zone:'東部作業區',  mapping:'宜蘭、花東'},
+];
 function renderStats(){
   for(var i=0;i<DATA.stats.length;i++) renderSingleStat(i);
   saveData();
@@ -1740,6 +1822,10 @@ const NAV_CFG=[
   {id:'vms',icon:'👥',label:'志工管理與報告',tag:null,roles:['admin','staff']},
   {id:'admin',icon:'🔧',label:'後台維運',tag:'admin',roles:['admin']},
   {id:'permissions',icon:'🛡',label:'功能後台',tag:'admin',roles:['admin']},
+  {id:'case_mgt',   icon:'🗂️',label:'個案管理系統',tag:'limb',roles:['admin','staff']},
+  {id:'care_rec',   icon:'💚',label:'關懷行動紀錄',tag:'limb',roles:['admin','staff']},
+  {id:'warehouse',  icon:'📦',label:'物資倉儲管理',tag:'limb',roles:['admin','logistics']},
+  {id:'shelter_mgt',icon:'🏕️',label:'安置收容管理',tag:'limb',roles:['admin','staff','logistics']},
 ];
 const GROUPS=[
   {id:'medical',icon:'🏥',name:'醫護組',email:'medical@tzuchi-chiayi.org.tw',linked:true,line:'@tzuchi-medical'},
@@ -1762,6 +1848,7 @@ function renderNav(){
     var tag='';
     if(item.tag==='core') tag='<span class="ni-tag tag-core">核心</span>';
     if(item.tag==='admin') tag='<span class="ni-tag tag-admin">admin</span>';
+    if(item.tag==='limb') tag='<span class="ni-tag" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)">象腿</span>';
     el.innerHTML='<span class="ni-icon">'+item.icon+'</span><span class="ni-label">'+item.label+'</span>'+tag;
     if(ok) el.onclick=(function(id){return function(){showPage(id);};})(item.id);
     nav.appendChild(el);
@@ -1787,6 +1874,11 @@ function showPage(id){
     if(su) su.value=DATA.field.sheetUrl||'';
   }
   if(id==='permissions'){renderPermMatrix();renderAPIRows();}
+  if(id==='case_mgt') renderCaseMgt();
+  if(id==='care_rec') renderCareRec();
+  if(id==='warehouse') renderWarehouse();
+  if(id==='shelter_mgt') renderShelterMgt();
+  if(id==='admin') renderOrgZones();
   const ebw=document.getElementById('edit-btn-wrap');
   if(ebw) ebw.style.display=(id==='dashboard'&&role==='admin')?'block':'none';
 }
@@ -1837,6 +1929,8 @@ function closeOverlay(){
 function updateFooter(){
   const f=document.getElementById('footer-mode');
   if(f) f.textContent=(state==='war'?'simplified':'full')+' · '+(state==='war'?'wartime':'peacetime');
+  var ph=document.getElementById('footer-phil');
+  if(ph) ph.textContent=CONFIG.philosophicalCore||CONFIG_DEFAULTS.philosophicalCore;
 }
 
 // ── GMAIL / LINE ──
@@ -1940,6 +2034,10 @@ const MODULES_PEACE = [
   {id:'vms',        name:'志工管理報告', desc:'人員資料 · 任務指派 · 報告',   icon:'👥'},
   {id:'admin',      name:'後台維運',      desc:'Gmail · Line OA · 版本控制',   icon:'🔧'},
   {id:'permissions',name:'功能後台',      desc:'角色設定 · API · 權限矩陣',    icon:'🛡'},
+  {id:'case_mgt',   name:'個案管理系統', desc:'個案訪視 · 動線規劃',          icon:'🗂️'},
+  {id:'care_rec',   name:'關懷行動紀錄', desc:'四大關懷面向 · 餐食彙整',      icon:'💚'},
+  {id:'warehouse',  name:'物資倉儲管理', desc:'三級分類 · 大車物流',          icon:'📦'},
+  {id:'shelter_mgt',name:'安置收容管理', desc:'災民造冊 · 模式切換',          icon:'🏕️'},
 ];
 const MODULES_WAR = [
   {id:'w-dashboard', name:'戰時儀表板',   desc:'精簡版即時災情',              icon:'⚡'},
@@ -1948,6 +2046,10 @@ const MODULES_WAR = [
   {id:'w-logistics', name:'補給回報',      desc:'便當/飲水/物資一鍵回報',      icon:'🍱'},
   {id:'w-scenario',  name:'情境模擬器',   desc:'五種災型 · 變化球切換',       icon:'🎯'},
   {id:'w-map',       name:'地圖進度',      desc:'避難路線 · 物資投放',         icon:'🗺️'},
+  {id:'case_mgt',   name:'個案管理(戰時)', desc:'唯讀鎖定 · 動線凍結',         icon:'🗂️'},
+  {id:'care_rec',   name:'關懷紀錄(戰時)', desc:'唯讀鎖定 · 即時回報',         icon:'💚'},
+  {id:'warehouse',  name:'倉儲管理(戰時)', desc:'三級分類緊急模式',            icon:'📦'},
+  {id:'shelter_mgt',name:'收容管理(戰時)', desc:'造冊優先 · 唯讀資料',         icon:'🏕️'},
 ];
 
 // Role definitions — stored here, editable via UI
@@ -2891,6 +2993,116 @@ function dispatchHotfix(){
 // ══════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════
+function renderCaseMgt(){
+  var el=document.getElementById('case-mgt-content'); if(!el) return;
+  var d=DATA.case_mgt;
+  var stColor={'待訪視':'badge-amber','訪視中':'badge-blue','已完成':'badge-green'};
+  var html='<div class="card"><div class="card-title">🗂️ '+d.title+'</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px;font-family:monospace">📍 '+d.addrNote+'</div>'
+    +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>地址</th><th>動線</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  for(var i=0;i<d.items.length;i++){
+    var it=d.items[i];
+    html+='<tr><td class="sh-time">'+it.caseId+'</td><td style="font-weight:500">'+it.name+'</td>'
+      +'<td style="font-size:11px">'+it.address+'</td>'
+      +'<td><span class="badge badge-purple">'+it.route+'</span></td>'
+      +'<td><span class="badge '+(stColor[it.status]||'badge-blue')+'">'+it.status+'</span></td>'
+      +'<td><button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="toast(\'📋 '+it.caseId+' 訪視紀錄已開啟\')">紀錄</button></td></tr>';
+  }
+  html+='</tbody></table>'
+    +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
+  el.innerHTML=html;
+}
+function renderCareRec(){
+  var el=document.getElementById('care-rec-content'); if(!el) return;
+  var d=DATA.care_rec;
+  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">'
+    +'<div class="stat-card green" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">線上關懷</div><div class="stat-val">'+d.stats.online+'</div><div class="stat-sub">戶</div></div>'
+    +'<div class="stat-card blue" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">訪視關懷</div><div class="stat-val">'+d.stats.visit+'</div><div class="stat-sub">戶</div></div>'
+    +'<div class="stat-card amber" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">定點供餐</div><div class="stat-val">'+d.stats.fixedPointMeals+'</div><div class="stat-sub">份</div></div>'
+    +'</div>'
+    +'<div class="card"><div class="card-title">💚 '+d.title+'</div>'
+    +'<table class="tbl"><thead><tr><th>面向</th><th>對象</th><th>摘要</th><th>紀錄人</th></tr></thead><tbody>';
+  var tColor={'訪視關懷':'badge-blue','線上關懷':'badge-green','定點關懷':'badge-amber','法訊關懷':'badge-purple'};
+  for(var i=0;i<d.logs.length;i++){
+    var lg=d.logs[i];
+    html+='<tr><td><span class="badge '+(tColor[lg.type]||'badge-blue')+'">'+lg.type+'</span></td>'
+      +'<td style="font-weight:500">'+lg.target+'</td><td style="font-size:11px">'+lg.summary+'</td>'
+      +'<td style="font-size:11px;color:var(--text3)">'+lg.recorder+'</td></tr>';
+  }
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+function renderWarehouse(){
+  var el=document.getElementById('warehouse-content'); if(!el) return;
+  var d=DATA.warehouse;
+  var stColor={'配送中':'badge-blue','待命':'badge-amber','回程中':'badge-green'};
+  var html='<div class="card"><div class="card-title">📦 '+d.title+'</div>'
+    +'<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r-sm);padding:9px 12px;font-size:11px;color:var(--green);font-weight:500;margin-bottom:12px">✓ '+d.classification+'</div>'
+    +'<table class="tbl"><thead><tr><th>車輛</th><th>駕駛</th><th>物流動線</th><th>狀態</th></tr></thead><tbody>';
+  for(var i=0;i<d.trucks.length;i++){
+    var t=d.trucks[i];
+    html+='<tr><td style="font-weight:600">🚛 '+t.truckId+'</td><td>'+t.driver+'</td>'
+      +'<td style="font-size:11px;font-family:monospace">'+t.route+'</td>'
+      +'<td><span class="badge '+(stColor[t.status]||'badge-blue')+'">'+t.status+'</span></td></tr>';
+  }
+  html+='</tbody></table>'
+    +'<button class="btn btn-amber" style="margin-top:12px" onclick="toast(\'🚛 大車調度請求已送出（演練模擬）\')">＋ 申請大車調度</button></div>';
+  el.innerHTML=html;
+}
+function renderShelterMgt(){
+  var el=document.getElementById('shelter-mgt-content'); if(!el) return;
+  var d=DATA.shelter_mgt;
+  var modeBtns='';
+  for(var i=0;i<d.modes.length;i++){
+    var m=d.modes[i];
+    var sel=(m===d.currentMode);
+    modeBtns+='<button class="war-sub'+(sel?' sel':'')+'" onclick="switchShelterMode('+i+')">'+m+'</button>';
+  }
+  var html='<div class="card"><div class="card-title">🏕️ '+d.title+'</div>'
+    +'<div class="war-sub-lbl">作業模式切換：</div>'
+    +'<div class="dflex gap6 fwrap" style="margin-bottom:14px">'+modeBtns+'</div>'
+    +'<table class="tbl"><thead><tr><th>編號</th><th>收容所</th><th>收容人數</th><th>慰問金</th><th>清修狀態</th></tr></thead><tbody>';
+  var rColor={'已發放應急金':'badge-green','審核中':'badge-amber'};
+  var cColor={'清掃完成':'badge-green','待清掃':'badge-amber','修繕規劃中':'badge-blue'};
+  for(var i=0;i<d.records.length;i++){
+    var r=d.records[i];
+    html+='<tr><td class="sh-time">'+r.id+'</td><td style="font-weight:500">'+r.shelter+'</td>'
+      +'<td style="font-family:monospace">'+r.evacueeCount+' 人</td>'
+      +'<td><span class="badge '+(rColor[r.reliefStatus]||'badge-blue')+'">'+r.reliefStatus+'</span></td>'
+      +'<td><span class="badge '+(cColor[r.cleanStatus]||'badge-blue')+'">'+r.cleanStatus+'</span></td></tr>';
+  }
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+function switchShelterMode(i){
+  DATA.shelter_mgt.currentMode=DATA.shelter_mgt.modes[i];
+  renderShelterMgt();
+  logSys('info','【收容管理】作業模式切換為：'+DATA.shelter_mgt.currentMode);
+  toast('✓ 已切換至「'+DATA.shelter_mgt.currentMode+'」');
+}
+function renderOrgZones(){
+  var el=document.getElementById('org-zones-content'); if(!el) return;
+  var html='<table class="tbl"><thead><tr><th>作業區</th><th>對應地方應變中心</th></tr></thead><tbody>';
+  for(var i=0;i<ORGANIZATIONAL_ZONES.length;i++){
+    var z=ORGANIZATIONAL_ZONES[i];
+    html+='<tr><td style="font-weight:600">'+z.zone+'</td><td style="font-size:11px">'+z.mapping+'</td></tr>';
+  }
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+function dispatchDynamicRoutePermission(routeId,volunteerGroupId,permLevel){
+  if(role!=='admin'&&role!=='it'){toast('⚠ 僅總控或 IT 可執行中樞神經指揮');return;}
+  var key='ROUTE-KEY-'+Date.now().toString(36).toUpperCase();
+  logSys('ok','【中樞神經】動線 '+routeId+' 已隔離個資，並核發 '+permLevel+' 權限予 '+volunteerGroupId+'（金鑰 '+key+'）');
+  toast('🔑 動線 '+routeId+' 臨時金鑰已核發，Line OA 已推播 '+volunteerGroupId);
+}
+function execDynamicDispatch(){
+  var r=document.getElementById('ddr-route').value;
+  var g=document.getElementById('ddr-group').value;
+  var p=document.getElementById('ddr-perm').value;
+  dispatchDynamicRoutePermission(r,g,p);
+}
+
 loadData();
 initConfig();
 renderAll();
