@@ -195,6 +195,7 @@ body.nav-collapsed .main{margin-left:0}
 .btn-blue{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue)}
 .btn-amber{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber)}
 .btn-purple{background:var(--purple-bg);border-color:var(--purple-border);color:var(--purple)}
+.btn-red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
 .btn-ghost{background:transparent;border-color:var(--border2);color:var(--text2)}
 .btn-ghost:hover{background:var(--bg3);color:var(--text)}
 .btn-xs{padding:2px 8px;font-size:10px}
@@ -1261,6 +1262,39 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 <div class="page" id="page-shelter_mgt">
   <div class="pg-hdr"><div><div class="pg-title">🏕️ 安置收容管理</div><div class="pg-sub">災民造冊 · 慰問金 · 清掃修繕</div></div></div>
   <div id="shelter-mgt-content"></div>
+</div>
+
+<!-- ══ 民眾求助通報（災民端入口 + 收件匣）══ -->
+<div class="page" id="page-relief_req">
+  <div class="pg-hdr"><div><div class="pg-title">🆘 民眾求助通報</div><div class="pg-sub">受災民眾自主報案 · 收件匣 → 一鍵轉即時調度中台</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="rrtab-inbox" onclick="setReliefTab('inbox')">📥 求助收件匣</button>
+    <button class="btn btn-ghost" id="rrtab-map" onclick="setReliefTab('map')">🗺️ 受困分佈</button>
+    <button class="btn btn-ghost" id="rrtab-form" onclick="setReliefTab('form')">📱 民眾填報預覽</button>
+  </div>
+  <div id="relief-req-content"></div>
+</div>
+
+<!-- ══ 跨單位資源協調台 ══ -->
+<div class="page" id="page-coord">
+  <div class="pg-hdr"><div><div class="pg-title">🤝 跨單位資源協調台</div><div class="pg-sub">政府 · NGO · 企業 · 宮廟橫向協調 · 避免物資重複與遺漏</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="cotab-match" onclick="setCoordTab('match')">🔗 缺口媒合看板</button>
+    <button class="btn btn-ghost" id="cotab-partner" onclick="setCoordTab('partner')">🏢 外部單位資源</button>
+    <button class="btn btn-ghost" id="cotab-zone" onclick="setCoordTab('zone')">📍 村里責任分區</button>
+  </div>
+  <div id="coord-content"></div>
+</div>
+
+<!-- ══ 災後重建與長期陪伴 ══ -->
+<div class="page" id="page-rebuild">
+  <div class="pg-hdr"><div><div class="pg-title">🏠 災後重建與長期陪伴</div><div class="pg-sub">緊急安置 → 組合屋 → 修繕 → 重建 · 中長期心理重建追蹤</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="rbtab-progress" onclick="setRebuildTab('progress')">🏗️ 重建進度</button>
+    <button class="btn btn-ghost" id="rbtab-care" onclick="setRebuildTab('care')">💚 長期關懷排程</button>
+    <button class="btn btn-ghost" id="rbtab-psych" onclick="setRebuildTab('psych')">🧠 心理重建追蹤</button>
+  </div>
+  <div id="rebuild-content"></div>
 </div>
 
 <!-- WARTIME SCENARIO OVERLAY -->
@@ -3315,6 +3349,51 @@ const DATA = {
   },
 };
 
+// ── 民眾求助通報（災民端）種子資料 ──
+DATA.relief_req = {
+  title: '民眾求助通報收件匣',
+  requests: [
+    {id:'SOS-2041', time:'14:38', type:'搶救', name:'王○○', phone:'09**-***-218', location:'竹崎鄉緞繻村3鄰', people:2, desc:'土石滑落，2人受困一樓，後門被堵', status:'待處理', dup:false},
+    {id:'SOS-2040', time:'14:31', type:'醫療', name:'陳○○', phone:'09**-***-077', location:'梅山鄉太平村活動中心旁', people:1, desc:'長者疑似中風，意識不清，需救護後送', status:'待處理', dup:false},
+    {id:'SOS-2039', time:'14:20', type:'收容', name:'林○○', phone:'09**-***-455', location:'大埔鄉和平村', people:5, desc:'住屋進水無法居住，一家5口含2幼童需安置', status:'已轉派', dup:false, taskRef:'已建任務'},
+    {id:'SOS-2038', time:'14:12', type:'物資', name:'吳○○', phone:'09**-***-301', location:'竹崎鄉文峰村', people:4, desc:'斷水斷糧逾一日，需飲用水與乾糧', status:'處理中', dup:false},
+    {id:'SOS-2037', time:'14:05', type:'搶救', name:'王○○', phone:'09**-***-218', location:'竹崎鄉緞繻村3鄰', people:2, desc:'（系統偵測：與 SOS-2041 同號碼同地點，疑似重複）', status:'待處理', dup:true},
+  ]
+};
+// ── 跨單位資源協調台 種子資料 ──
+DATA.coord = {
+  title: '跨單位資源協調',
+  partners: [
+    {id:'P01', name:'嘉義縣政府社會局', type:'政府', contact:'05-362****', offers:[{cat:'場地',item:'臨時收容所',qty:'3 處',status:'可調用'},{cat:'人力',item:'社工',qty:'8 人',status:'可調用'}]},
+    {id:'P02', name:'中華民國紅十字會', type:'NGO', contact:'02-2362****', offers:[{cat:'物資',item:'賑濟包',qty:'500 份',status:'運送中'},{cat:'人力',item:'尋人志工',qty:'12 人',status:'可調用'}]},
+    {id:'P03', name:'統一企業', type:'企業', contact:'06-253****', offers:[{cat:'物資',item:'飲用水',qty:'2000 箱',status:'可調用'},{cat:'物資',item:'即食餐',qty:'800 箱',status:'待確認'}]},
+    {id:'P04', name:'梅山玉虛宮', type:'宮廟', contact:'05-262****', offers:[{cat:'場地',item:'香客大樓床位',qty:'120 床',status:'可調用'},{cat:'人力',item:'香積志工',qty:'20 人',status:'可調用'}]},
+  ],
+  zones: [
+    {village:'竹崎鄉緞繻村', owner:'慈濟', status:'已認領'},
+    {village:'竹崎鄉文峰村', owner:'紅十字會', status:'已認領'},
+    {village:'梅山鄉太平村', owner:'', status:'未認領'},
+    {village:'梅山鄉太興村', owner:'慈濟 / 縣府社會局', status:'重複'},
+    {village:'大埔鄉和平村', owner:'慈濟', status:'已認領'},
+    {village:'大埔鄉同仁村', owner:'', status:'未認領'},
+  ],
+  matches: [
+    {need:'梅山收容所 飲用水 80 箱', needBy:'今日 18:00', supplyFrom:'統一企業（2000 箱可調）', status:'待媒合'},
+    {need:'大埔 老人照護人力 6 人', needBy:'今日 16:00', supplyFrom:'縣府社會局社工 8 人', status:'已媒合'},
+    {need:'太平村 臨時床位 50', needBy:'今晚', supplyFrom:'梅山玉虛宮 120 床', status:'待媒合'},
+  ]
+};
+// ── 災後重建與長期陪伴 種子資料 ──
+DATA.rebuild = {
+  title: '災後重建與長期陪伴',
+  phases: ['緊急安置','組合屋','修繕中','重建完成'],
+  households: [
+    {caseId:'RB-018', name:'林○○一家', addr:'大埔鄉和平村', phase:'緊急安置', pct:15, lastVisit:'06-21', longCare:true, psych:'焦慮'},
+    {caseId:'RB-015', name:'張○○', addr:'竹崎鄉緞繻村', phase:'組合屋', pct:45, lastVisit:'06-19', longCare:true, psych:'穩定'},
+    {caseId:'RB-009', name:'黃○○夫婦', addr:'梅山鄉太平村', phase:'修繕中', pct:70, lastVisit:'06-20', longCare:false, psych:'穩定'},
+    {caseId:'RB-003', name:'吳○○', addr:'竹崎鄉文峰村', phase:'重建完成', pct:100, lastVisit:'06-18', longCare:true, psych:'需持續關懷'},
+  ]
+};
 // ── IT 待辦需求預設資料（從 UI 測試審計結果初始化）──
 DATA.devTasks = [
   {id:'dt1',  pri:'hi', mod:'dashboard', title:'儀表板 SOS 按鈕消失：需加「→ 前往緊急 tab」快捷鈕，呼叫 showPage(\'rtsync\') + setRTTab(\'emergency\')', assignee:'', done:false, created:'2026-06-22'},
@@ -4191,9 +4270,11 @@ RTDB.seed(RTDB_SEED);
 const NAV_CFG=[
   {id:'dashboard',  icon:'📊',label:'總控儀表板',    tag:'core', group:'L1 戰情指揮',roles:['admin','it','staff','logistics']},
   {id:'monitor',    icon:'🖥️',label:'全域監控',      tag:'core', group:'L1 戰情指揮',roles:['admin','it']},
+  {id:'coord',      icon:'🤝',label:'跨單位資源協調',tag:'core', group:'L1 戰情指揮',roles:['admin','it','staff']},
   {id:'permissions',icon:'🛡',label:'功能後台',      tag:'admin',group:'L1 戰情指揮',roles:['admin']},
   {id:'admin',      icon:'🔧',label:'後台維運',      tag:'admin',group:'L1 戰情指揮',roles:['admin']},
   {id:'rtsync',     icon:'⚡',label:'即時調度中台',  tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
+  {id:'relief_req', icon:'🆘',label:'民眾求助通報',  tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
   {id:'reg',        icon:'📋',label:'志工報名與報到',tag:'core', group:'L2 任務調度',roles:['admin','staff']},
   {id:'sheet_reg',  icon:'📊',label:'報名資料總表',  tag:'core', group:'L2 任務調度',roles:['admin','staff']},
   {id:'vms',        icon:'👥',label:'志工管理與報告',tag:null,   group:'L2 任務調度',roles:['admin','staff']},
@@ -4204,6 +4285,7 @@ const NAV_CFG=[
   {id:'shelter_mgt',icon:'🏕️',label:'安置收容管理',  tag:'limb', group:'L3 現場執行',roles:['admin','staff','logistics']},
   {id:'case_mgt',   icon:'🗂️',label:'個案管理系統',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
   {id:'care_rec',   icon:'💚',label:'關懷行動紀錄',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
+  {id:'rebuild',    icon:'🏠',label:'災後重建與陪伴',tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
   {id:'assets',     icon:'🛏',label:'慈濟資產調度',  tag:'limb', group:'L3 現場執行',roles:['admin','logistics']},
   {id:'arch_doc',   icon:'🗺️',label:'系統架構說明',  tag:'doc',  group:'📐 架構文件',roles:['admin','it']},
 ];
@@ -4318,6 +4400,9 @@ function showPage(id){
   if(id==='care_rec') renderCareRec();
   if(id==='warehouse') renderWarehouse();
   if(id==='shelter_mgt') renderShelterMgt();
+  if(id==='relief_req') renderReliefReq();
+  if(id==='coord') renderCoord();
+  if(id==='rebuild') renderRebuild();
   if(id==='line_oa') renderLineOA();
   if(id==='sheet_reg') renderSheetReg();
   if(id==='drive') renderDrive();
@@ -5245,6 +5330,9 @@ const MODULES_PEACE = [
   {id:'care_rec',   name:'關懷行動紀錄', desc:'四大關懷面向 · 餐食彙整',      icon:'💚'},
   {id:'warehouse',  name:'物資倉儲管理', desc:'三級分類 · 大車物流',          icon:'📦'},
   {id:'shelter_mgt',name:'安置收容管理', desc:'災民造冊 · 模式切換',          icon:'🏕️'},
+  {id:'relief_req', name:'民眾求助通報', desc:'災民自主報案 · 轉派調度',      icon:'🆘'},
+  {id:'coord',      name:'跨單位資源協調',desc:'外部單位 · 缺口媒合 · 分區',  icon:'🤝'},
+  {id:'rebuild',    name:'災後重建與陪伴',desc:'重建進度 · 長期關懷 · 心理',  icon:'🏠'},
 ];
 const MODULES_WAR = [
   {id:'w-dashboard', name:'戰時儀表板',   desc:'精簡版即時災情',              icon:'⚡'},
@@ -6351,7 +6439,7 @@ function saveSimEdit(){
 
 
 // ── PERSIST DATA to localStorage ──
-var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','case_mgt','care_rec','shelter_mgt','registry','devTasks'];
+var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','case_mgt','care_rec','shelter_mgt','registry','devTasks','relief_req','coord','rebuild'];
 function saveData(){
   var payload = {};
   for(var i=0;i<DATA_KEYS.length;i++) payload[DATA_KEYS[i]] = DATA[DATA_KEYS[i]];
@@ -6939,6 +7027,285 @@ function dispatchHotfix(){
 // ══════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════
+// ══════════ 民眾求助通報（災民端 + 收件匣）══════════
+var RELIEF_TAB='inbox';
+function setReliefTab(t){
+  RELIEF_TAB=t;
+  ['inbox','map','form'].forEach(function(x){var b=document.getElementById('rrtab-'+x);if(b)b.className='btn '+(x===t?'btn-blue':'btn-ghost');});
+  renderReliefReq();
+}
+function renderReliefReq(){
+  var el=document.getElementById('relief-req-content'); if(!el) return;
+  if(RELIEF_TAB==='map') el.innerHTML=renderReliefMap();
+  else if(RELIEF_TAB==='form') el.innerHTML=renderReliefForm();
+  else el.innerHTML=renderReliefInbox();
+}
+function renderReliefInbox(){
+  var d=DATA.relief_req;
+  var pend=d.requests.filter(function(r){return r.status==='待處理';}).length;
+  var sent=d.requests.filter(function(r){return r.status==='已轉派'||r.status==='處理中';}).length;
+  var dup=d.requests.filter(function(r){return r.dup&&r.status==='待處理';}).length;
+  var tColor={'搶救':'badge-red','醫療':'badge-purple','收容':'badge-blue','物資':'badge-amber'};
+  var sColor={'待處理':'badge-amber','已轉派':'badge-blue','處理中':'badge-purple','已結案':'badge-green'};
+  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">'
+    +'<div class="stat-card red" style="padding:14px;position:relative"><div class="accent-bar"></div><div class="stat-lbl">待處理求助</div><div class="stat-val">'+pend+'</div><div class="stat-sub">件</div></div>'
+    +'<div class="stat-card blue" style="padding:14px;position:relative"><div class="accent-bar"></div><div class="stat-lbl">已轉派 / 處理中</div><div class="stat-val">'+sent+'</div><div class="stat-sub">件</div></div>'
+    +'<div class="stat-card amber" style="padding:14px;position:relative"><div class="accent-bar"></div><div class="stat-lbl">疑似重複</div><div class="stat-val">'+dup+'</div><div class="stat-sub">件待覆核</div></div>'
+    +'</div>';
+  html+='<div class="card"><div class="card-title">🆘 '+d.title+'（依時間排序）</div>'
+    +'<table class="tbl"><thead><tr><th>單號</th><th>時間</th><th>類型</th><th>通報人</th><th>位置</th><th>人數</th><th>描述</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  for(var i=0;i<d.requests.length;i++){
+    var r=d.requests[i];
+    html+='<tr'+(r.dup&&r.status==='待處理'?' style="background:var(--amber-bg)"':'')+'>'
+      +'<td class="sh-time">'+r.id+'</td><td class="sh-time">'+r.time+'</td>'
+      +'<td><span class="badge '+(tColor[r.type]||'badge-blue')+'">'+r.type+'</span></td>'
+      +'<td>'+r.name+'<div style="font-size:9px;color:var(--text4);font-family:monospace">'+r.phone+'</div></td>'
+      +'<td style="font-size:11px">'+r.location+'</td>'
+      +'<td style="text-align:center;font-weight:600">'+r.people+'</td>'
+      +'<td style="font-size:11px;max-width:210px">'+r.desc+'</td>'
+      +'<td><span class="badge '+(sColor[r.status]||'badge-amber')+'">'+r.status+'</span></td><td>';
+    if(r.status==='待處理'){
+      if(r.dup) html+='<button class="btn btn-ghost btn-xs" onclick="reliefMarkDup('+i+')">✓ 確認併單</button>';
+      else html+='<button class="btn btn-red btn-xs" onclick="reliefToDispatch('+i+')">⚡ 轉調度中台</button>';
+    } else if(r.status==='已轉派'||r.status==='處理中'){
+      html+='<button class="btn btn-green btn-xs" onclick="reliefClose('+i+')">✓ 結案</button>';
+    } else html+='<span style="font-size:9px;color:var(--text4)">✓</span>';
+    html+='</td></tr>';
+  }
+  html+='</tbody></table>'
+    +'<div style="font-size:10px;color:var(--text4);margin-top:10px">💡 「⚡ 轉調度中台」自動於即時調度中台任務池建立任務（搶救/醫療→P1、收容→P2、物資→P3），打通「民眾求助→指揮派工」的斷點。</div></div>';
+  return html;
+}
+function reliefToDispatch(i){
+  var r=DATA.relief_req.requests[i];
+  var prio={'搶救':'P1','醫療':'P1','收容':'P2','物資':'P3'}[r.type]||'P2';
+  var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  try{ if(typeof RTDB!=='undefined'&&RTDB.ref){ RTDB.ref('tasks').push({title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assignee:'',lockedBy:'',created:tm}); } }catch(e){}
+  r.status='已轉派'; r.taskRef='已建任務';
+  logSys('warn','【民眾求助】'+r.id+' 已轉即時調度中台任務池（'+prio+'）'+r.location);
+  toast('⚡ '+r.id+' 已轉調度中台（'+prio+'）');
+  renderReliefReq(); saveData();
+}
+function reliefMarkDup(i){
+  var r=DATA.relief_req.requests[i];
+  r.status='已結案'; r.desc='✓ 已確認與既有單重複，併單處理';
+  logSys('info','【民眾求助】'+r.id+' 確認重複併單');
+  toast('✓ 已併單：'+r.id); renderReliefReq(); saveData();
+}
+function reliefClose(i){
+  var r=DATA.relief_req.requests[i]; r.status='已結案';
+  logSys('ok','【民眾求助】'+r.id+' 已結案'); toast('✓ '+r.id+' 已結案');
+  renderReliefReq(); saveData();
+}
+function renderReliefMap(){
+  var d=DATA.relief_req, byArea={};
+  d.requests.forEach(function(r){
+    if(r.status==='已結案') return;
+    var a=r.location.substring(0,3);
+    if(!byArea[a]) byArea[a]={count:0,people:0,types:{}};
+    byArea[a].count++; byArea[a].people+=r.people; byArea[a].types[r.type]=(byArea[a].types[r.type]||0)+1;
+  });
+  var html='<div class="card"><div class="card-title">🗺️ 受困 / 求助分佈（未結案）</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">依通報位置鄉鎮彙整，供指揮端判斷熱區與資源投放。實際 GIS 圖層待接 NCDR / Google Maps。</div>';
+  var areas=Object.keys(byArea);
+  if(!areas.length) html+='<div style="text-align:center;color:var(--text4);padding:20px">目前無未結案求助</div>';
+  areas.sort(function(a,b){return byArea[b].count-byArea[a].count;}).forEach(function(a){
+    var info=byArea[a], tlist=Object.keys(info.types).map(function(k){return k+'×'+info.types[k];}).join(' · ');
+    html+='<div style="display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:8px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:var(--r-sm)">'
+      +'<div style="font-size:20px">📍</div><div style="flex:1"><div style="font-weight:700">'+a+'</div><div style="font-size:11px;color:var(--text4)">'+tlist+'</div></div>'
+      +'<div style="text-align:right"><div style="font-size:18px;font-weight:800;color:var(--red)">'+info.count+'</div><div style="font-size:10px;color:var(--text4)">件 · '+info.people+' 人</div></div></div>';
+  });
+  html+='</div>';
+  return html;
+}
+function renderReliefForm(){
+  return '<div class="card"><div class="card-title">📱 民眾求助填報表單（公開頁預覽）</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:14px">受災民眾掃 QR / 點 Line 連結即可填報，免登入。送出後自動進入「求助收件匣」。下方為手機端畫面預覽，按「送出」可模擬收到一筆通報。</div>'
+    +'<div class="phone-frame" style="max-width:340px;margin:0 auto">'
+    +'<div class="phone-bar"><span>🆘</span><span>慈濟災害求助通報</span><span style="margin-left:auto;color:var(--red);font-size:10px;font-weight:600">緊急</span></div>'
+    +'<div class="phone-body" style="padding:16px">'
+    +'<div style="font-size:12px;font-weight:700;margin-bottom:8px">您現在需要哪種協助？</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
+    +'<button class="btn btn-red btn-xs" style="justify-content:center">🚨 受困搶救</button><button class="btn btn-purple btn-xs" style="justify-content:center">🏥 緊急醫療</button>'
+    +'<button class="btn btn-blue btn-xs" style="justify-content:center">🏕️ 需要安置</button><button class="btn btn-amber btn-xs" style="justify-content:center">📦 物資需求</button></div>'
+    +'<div class="iep-lbl" style="margin-top:0">您的位置（可自動定位）</div><input class="inp" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:12px">'
+    +'<div class="iep-lbl">受困 / 需協助人數</div><input class="inp" placeholder="例：2" style="font-size:12px">'
+    +'<div class="iep-lbl">狀況描述</div><textarea class="inp" placeholder="簡述現場狀況" style="min-height:54px;font-size:12px"></textarea>'
+    +'<div class="iep-lbl">聯絡電話</div><input class="inp" placeholder="09xx-xxx-xxx" style="font-size:12px">'
+    +'<button class="btn btn-red" style="width:100%;justify-content:center;margin-top:12px" onclick="reliefSimSubmit()">🆘 送出求助</button>'
+    +'<div style="font-size:9px;color:var(--text4);text-align:center;margin-top:8px">送出即同意慈濟基金會為救災目的使用您的資料</div>'
+    +'</div></div></div>';
+}
+function reliefSimSubmit(){
+  var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  DATA.relief_req.requests.unshift({id:'SOS-'+(2042+Math.floor(Math.random()*900)),time:tm,type:'物資',name:'民眾○○',phone:'09**-***-'+Math.floor(100+Math.random()*899),location:'竹崎鄉（演練模擬填報）',people:1+Math.floor(Math.random()*4),desc:'演練模擬：民眾自主填報之求助案件',status:'待處理',dup:false});
+  logSys('info','【民眾求助】收到新求助通報（演練模擬填報）');
+  toast('🆘 已收到一筆民眾求助 → 請至收件匣處理');
+  setReliefTab('inbox'); saveData();
+}
+
+// ══════════ 跨單位資源協調台 ══════════
+var COORD_TAB='match';
+function setCoordTab(t){
+  COORD_TAB=t;
+  ['match','partner','zone'].forEach(function(x){var b=document.getElementById('cotab-'+x);if(b)b.className='btn '+(x===t?'btn-blue':'btn-ghost');});
+  renderCoord();
+}
+function renderCoord(){
+  var el=document.getElementById('coord-content'); if(!el) return;
+  if(COORD_TAB==='partner') el.innerHTML=renderCoordPartner();
+  else if(COORD_TAB==='zone') el.innerHTML=renderCoordZone();
+  else el.innerHTML=renderCoordMatch();
+}
+function renderCoordMatch(){
+  var d=DATA.coord, sColor={'待媒合':'badge-amber','已媒合':'badge-green'};
+  var html='<div class="card"><div class="card-title">🔗 我方缺口 ↔ 外部供給 媒合看板</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">把現場缺口對接到已登錄的外部資源，避免重複叫料、減少物資錯置（莫拉克最大教訓）。</div>'
+    +'<table class="tbl"><thead><tr><th>我方需求</th><th>時限</th><th>可媒合來源</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  for(var i=0;i<d.matches.length;i++){
+    var m=d.matches[i];
+    html+='<tr><td style="font-weight:500">'+m.need+'</td><td style="font-size:11px;color:var(--amber)">'+m.needBy+'</td>'
+      +'<td style="font-size:11px">'+m.supplyFrom+'</td><td><span class="badge '+(sColor[m.status]||'badge-amber')+'">'+m.status+'</span></td>'
+      +'<td>'+(m.status==='待媒合'?'<button class="btn btn-blue btn-xs" onclick="coordMatch('+i+')">🤝 確認媒合</button>':'<span style="font-size:9px;color:var(--text4)">✓ 已對接</span>')+'</td></tr>';
+  }
+  html+='</tbody></table></div>'
+    +'<div class="card" style="margin-top:14px;border:1px dashed var(--blue-border)"><div class="card-title">🏛️ 政府 EMIC 對接（規劃中）</div>'
+    +'<div style="font-size:11px;color:var(--text4)">未來與消防署 EMIC 災害應變系統雙向交換災情與資源資料。目前為預留接口，待政府端開放 API。</div></div>';
+  return html;
+}
+function coordMatch(i){
+  var m=DATA.coord.matches[i]; m.status='已媒合';
+  logSys('ok','【跨單位協調】已媒合：'+m.need+' ← '+m.supplyFrom);
+  toast('🤝 已確認媒合'); renderCoord(); saveData();
+}
+function renderCoordPartner(){
+  var d=DATA.coord, tColor={'政府':'badge-blue','NGO':'badge-purple','企業':'badge-amber','宮廟':'badge-green'};
+  var oColor={'可調用':'badge-green','運送中':'badge-blue','待確認':'badge-amber'};
+  var html='<div class="card"><div class="card-title">🏢 外部單位可提供資源</div>';
+  for(var i=0;i<d.partners.length;i++){
+    var p=d.partners[i];
+    html+='<div style="padding:12px;margin-bottom:10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm)">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="badge '+(tColor[p.type]||'badge-blue')+'">'+p.type+'</span>'
+      +'<span style="font-weight:700">'+p.name+'</span><span style="margin-left:auto;font-size:10px;color:var(--text4);font-family:monospace">☎ '+p.contact+'</span></div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    p.offers.forEach(function(o){
+      html+='<span style="font-size:11px;padding:4px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm)">'+o.cat+'：'+o.item+' <b>'+o.qty+'</b> <span class="badge '+(oColor[o.status]||'badge-amber')+'" style="margin-left:4px">'+o.status+'</span></span>';
+    });
+    html+='</div></div>';
+  }
+  html+='<button class="btn btn-blue" style="margin-top:6px" onclick="toast(\'＋ 登錄外部單位資源（演練模擬）\')">＋ 登錄外部單位</button></div>';
+  return html;
+}
+function renderCoordZone(){
+  var d=DATA.coord, sColor={'已認領':'badge-green','未認領':'badge-amber','重複':'badge-red'};
+  var html='<div class="card"><div class="card-title">📍 村里責任分區（避免重複與遺漏）</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">每個村里由單一單位主責。<span style="color:var(--red)">紅＝多單位重疊</span>（物資爆量風險）；<span style="color:var(--amber)">黃＝尚無單位認領</span>（遺漏風險）。</div>'
+    +'<table class="tbl"><thead><tr><th>村里</th><th>主責單位</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  for(var i=0;i<d.zones.length;i++){
+    var z=d.zones[i];
+    html+='<tr><td style="font-weight:500">'+z.village+'</td><td>'+(z.owner||'<span style="color:var(--text4)">—</span>')+'</td>'
+      +'<td><span class="badge '+(sColor[z.status]||'badge-amber')+'">'+z.status+'</span></td>'
+      +'<td>'+(z.status==='未認領'?'<button class="btn btn-green btn-xs" onclick="coordClaim('+i+')">✋ 認領</button>':z.status==='重複'?'<button class="btn btn-amber btn-xs" onclick="coordResolveDup('+i+')">⚖ 協調主責</button>':'<span style="font-size:9px;color:var(--text4)">✓</span>')+'</td></tr>';
+  }
+  html+='</tbody></table></div>';
+  return html;
+}
+function coordClaim(i){
+  var z=DATA.coord.zones[i]; z.owner='慈濟'; z.status='已認領';
+  logSys('ok','【跨單位協調】認領村里：'+z.village); toast('✋ 已認領：'+z.village);
+  renderCoord(); saveData();
+}
+function coordResolveDup(i){
+  var z=DATA.coord.zones[i]; z.owner='慈濟（主責）'; z.status='已認領';
+  logSys('warn','【跨單位協調】重疊區協調完成，主責歸屬：'+z.village); toast('⚖ 已協調主責：'+z.village);
+  renderCoord(); saveData();
+}
+
+// ══════════ 災後重建與長期陪伴 ══════════
+var REBUILD_TAB='progress';
+function setRebuildTab(t){
+  REBUILD_TAB=t;
+  ['progress','care','psych'].forEach(function(x){var b=document.getElementById('rbtab-'+x);if(b)b.className='btn '+(x===t?'btn-blue':'btn-ghost');});
+  renderRebuild();
+}
+function renderRebuild(){
+  var el=document.getElementById('rebuild-content'); if(!el) return;
+  if(REBUILD_TAB==='care') el.innerHTML=renderRebuildCare();
+  else if(REBUILD_TAB==='psych') el.innerHTML=renderRebuildPsych();
+  else el.innerHTML=renderRebuildProgress();
+}
+function renderRebuildProgress(){
+  var d=DATA.rebuild, phColor={'緊急安置':'badge-red','組合屋':'badge-amber','修繕中':'badge-blue','重建完成':'badge-green'};
+  var html='<div class="card"><div class="card-title">🏗️ '+d.title+' — 重建進度追蹤</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">承接個案管理的緊急救援，往中長期重建銜接：緊急安置 → 組合屋 → 修繕 → 重建完成（補上「緊急→重建」的斷層）。</div>'
+    +'<table class="tbl"><thead><tr><th>編號</th><th>戶別</th><th>地址</th><th>階段</th><th>進度</th><th>最近訪視</th><th>操作</th></tr></thead><tbody>';
+  for(var i=0;i<d.households.length;i++){
+    var h=d.households[i];
+    html+='<tr><td class="sh-time">'+h.caseId+'</td><td style="font-weight:500">'+h.name+'</td><td style="font-size:11px">'+h.addr+'</td>'
+      +'<td><span class="badge '+(phColor[h.phase]||'badge-blue')+'">'+h.phase+'</span></td>'
+      +'<td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;min-width:56px"><div style="height:100%;width:'+h.pct+'%;background:var(--green)"></div></div><span style="font-size:10px;font-family:monospace">'+h.pct+'%</span></div></td>'
+      +'<td class="sh-time">'+h.lastVisit+'</td>'
+      +'<td>'+(h.phase==='重建完成'?'<span style="font-size:9px;color:var(--green)">✓ 完成</span>':'<button class="btn btn-blue btn-xs" onclick="advanceRebuild('+i+')">▶ 推進階段</button>')+'</td></tr>';
+  }
+  html+='</tbody></table></div>';
+  return html;
+}
+function advanceRebuild(i){
+  var d=DATA.rebuild, h=d.households[i], idx=d.phases.indexOf(h.phase);
+  if(idx<d.phases.length-1){
+    h.phase=d.phases[idx+1];
+    h.pct=h.phase==='重建完成'?100:Math.min(95,Math.round((idx+2)/d.phases.length*100));
+    logSys('ok','【災後重建】'+h.caseId+' '+h.name+' 推進至「'+h.phase+'」');
+    toast('▶ '+h.caseId+' → '+h.phase); renderRebuild(); saveData();
+  }
+}
+function renderRebuildCare(){
+  var d=DATA.rebuild, list=d.households.filter(function(h){return h.longCare;});
+  var html='<div class="card"><div class="card-title">💚 長期關懷排程（家庭認養 / 定期訪視）</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">標記為長期陪伴的家戶，由志工定期訪視，銜接「關懷行動紀錄」。</div>';
+  if(!list.length) html+='<div style="text-align:center;color:var(--text4);padding:20px">尚無長期陪伴家戶</div>';
+  list.forEach(function(h){
+    var idx=d.households.indexOf(h);
+    html+='<div style="display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:8px;background:var(--bg2);border:1px solid var(--green-border);border-radius:var(--r-sm)">'
+      +'<div style="font-size:18px">🏠</div><div style="flex:1"><div style="font-weight:600">'+h.name+'　<span style="font-size:10px;color:var(--text4)">'+h.caseId+' · '+h.addr+'</span></div>'
+      +'<div style="font-size:11px;color:var(--text4)">階段：'+h.phase+'　最近訪視：'+h.lastVisit+'</div></div>'
+      +'<button class="btn btn-green btn-xs" onclick="rebuildSchedule('+idx+')">📅 排定訪視</button></div>';
+  });
+  html+='</div>';
+  return html;
+}
+function rebuildSchedule(i){
+  var h=DATA.rebuild.households[i];
+  var tmr=new Date(Date.now()+86400000), ds=(tmr.getMonth()+1)+'-'+('0'+tmr.getDate()).slice(-2);
+  h.lastVisit=ds;
+  if(DATA.care_rec&&DATA.care_rec.logs){
+    DATA.care_rec.logs.unshift({type:'訪視關懷',target:h.name+'（'+h.addr+'）',summary:'災後重建長期陪伴訪視已排定（'+h.phase+'）',recorder:'重建專案'});
+    if(DATA.care_rec.stats) DATA.care_rec.stats.visit++;
+  }
+  logSys('ok','【災後重建】'+h.caseId+' 已排定長期關懷訪視 → 同步關懷行動紀錄');
+  toast('📅 已排訪視並同步關懷紀錄'); renderRebuild(); saveData();
+}
+function renderRebuildPsych(){
+  var d=DATA.rebuild;
+  var html='<div class="card"><div class="card-title">🧠 心理重建追蹤</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">災後 PTSD 與心理重建為中長期重點。標記需持續關懷者，必要時轉介專業心理師。</div>'
+    +'<table class="tbl"><thead><tr><th>編號</th><th>戶別</th><th>心理狀態</th><th>長期陪伴</th><th>操作</th></tr></thead><tbody>';
+  for(var i=0;i<d.households.length;i++){
+    var h=d.households[i];
+    var pc={'穩定':'badge-green','焦慮':'badge-amber','需持續關懷':'badge-red','已轉介追蹤':'badge-blue'}[h.psych]||'badge-amber';
+    html+='<tr><td class="sh-time">'+h.caseId+'</td><td style="font-weight:500">'+h.name+'</td>'
+      +'<td><span class="badge '+pc+'">'+h.psych+'</span></td><td>'+(h.longCare?'✅':'—')+'</td>'
+      +'<td>'+((h.psych==='焦慮'||h.psych==='需持續關懷')?'<button class="btn btn-purple btn-xs" onclick="rebuildRefer('+i+')">🩺 轉介心理師</button>':'<span style="font-size:9px;color:var(--text4)">✓</span>')+'</td></tr>';
+  }
+  html+='</tbody></table></div>';
+  return html;
+}
+function rebuildRefer(i){
+  var h=DATA.rebuild.households[i]; h.psych='已轉介追蹤'; h.longCare=true;
+  logSys('warn','【心理重建】'+h.caseId+' '+h.name+' 已轉介專業心理師，納入長期陪伴');
+  toast('🩺 已轉介心理師：'+h.caseId); renderRebuild(); saveData();
+}
+
 function renderCaseMgt(){
   var el=document.getElementById('case-mgt-content'); if(!el) return;
   var d=DATA.case_mgt;
