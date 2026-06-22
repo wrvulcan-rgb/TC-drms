@@ -981,8 +981,17 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 </div>
 
 <!-- ══ 志工報名 ══ -->
-<div class="page" id="page-reg">
-  <div class="pg-hdr"><div><div class="pg-title">📋 志工報名與報到</div><div class="pg-sub">Line OA 雙面板 · 生命週期管理</div></div></div>
+<!-- ══ 志工人力中心（reg + sheet_reg + vms 三合一）══ -->
+<div class="page" id="page-vol_hub">
+  <div class="pg-hdr"><div><div class="pg-title">🧑‍🤝‍🧑 志工人力中心</div><div class="pg-sub">報名報到 · 名冊總表 · 管理指派（共用同一份 Master 名冊）</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="vhtab-checkin" onclick="setVolHubTab('checkin')">📋 報名與報到</button>
+    <button class="btn btn-ghost" id="vhtab-roster" onclick="setVolHubTab('roster')">📊 報名資料總表</button>
+    <button class="btn btn-ghost" id="vhtab-manage" onclick="setVolHubTab('manage')">👥 志工管理與指派</button>
+  </div>
+
+  <!-- 子分頁：報名與報到 -->
+  <div id="vh-checkin" class="vh-panel">
   <div style="font-size:11px;color:var(--text4);margin-bottom:10px">🔓 平行作業模式 — 以下四項可同時進行、隨時切換，不分先後順序</div>
   <div id="reg-flow-tabs" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
     <button class="btn btn-blue" id="rflow-signup" onclick="setRegFlow('signup')">📝 開啟報名</button>
@@ -1012,7 +1021,31 @@ textarea.iep-inp{resize:vertical;min-height:56px}
       </div>
     </div>
   </div>
+  </div>
 
+  <!-- 子分頁：報名資料總表（Google Sheets 對接） -->
+  <div id="vh-roster" class="vh-panel" style="display:none">
+    <div style="font-size:11px;color:var(--text4);margin-bottom:4px">Google Sheets 對接 · 慈誠委員 + 社區志工 — 與報到、管理指派共用同一份名冊</div>
+    <div id="sheet-reg-content" style="margin-top:4px"></div>
+  </div>
+
+  <!-- 子分頁：志工管理與指派 -->
+  <div id="vh-manage" class="vh-panel" style="display:none">
+    <div class="card">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input class="inp" placeholder="🔍 搜尋志工姓名" style="max-width:180px">
+        <select class="inp" style="max-width:130px"><option>全部組別</option><option>醫護組</option><option>後勤組</option></select>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>#</th><th>姓名</th><th>組別</th><th>地點</th><th>時數</th><th>狀態</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--text4);font-family:monospace">001</td><td style="font-weight:500">林○○</td><td>醫護組</td><td>竹崎收容所</td><td>16h</td><td><span class="badge badge-green">服勤中</span></td></tr>
+          <tr><td style="color:var(--text4);font-family:monospace">002</td><td style="font-weight:500">陳○○</td><td>後勤組</td><td>梅山國小</td><td>12h</td><td><span class="badge badge-green">服勤中</span></td></tr>
+          <tr><td style="color:var(--text4);font-family:monospace">003</td><td style="font-weight:500">張○○</td><td>重機具</td><td>竹崎鄉</td><td>8h</td><td><span class="badge badge-amber">待命</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- ══ 全域監控 ══ -->
@@ -1050,25 +1083,6 @@ textarea.iep-inp{resize:vertical;min-height:56px}
       <div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">Line OA 推播</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">正常</span></div>
       <div style="font-size:10px;color:var(--text4);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">⚠ 緊急操作（警報/SOS/點名）已移至「即時調度中台 → 緊急」，由現場指揮層發起</div>
     </div>
-  </div>
-</div>
-
-<!-- ══ 志工管理 ══ -->
-<div class="page" id="page-vms">
-  <div class="pg-hdr"><div><div class="pg-title">👥 志工管理與報告</div><div class="pg-sub">人員資料 · 任務指派</div></div></div>
-  <div class="card">
-    <div style="display:flex;gap:8px;margin-bottom:14px">
-      <input class="inp" placeholder="🔍 搜尋志工姓名" style="max-width:180px">
-      <select class="inp" style="max-width:130px"><option>全部組別</option><option>醫護組</option><option>後勤組</option></select>
-    </div>
-    <table class="tbl">
-      <thead><tr><th>#</th><th>姓名</th><th>組別</th><th>地點</th><th>時數</th><th>狀態</th></tr></thead>
-      <tbody>
-        <tr><td style="color:var(--text4);font-family:monospace">001</td><td style="font-weight:500">林○○</td><td>醫護組</td><td>竹崎收容所</td><td>16h</td><td><span class="badge badge-green">服勤中</span></td></tr>
-        <tr><td style="color:var(--text4);font-family:monospace">002</td><td style="font-weight:500">陳○○</td><td>後勤組</td><td>梅山國小</td><td>12h</td><td><span class="badge badge-green">服勤中</span></td></tr>
-        <tr><td style="color:var(--text4);font-family:monospace">003</td><td style="font-weight:500">張○○</td><td>重機具</td><td>竹崎鄉</td><td>8h</td><td><span class="badge badge-amber">待命</span></td></tr>
-      </tbody>
-    </table>
   </div>
 </div>
 
@@ -1400,11 +1414,6 @@ textarea.iep-inp{resize:vertical;min-height:56px}
   <div id="line-oa-content"></div>
 </div>
 
-<div class="page" id="page-sheet_reg">
-  <div class="pg-hdr"><div><div class="pg-title">📊 報名資料總表</div><div class="pg-sub">Google Sheets 對接 · 慈誠委員 + 社區志工</div></div></div>
-  <div id="sheet-reg-content" style="margin-top:4px"></div>
-</div>
-
 <div class="page" id="page-drive">
   <div class="pg-hdr"><div><div class="pg-title">📸 照片回報與自動分類</div><div class="pg-sub">Line OA 回傳 → Google Drive → 自動分類</div></div></div>
   <div id="drive-content" style="margin-top:4px"></div>
@@ -1727,7 +1736,7 @@ function renderLOACheckin(){
     +(DATA.registry.gasUrl||'⚠ 請先在後台設定 → 對外 GAS URL')+'?email=<志工信箱>'
     +'</div>';
   html+='<button class="btn btn-blue" style="width:100%;justify-content:center;font-size:12px;margin-top:10px" onclick="loaPushCheckinQR()">📲 推播 QR 至志工 Line</button>';
-  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'reg\')">↗ 前往報名管理頁</button>';
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'vol_hub\');setVolHubTab(\'checkin\')">↗ 前往報名管理頁</button>';
   return html;
 }
 function renderLOARollcall(){
@@ -1760,7 +1769,7 @@ function renderLOATask(){
       +(tk.status!=='done'?'<button class="btn btn-blue btn-xs" onclick="loaPushTask('+i+')">📲</button>':'<span style="color:var(--green);font-size:11px">✓</span>')
       +'</div>';
   }
-  html+='<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'vms\')">+ 任務管理</button>';
+  html+='<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'vol_hub\');setVolHubTab(\'manage\')">+ 任務管理</button>';
   return html;
 }
 function renderLOASupply(){
@@ -4275,9 +4284,7 @@ const NAV_CFG=[
   {id:'admin',      icon:'🔧',label:'後台維運',      tag:'admin',group:'L1 戰情指揮',roles:['admin']},
   {id:'rtsync',     icon:'⚡',label:'即時調度中台',  tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
   {id:'relief_req', icon:'🆘',label:'民眾求助通報',  tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
-  {id:'reg',        icon:'📋',label:'志工報名與報到',tag:'core', group:'L2 任務調度',roles:['admin','staff']},
-  {id:'sheet_reg',  icon:'📊',label:'報名資料總表',  tag:'core', group:'L2 任務調度',roles:['admin','staff']},
-  {id:'vms',        icon:'👥',label:'志工管理與報告',tag:null,   group:'L2 任務調度',roles:['admin','staff']},
+  {id:'vol_hub',    icon:'🧑‍🤝‍🧑',label:'志工人力中心',tag:'core', group:'L2 任務調度',roles:['admin','staff']},
   {id:'line_oa',    icon:'💬',label:'Line OA 模擬',   tag:'core', group:'L2 任務調度',roles:['admin','it']},
   {id:'drive',      icon:'📸',label:'照片回報與分類',tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
   {id:'sorting',    icon:'🧰',label:'物資整理站',    tag:'limb', group:'L3 現場執行',roles:['admin','staff','logistics']},
@@ -4380,7 +4387,7 @@ function showPage(id){
       pg.innerHTML='<div class="no-acc"><div class="ic">🔒</div><h2>權限不足</h2><p>您在此模組的全責規範為 P4（無權限）</p></div>';
     }
   }
-  if(id==='reg'){ renderRegistry(); renderRegFlow(); renderRegStats(); loadFormPreview(); }
+  if(id==='vol_hub') renderVolHub();
   if(id==='admin'){
     checkAdminGate();
     renderVersionPanel();
@@ -4404,7 +4411,6 @@ function showPage(id){
   if(id==='coord') renderCoord();
   if(id==='rebuild') renderRebuild();
   if(id==='line_oa') renderLineOA();
-  if(id==='sheet_reg') renderSheetReg();
   if(id==='drive') renderDrive();
   if(id==='sorting') renderSorting();
   if(id==='assets') renderAssets();
@@ -5321,9 +5327,8 @@ function toast(msg){
 // Module definitions for both peacetime and wartime
 const MODULES_PEACE = [
   {id:'dashboard',  name:'總控儀表板',   desc:'即時災情數據 · 統計卡片',      icon:'📊'},
-  {id:'reg',        name:'志工報名報到', desc:'Line OA 報名 · QR Code 報到',  icon:'📋'},
+  {id:'vol_hub',    name:'志工人力中心', desc:'報名報到 · 名冊總表 · 管理指派',icon:'🧑‍🤝‍🧑'},
   {id:'monitor',    name:'全域監控',      desc:'API 連線 · 手動警報覆寫',      icon:'🖥️'},
-  {id:'vms',        name:'志工管理報告', desc:'人員資料 · 任務指派 · 報告',   icon:'👥'},
   {id:'admin',      name:'後台維運',      desc:'Gmail · Line OA · 版本控制',   icon:'🔧'},
   {id:'permissions',name:'功能後台',      desc:'角色設定 · API · 權限矩陣',    icon:'🛡'},
   {id:'case_mgt',   name:'個案管理系統', desc:'個案訪視 · 動線規劃',          icon:'🗂️'},
@@ -5499,81 +5504,81 @@ var WAR_MODULE_DEFAULTS = {
   quake: {
     label:'地震', emoji:'🏚️',
     levels:{
-      L1:{ modules:['dashboard','monitor','reg','warehouse','assets','rtsync'], hidden:['sheet_reg','vms','sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','permissions','admin'] },
-      L2:{ modules:['dashboard','monitor','reg','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sheet_reg','vms','sorting','line_oa','permissions','admin'] },
-      L3:{ modules:['dashboard','monitor','reg','sheet_reg','vms','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','permissions','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','permissions','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
     }
   },
   wind: {
     label:'風災', emoji:'🌀',
     levels:{
-      L1:{ modules:['dashboard','monitor','reg','sorting','warehouse','rtsync'], hidden:['sheet_reg','vms','case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','permissions','admin'] },
-      L2:{ modules:['dashboard','monitor','reg','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sheet_reg','vms','line_oa','permissions','admin'] },
-      L3:{ modules:['dashboard','monitor','reg','sheet_reg','vms','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','rtsync'], hidden:['case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','permissions','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['line_oa','permissions','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
     }
   },
   flood: {
     label:'水災', emoji:'🌊',
     levels:{
-      L1:{ modules:['dashboard','monitor','reg','warehouse','assets','rtsync'], hidden:['sheet_reg','vms','sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','permissions','admin'] },
-      L2:{ modules:['dashboard','monitor','reg','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sheet_reg','vms','sorting','line_oa','permissions','admin'] },
-      L3:{ modules:['dashboard','monitor','reg','sheet_reg','vms','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','permissions','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','permissions','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
     }
   },
   fire: {
     label:'火災/爆炸', emoji:'🔥',
     levels:{
-      L1:{ modules:['dashboard','monitor','reg','warehouse','assets','rtsync'], hidden:['sheet_reg','vms','sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','permissions','admin'] },
-      L2:{ modules:['dashboard','monitor','reg','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sheet_reg','vms','sorting','line_oa','permissions','admin'] },
-      L3:{ modules:['dashboard','monitor','reg','sheet_reg','vms','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['sorting','permissions','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','permissions','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','permissions','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['sorting','permissions','admin'] }
     }
   },
   landslide: {
     label:'土石流/山崩', emoji:'⛰️',
     levels:{
-      L1:{ modules:['dashboard','monitor','reg','warehouse','assets','rtsync'], hidden:['sheet_reg','vms','sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','permissions','admin'] },
-      L2:{ modules:['dashboard','monitor','reg','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sheet_reg','vms','sorting','line_oa','permissions','admin'] },
-      L3:{ modules:['dashboard','monitor','reg','sheet_reg','vms','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','permissions','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','permissions','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
     }
   },
   compound: {
     label:'複合型災害', emoji:'🌐',
     levels:{
-      L1:{ modules:['dashboard','monitor','reg','warehouse','shelter_mgt','assets','rtsync'], hidden:['sheet_reg','vms','sorting','case_mgt','care_rec','line_oa','drive','permissions','admin'] },
-      L2:{ modules:['dashboard','monitor','reg','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sheet_reg','vms','sorting','line_oa','permissions','admin'] },
-      L3:{ modules:['dashboard','monitor','reg','sheet_reg','vms','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','shelter_mgt','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','line_oa','drive','permissions','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','permissions','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
     }
   },
   drought: {
     label:'乾旱/缺水', emoji:'🏜️',
     levels:{
-      L1:{ modules:['dashboard','monitor','reg','warehouse','rtsync'], hidden:['sheet_reg','vms','sorting','case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','permissions','admin'] },
-      L2:{ modules:['dashboard','monitor','reg','warehouse','care_rec','assets','rtsync'], hidden:['sheet_reg','vms','sorting','case_mgt','shelter_mgt','line_oa','drive','permissions','admin'] },
-      L3:{ modules:['dashboard','monitor','reg','sheet_reg','vms','sorting','warehouse','care_rec','assets','rtsync','line_oa'], hidden:['case_mgt','shelter_mgt','drive','permissions','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','permissions','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','care_rec','assets','rtsync'], hidden:['sorting','case_mgt','shelter_mgt','line_oa','drive','permissions','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','care_rec','assets','rtsync','line_oa'], hidden:['case_mgt','shelter_mgt','drive','permissions','admin'] }
     }
   },
   epidemic: {
     label:'疫情/傳染病', emoji:'🦠',
     levels:{
-      L1:{ modules:['dashboard','monitor','reg','sheet_reg','warehouse','rtsync'], hidden:['vms','sorting','case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','permissions','admin'] },
-      L2:{ modules:['dashboard','monitor','reg','sheet_reg','warehouse','case_mgt','care_rec','assets','rtsync','drive'], hidden:['vms','sorting','shelter_mgt','line_oa','permissions','admin'] },
-      L3:{ modules:['dashboard','monitor','reg','sheet_reg','vms','warehouse','case_mgt','care_rec','assets','rtsync','line_oa','drive'], hidden:['sorting','shelter_mgt','permissions','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','permissions','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','assets','rtsync','drive'], hidden:['sorting','shelter_mgt','line_oa','permissions','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','assets','rtsync','line_oa','drive'], hidden:['sorting','shelter_mgt','permissions','admin'] }
     }
   },
   tsunami: {
     label:'海嘯', emoji:'🌊',
     levels:{
-      L1:{ modules:['dashboard','monitor','reg','warehouse','shelter_mgt','assets','rtsync'], hidden:['sheet_reg','vms','sorting','case_mgt','care_rec','line_oa','drive','permissions','admin'] },
-      L2:{ modules:['dashboard','monitor','reg','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sheet_reg','vms','sorting','line_oa','permissions','admin'] },
-      L3:{ modules:['dashboard','monitor','reg','sheet_reg','vms','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','shelter_mgt','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','line_oa','drive','permissions','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','permissions','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['permissions','admin'] }
     }
   },
   war_s: {
     label:'動亂', emoji:'⚔️',
     levels:{
-      L1:{ modules:['dashboard','monitor','reg','warehouse','rtsync'], hidden:['sheet_reg','vms','sorting','case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','permissions','admin'] },
-      L2:{ modules:['dashboard','monitor','reg','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync'], hidden:['sheet_reg','vms','sorting','line_oa','drive','permissions','admin'] },
-      L3:{ modules:['dashboard','monitor','reg','sheet_reg','vms','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync'], hidden:['line_oa','drive','permissions','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','permissions','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync'], hidden:['sorting','line_oa','drive','permissions','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync'], hidden:['line_oa','drive','permissions','admin'] }
     }
   }
 };
@@ -5625,7 +5630,7 @@ function wtPickLevel(level){
     var enabled=lvObj.modules.slice();
     if(enabled.indexOf('dashboard')<0) enabled.unshift('dashboard');
     disabledModules.clear();
-    var ALL=['dashboard','monitor','reg','sheet_reg','vms','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive','permissions','admin'];
+    var ALL=['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive','permissions','admin'];
     for(var i=0;i<ALL.length;i++){ if(enabled.indexOf(ALL[i])<0) disabledModules.add(ALL[i]); }
     saveDisabledModules();
     selectScenario(_wtPendingScenario);
@@ -5684,7 +5689,7 @@ function wtBackToLevel(){
 }
 function wtConfirmAndLaunch(){
   var def=WAR_MODULE_DEFAULTS[_wtPendingScenario]||WAR_MODULE_DEFAULTS['quake'];
-  var ALL_IDS=['monitor','reg','sheet_reg','vms','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive','permissions','admin'];
+  var ALL_IDS=['monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive','permissions','admin'];
   var enabled=['dashboard'];
   var toHide=[];
   for(var i=0;i<ALL_IDS.length;i++){
@@ -6256,7 +6261,7 @@ function approvePerm(isApprove){
   if(!pendingPerm) return;
   if(isApprove){
     var targetRole='staff';
-    var targetMod='reg';
+    var targetMod='vol_hub';
     var prevP=(PERMS_PEACE[targetRole]&&PERMS_PEACE[targetRole][targetMod])||'P1';
     var newP=pendingPerm.toP.split(' ')[0];
     if(!PERMS_PEACE[targetRole]) PERMS_PEACE[targetRole]={};
@@ -6813,7 +6818,7 @@ function wmsToggle(scen,mid,checked){
   if(checked&&idx<0) arr.push(mid);
   else if(!checked&&idx>=0) arr.splice(idx,1);
   // 同步 hidden
-  var ALL=['dashboard','monitor','reg','sheet_reg','vms','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive','permissions','admin'];
+  var ALL=['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive','permissions','admin'];
   lvObj.hidden=ALL.filter(function(x){return arr.indexOf(x)<0;});
   saveWarModuleDefaults();
 }
@@ -7027,6 +7032,18 @@ function dispatchHotfix(){
 // ══════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════
+// ══════════ 志工人力中心（reg + sheet_reg + vms 三合一）══════════
+var VH_TAB='checkin';
+function renderVolHub(){
+  ['checkin','roster','manage'].forEach(function(x){
+    var b=document.getElementById('vhtab-'+x); if(b) b.className='btn '+(x===VH_TAB?'btn-blue':'btn-ghost');
+    var p=document.getElementById('vh-'+x); if(p) p.style.display=(x===VH_TAB?'':'none');
+  });
+  if(VH_TAB==='checkin'){ renderRegistry(); renderRegFlow(); renderRegStats(); loadFormPreview(); }
+  else if(VH_TAB==='roster'){ renderSheetReg(); }
+}
+function setVolHubTab(t){ VH_TAB=t; renderVolHub(); }
+
 // ══════════ 民眾求助通報（災民端 + 收件匣）══════════
 var RELIEF_TAB='inbox';
 function setReliefTab(t){
