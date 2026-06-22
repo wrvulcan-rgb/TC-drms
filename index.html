@@ -955,10 +955,11 @@ textarea.iep-inp{resize:vertical;min-height:56px}
         <input class="inp" id="dt-inp-title" placeholder="需求說明 / Bug 描述" style="flex:1;min-width:180px;font-size:12px;padding:6px 10px">
         <select class="dt-sel" id="dt-inp-mod">
           <option value="">— 模組 —</option>
-          <option>dashboard</option><option>rtsync</option><option>reg</option><option>warehouse</option>
-          <option>case_mgt</option><option>care_rec</option><option>shelter_mgt</option><option>assets</option>
-          <option>sorting</option><option>vms</option><option>sheet_reg</option><option>drive</option>
-          <option>admin</option><option>permissions</option><option>arch7</option><option>intake</option>
+          <option>dashboard</option><option>monitor</option><option>rtsync</option><option>relief_req</option>
+          <option>vol_hub</option><option>coord</option><option>warehouse</option><option>sorting</option>
+          <option>case_mgt</option><option>care_rec</option><option>shelter_mgt</option><option>rebuild</option>
+          <option>assets</option><option>line_oa</option><option>drive</option><option>admin</option>
+          <option>arch_doc</option><option>arch7</option><option>intake</option>
           <option>全系統</option>
         </select>
         <select class="dt-sel" id="dt-inp-pri">
@@ -3398,14 +3399,15 @@ DATA.rebuild = {
 // ── IT 待辦需求預設資料（從 UI 測試審計結果初始化）──
 DATA.devTasks = [
   {id:'dt1',  pri:'hi', mod:'dashboard', title:'儀表板 SOS 按鈕消失：需加「→ 前往緊急 tab」快捷鈕，呼叫 showPage(\'rtsync\') + setRTTab(\'emergency\')', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt2',  pri:'hi', mod:'全系統',    title:'NAV_CFG 缺少 story 頁：決定是否建立獨立故事線頁面（加入 NAV_CFG 並寫 renderStoryPage），或移除所有 showPage(\'story\') 呼叫', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt2',  pri:'lo', mod:'全系統',    title:'[已釐清] 故事線：經查全系統已無殘留 showPage(\'story\') 呼叫；結案故事線由「即時調度中台→結案」tab 與架構心智圖 story 節點承載，暫不另開獨立分頁', assignee:'', done:true, created:'2026-06-22'},
+  {id:'dt0',  pri:'md', mod:'全系統',    title:'[架構盤整 2026-06-22] 已合併 reg+sheet_reg+vms→志工人力中心、功能後台+後台維運→系統管理；新增 民眾求助通報 / 跨單位資源協調 / 災後重建與陪伴 三節點。分頁 18→17（功能頁含三新節點）。心智圖 arch_preview7 同步更新', assignee:'', done:true, created:'2026-06-22'},
   {id:'dt3',  pri:'md', mod:'arch7',     title:'arch_preview7.html：點擊節點後沒有 detail panel 出現（#node-detail selector 不存在，需確認實際 id）', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt4',  pri:'md', mod:'arch7',     title:'arch_preview7.html：codegen 區塊（#codegen）不存在，確認代碼產生功能是否已實作或補上 id', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt5',  pri:'md', mod:'sheet_reg', title:'sheet_reg / drive 頁面：GAS /exec 網址未設定，需在後台填入 Google Apps Script 部署 URL 才能啟用同步', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt5',  pri:'md', mod:'vol_hub', title:'志工人力中心-名冊總表 / 照片回報：GAS /exec 網址未設定，需在「系統管理→系統元件」填入 Google Apps Script 部署 URL 才能啟用同步', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt6',  pri:'md', mod:'admin',     title:'admin 後台：Line OA 設定卡片疑似未渲染（renderLineCards() 未被正確呼叫或資料結構缺失）', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt7',  pri:'lo', mod:'dashboard', title:'情境選擇後無 badge 視覺回饋（.scenario-badge class 不存在），點了地震等按鈕後畫面沒有明顯當前狀態標示', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt8',  pri:'lo', mod:'intake',    title:'intake.html：「產生提交碼」按鈕綁定確認，確保 importCode() 成功後的 flash("匯入成功 ✓") 有正確觸發', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt9',  pri:'lo', mod:'vms',       title:'vms 頁面（志工管理與報告）：有框架但詳細功能未完整，確認哪些 tab 還是空殼', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt9',  pri:'lo', mod:'vol_hub',   title:'志工人力中心-管理指派子頁：目前為靜態框架，詳細搜尋/篩選/任務指派功能待補', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt10', pri:'lo', mod:'assets',    title:'assets / sorting：部份 tab 動作按鈕點擊無反應，逐一確認哪些功能仍是佔位符', assignee:'', done:false, created:'2026-06-22'},
 ];
 

@@ -225,15 +225,19 @@ var NODES=[
   {id:'monitor',  nm:'全域監控', ico:'\uD83D\uDDA5\uFE0F', x:11, y:54, status:'live', kind:'core',
     script:'這是全域監控，給高層的決策大屏。它只看不操作，把情資、前線需求、即時影像和連線狀態彙整成一個畫面。當你要對外簡報、或在指揮中心投影時，看的就是這一頁。',
     desc:'高層唯讀決策視圖：情資彙整、前線需求、即時影像、外部連線狀態。不涉操作。'},
-  {id:'reg',      nm:'報名報到', ico:'\uD83D\uDCCB', x:14, y:73, status:'live', kind:'core',
-    script:'這是報名報到，幹部端的人力名冊管理。志工在 Line OA 自助報到後，資料就寫進這裡，再送進調度中台成為可以被派的人力。它同時管今日報到和明日預約報名，兩條線並行不打架。',
-    desc:'幹部端報到管理視圖。Line OA 報到資料寫入名冊，供調度派工。今日報到+明日報名雙軌。'},
-  {id:'sheet_reg',nm:'報名資料總表', ico:'\uD83D\uDCD1', x:28, y:68, status:'partial', kind:'core',
-    script:'這是報名資料總表，對接 Google Sheets，管理慈誠委員和社區志工的完整名冊。後端程式已經建好，只差設定一個網址就能上線。它是我們未來把報名資料雲端化的關鍵一步。',
-    desc:'幹部端 Sheets 報名管理(慈誠委員+社區志工)。GAS 後端已建，需設定 /exec 網址。'},
-  {id:'vms',      nm:'志工管理', ico:'\uD83D\uDC65', x:27, y:42, status:'live', kind:'core',
-    script:'這是志工管理與報告，掌握每一位人員的資料與任務指派。誰擅長什麼、誰被派到哪，都在這裡整理清楚，指派的結果直接送進調度中台。',
-    desc:'人員資料、任務指派、報告。指派結果進調度中台。'},
+  {id:'vol_hub',  nm:'志工人力中心', ico:'👥', x:18, y:64, status:'live', kind:'core',
+    script:'這是志工人力中心。原本分開的報名報到、報名資料總表、志工管理三頁，本來就共用同一份名冊、職責邊界模糊，現在整併成一個分頁三個子頁。志工在 Line OA 自助報到後資料進名冊，再送進調度中台成為可派人力——人到位，任務就能發。',
+    desc:'報名報到+報名資料總表+志工管理三合一(共用 Master 名冊)。子頁：報到/名冊總表/管理指派。報到資料供調度派工。',
+    subs:['報名與報到(今日報到+明日報名雙軌)','報名資料總表(Sheets·慈誠委員+社區志工·待設 /exec)','志工管理與指派']},
+  {id:'relief_req',nm:'民眾求助通報', ico:'🆘', x:42, y:13, status:'live', kind:'core',
+    script:'這是民眾求助通報，補上多年來最大的結構性缺口——受災民眾端。過去系統全是志工與指揮端，民眾沒有自己的入口，指揮端常常「不知道哪裡有人受困」。現在民眾掃 QR 或點 Line 就能自主報案，案件進收件匣，一鍵轉即時調度中台任務池，打通「民眾求助→指揮派工」的斷點。',
+    desc:'受災民眾自主報案入口+後台收件匣。一鍵轉調度中台(搶救/醫療→P1、收容→P2、物資→P3)，含重複併單偵測、受困分佈彙整。對應 921/莫拉克教訓。'},
+  {id:'coord',    nm:'跨單位資源協調', ico:'🤝', x:84, y:45, status:'live', kind:'core',
+    script:'這是跨單位資源協調台，對應莫拉克最大的檢討——各 NGO 各自為政、物資錯置爆量、政府與民間不同步。它把政府、其他 NGO、企業、宮廟能提供的資源登錄起來，做缺口與供給的媒合，並用村里責任分區避免重複與遺漏。未來與政府 EMIC 對接的接口也預留在這。',
+    desc:'外部單位(政府/NGO/企業/宮廟)資源登錄、缺口↔供給媒合看板、村里責任分區(避免重複爆量與遺漏)。預留政府 EMIC 接口。'},
+  {id:'rebuild',  nm:'災後重建與陪伴', ico:'🏠', x:80, y:78, status:'live', kind:'limb',
+    script:'這是災後重建與長期陪伴，補上「緊急救援→家園重建」之間的斷層。從緊急安置、組合屋、修繕到重建完成逐戶追蹤進度，把長期陪伴的家戶排進定期關懷，並追蹤災後心理重建、必要時轉介專業心理師。這是慈濟最重視、也最有溫度的中長期一段。',
+    desc:'承接個案管理的緊急救援往中長期重建銜接。重建進度(安置→組合屋→修繕→完成)、長期關懷排程(同步關懷紀錄)、心理重建追蹤與心理師轉介。'},
   {id:'sysadmin', nm:'系統管理層', ico:'\uD83D\uDEE1\uFE0F', x:40, y:58, status:'live', kind:'admin',
     script:'這是系統管理層，整個平台的設定中樞。權限矩陣、模組開關、版本備份還原、戰時各災型的預設，都在這裡調整。它也是權限控管的所在地——而這正是我們接下來要把判斷搬到後端、堵住漏洞的重點。',
     desc:'功能後台(權限矩陣、模組管理)+後台維運(系統設定、Gmail/Line 串接、版本備份還原、戰時災型預設、開發待辦)。權限控管與設定所在地。'},
@@ -304,13 +308,13 @@ var EDGES=[
   {from:'volunteer',to:'lineoa',label:'報到',story:2,
     talk:'志工用手機打開 Line OA 報到，這是他們進入系統的第一步。這條線代表「人到了」。',
     flow:'志工經 Line OA 自助報到。傳輸：身分、報到時間、場次標記。'},
-  {from:'lineoa',to:'reg',label:'寫名冊',story:2,
+  {from:'lineoa',to:'vol_hub',label:'寫名冊',story:2,
     talk:'報到的資料會從 Line OA 自動寫進幹部端的名冊。這條線把零散的報到，整理成一份可調度的人力清單。',
     flow:'報到資料寫入幹部端名冊。傳輸：志工身分、報到狀態。'},
-  {from:'reg',to:'rtsync',label:'可派人力',story:2,
+  {from:'vol_hub',to:'rtsync',label:'可派人力',story:2,
     talk:'名冊再把可用的人力送進調度中台，系統就知道現在手上有誰、能派誰。這條線代表「人力到位」。',
     flow:'名冊提供可派人力。傳輸：在位志工清單、技能標記，供調度媒合。'},
-  {from:'vms',to:'rtsync',label:'指派',
+  {from:'vol_hub',to:'rtsync',label:'指派',
     talk:'志工管理把指派的結果送進調度中台。這條線代表「誰做什麼」的決定如何進入現場調度。',
     flow:'志工管理指派結果進中台。傳輸：人員編組、任務分派名單。'},
   {from:'lineoa',to:'rtsync',label:'叫料/回報 ↔ 派送',bi:true,story:3,
@@ -357,7 +361,19 @@ var EDGES=[
     flow:'規劃中與政府對接。傳輸：與 EMIC 雙向交換災情/資源。尚未實作，虛線。'},
   {from:'rtsync',to:'backend',label:'同步 ↔',bi:true,dash:true,
     talk:'這條雙向虛線代表未來的多人共編：透過 Firebase，不同站點的幹部能即時看到同一份資料。介面已經預留，等伺服器就能啟用。',
-    flow:'雙向(規劃)。多站點即時共編：任務/人力/設備經 Firebase RTDB 雙向同步。介面已預留未啟用，虛線。'}
+    flow:'雙向(規劃)。多站點即時共編：任務/人力/設備經 Firebase RTDB 雙向同步。介面已預留未啟用，虛線。'},
+  {from:'relief_req',to:'rtsync',label:'求助轉派',story:1,
+    talk:'民眾的求助案件，在收件匣一鍵轉成即時調度中台的任務。這條線把受災民眾第一次接進了指揮調度，補上過去「民眾→指揮」的斷點。',
+    flow:'民眾求助轉派工。傳輸：類型/位置/受困人數→任務池(搶救醫療P1、收容P2、物資P3)。'},
+  {from:'coord',to:'rtsync',label:'外援媒合',dash:true,
+    talk:'跨單位協調把外部單位的人力物資媒合進調度中台，補我方缺口，避免重複叫料。',
+    flow:'外部資源媒合進調度。傳輸：外援人力/物資/車輛供給，對接現場缺口。'},
+  {from:'monitor',to:'coord',label:'缺口情資',dash:true,
+    talk:'全域監控把前線缺口情資給協調台，協調台據此向外尋求資源。',
+    flow:'缺口情資供協調。傳輸：前線需求缺口摘要單向上拋。'},
+  {from:'fieldgroup',to:'rebuild',label:'轉長期',story:5,
+    talk:'現場的緊急個案告一段落後，轉進災後重建與長期陪伴，銜接中長期的家園重建與心理重建。',
+    flow:'緊急個案轉重建。傳輸：受災戶從緊急安置接入重建進度與長期關懷。'}
 ];
 
 // ── 三視角：每視角的節點集 + 專屬故事腳本 ──
@@ -365,7 +381,7 @@ var EDGES=[
 var VIEWS={
   decider:{
     label:'決策者',
-    nodes:['drill','activate','volunteer','dashboard','staff','rtsync','reg','fieldgroup','sorting','warehouse','story','lineoa'],
+    nodes:['drill','activate','volunteer','dashboard','staff','rtsync','vol_hub','relief_req','coord','fieldgroup','sorting','warehouse','rebuild','story','lineoa'],
     stories:[
       {step:'啟動',on:['activate','volunteer','drill','dashboard'],
         text:'災害發生，當區志工觸發戰時啟動，系統一鍵切戰時模式，總控儀表板亮起 — 這是所有決策的起點。'},
@@ -373,7 +389,7 @@ var VIEWS={
         text:'儀表板即時顯示受災戶數、撤離人數、志工到位、物資完成率。一眼掌握全局，不必等回報。'},
       {step:'調度',on:['dashboard','rtsync'],
         text:'儀表板下達戰時派遣，即時調度中台接手，把任務派到第一線。'},
-      {step:'動員',on:['volunteer','lineoa','reg','rtsync'],
+      {step:'動員',on:['volunteer','lineoa','vol_hub','rtsync'],
         text:'志工完成報到後立刻成為可派人力 — 人到位，任務就能發。'},
       {step:'照顧',on:['rtsync','fieldgroup'],
         text:'任務分案到現場，安置、個案、關懷同步啟動，特殊物資與安心祝福金送到鄉親手上。'},
@@ -385,11 +401,11 @@ var VIEWS={
   },
   volunteer:{
     label:'志工',
-    nodes:['volunteer','lineoa','reg','rtsync','fieldgroup','sorting','warehouse','drive'],
+    nodes:['volunteer','lineoa','vol_hub','rtsync','fieldgroup','sorting','warehouse','drive'],
     stories:[
       {step:'我報到',on:['volunteer','lineoa'],
         text:'我用手機開 Line OA，完成報到，系統就知道我到了。'},
-      {step:'我入列',on:['lineoa','reg'],
+      {step:'我入列',on:['lineoa','vol_hub'],
         text:'我的報到資料進入名冊，我成為今天可以被派任務的人。'},
       {step:'我收任務',on:['rtsync','lineoa'],
         text:'調度中台把任務透過 Line OA 發給我，我在手機上就收到。'},
@@ -429,9 +445,10 @@ var HEALTH={
   dashboard:{s:'done',issue:'運作中。但與全域監控 KPI 重疊，建議釐清「可操作總覽 vs 唯讀大屏」分工。AI 戰術分析入口為規劃中。'},
   monitor:{s:'merge',issue:'與總控儀表板 KPI 重疊。建議整合為儀表板的「簡報/唯讀大屏模式」，或明確分工。即時影像與連線狀態目前為模擬。'},
   rtsync:{s:'done',issue:'核心運作正常。現場唯一指揮橋樑，4 tab 完整。'},
-  reg:{s:'merge',issue:'與報名資料總表、志工管理共用 Master_Profiles，職責邊界模糊。建議半拆為「志工資料域」群組。'},
-  sheet_reg:{s:'todo',issue:'GAS 後端已建但需設定 /exec 網址；且 GAS URL 目前硬編碼待改（P1）。與 reg/vms 可整合。'},
-  vms:{s:'merge',issue:'人員資料與任務指派。與 reg/sheet_reg 共用名冊資料，建議整合為志工資料域。'},
+  vol_hub:{s:'done',issue:'✅ 已整併：報名報到+報名資料總表+志工管理三合一（共用 Master 名冊），子頁報到/名冊總表/管理指派。名冊總表仍待設定 GAS /exec 網址。'},
+  relief_req:{s:'done',issue:'✅ 新增：受災民眾自主報案入口+收件匣，一鍵轉調度中台任務池，含重複併單偵測。補上「民眾求助→指揮派工」斷點（921/莫拉克教訓）。真實 LINE/SMS 入口待接。'},
+  coord:{s:'done',issue:'✅ 新增：外部單位資源登錄、缺口媒合、村里責任分區（避免重複爆量與遺漏，莫拉克教訓）。政府 EMIC 對接接口已預留待串。'},
+  rebuild:{s:'done',issue:'✅ 新增：緊急救援→重建銜接（安置/組合屋/修繕/完成）、長期關懷排程、心理重建追蹤。補上中長期斷層。'},
   lineoa:{s:'risk',issue:'模擬器完整（報到/3-tap叫料/餐食表單/關懷）但真實 LINE Webhook 後端 0%。個資經此入口，role 前端可竄改（P1 資安）。'},
   drive:{s:'todo',issue:'前端分類邏輯完成，Google Drive API 串接待設定。'},
   sorting:{s:'done',issue:'物資整理站運作正常。'},
@@ -440,7 +457,7 @@ var HEALTH={
   story:{s:'todo',issue:'單場故事線完成。建議新增「跨場次比較」供決策者看趨勢。'},
   staff:{s:'done',issue:'指揮端角色正常。'},
   volunteer:{s:'done',issue:'前線志工角色正常。建議依角色裁剪 Line OA 選單（一般志工不需關懷/提權）。'},
-  sysadmin:{s:'risk',issue:'權限控管所在地。前端 role 判斷可被 console 竄改，提權流程發金鑰全在前端可偽造，需後端驗證（P1）。'},
+  sysadmin:{s:'risk',issue:'✅ 功能後台與後台維運已整併為單一「系統管理」分頁(多 tab)。權限控管所在地。前端 role 判斷可被 console 竄改，提權流程發金鑰全在前端可偽造，需後端驗證（P1）。'},
   backend:{s:'risk',issue:'個資（身分證/電話）明文存 localStorage 與 Sheets，僅前端遮蔽未加密（P1 最高優先）。多人共編 Firebase 已預留未啟用。'},
   emic:{s:'todo',issue:'政府 EMIC 與警報 API 尚未串接，近期不做可考慮再縮小或移除。'},
   drill:{s:'done',issue:'平時演練啟動正常。'},
@@ -449,7 +466,7 @@ var HEALTH={
 var HEALTH_LBL={done:'完成',todo:'待補',risk:'風險',merge:'可整合'};
 // 整合群組灰框（健檢視角顯示，標記建議不動結構）
 var MERGE_FRAMES=[
-  {lbl:'建議整合：志工資料域',nodes:['reg','sheet_reg','vms']},
+  {lbl:'✅ 已整合：志工人力中心 (reg+sheet_reg+vms)',nodes:['vol_hub']},
   {lbl:'建議整合：監控併簡報模式',nodes:['monitor','dashboard']}
 ];
 // 健檢走查旁白
@@ -461,12 +478,12 @@ VIEWS.health={
       text:'健檢視角：綠=完成、黃=待補、紅=資安風險、灰=建議整合。點任一節點看該模組的健檢結論。以下逐項走查。'},
     {step:'資安風險',on:['backend','sysadmin','lineoa'],warn:['backend','sysadmin','lineoa'],
       text:'🔴 三個資安紅點：後端（個資明文存 localStorage/Sheets 未加密，P1 最高優先）、系統管理層（role 前端可竄改、提權可偽造）、Line OA（真實 Webhook 0%、個資入口）。'},
-    {step:'待補功能',on:['sheet_reg','drive','story','emic'],
-      text:'🟡 待補：報名總表（GAS /exec 待設定、URL 硬編碼）、照片分類（Drive API 未接）、故事線（缺跨場次比較）、政府 EMIC（未串接）。'},
-    {step:'可整合',on:['reg','sheet_reg','vms','monitor','dashboard'],
-      text:'⬜ 建議整合：報到/報名總表/志工管理共用名冊→併「志工資料域」；全域監控與儀表板 KPI 重疊→併簡報模式。此為建議標記，不動現有結構。'},
+    {step:'待補功能',on:['vol_hub','drive','story','emic'],
+      text:'🟡 待補：志工人力中心-名冊總表（GAS /exec 待設定、URL 硬編碼）、照片分類（Drive API 未接）、故事線（缺跨場次比較）、政府 EMIC（未串接）。'},
+    {step:'已整合 / 待整合',on:['vol_hub','monitor','dashboard'],
+      text:'✅ 已整合：報到/報名總表/志工管理→「志工人力中心」；功能後台+後台維運→「系統管理」。⬜ 仍建議：全域監控與儀表板 KPI 重疊→併唯讀簡報模式。'},
     {step:'新增建議',on:['volunteer','fieldgroup','lineoa'],
-      text:'🟢 新增建議：任務地圖（P3，志工/現場最需要「我要去哪」）；志工選單依角色裁剪（一般志工不需關懷/提權）；Firebase 多人共編演進。'}
+      text:'🟢 已新增：民眾求助通報（災民端入口）、跨單位資源協調、災後重建與陪伴。建議再補：任務地圖（P3，志工/現場最需要「我要去哪」）；志工選單依角色裁剪（一般志工不需關懷/提權）；Firebase 多人共編演進。'}
   ]
 };
 
