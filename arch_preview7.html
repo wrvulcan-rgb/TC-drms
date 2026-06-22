@@ -142,6 +142,14 @@ body.health-on .merge-frame{display:block}
 .snav{width:30px;height:30px;border-radius:8px;border:1px solid var(--green-border);background:var(--bg2);color:var(--green);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
 .snav:disabled{opacity:.35;cursor:default}
 .note{font-size:11px;color:var(--text4);margin-top:12px;text-align:center}
+
+/* ── 側欄佈局 ── */
+.main-layout{display:flex;gap:14px;align-items:flex-start}
+.stage-col{flex:1;min-width:0}
+.detail{width:360px;flex-shrink:0;position:sticky;top:14px;max-height:calc(100vh - 28px);overflow-y:auto;margin-top:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+.detail-empty{padding:32px 20px;text-align:center;color:var(--text4);font-size:12px;line-height:1.8}
+.detail-placeholder-icon{font-size:28px;margin-bottom:8px;opacity:.4}
+@media(max-width:900px){.main-layout{flex-direction:column}.detail{width:100%;position:static;max-height:none}}
 </style>
 </head>
 <body>
@@ -175,23 +183,26 @@ body.health-on .merge-frame{display:block}
     <button class="vpill" data-view="all" onclick="setView('all')">◍ 全部</button>
   </div>
 
-  <div class="stage" id="stage">
-    <svg class="edges" id="edges" preserveAspectRatio="none"></svg>
-  </div>
-
-  <div class="story-bar" id="storyBar">
-    <div class="story-step" id="storyStep">1 / N</div>
-    <div class="story-text" id="storyText"></div>
-    <div class="story-nav">
-      <button class="snav" id="sPrev" onclick="storyPrev()">‹</button>
-      <button class="snav" id="sNext" onclick="storyNext()">›</button>
-      <button class="snav" onclick="storyEnd()">✕</button>
+  <div class="main-layout">
+    <div class="stage-col">
+      <div class="stage" id="stage">
+        <svg class="edges" id="edges" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="story-bar" id="storyBar">
+        <div class="story-step" id="storyStep">1 / N</div>
+        <div class="story-text" id="storyText"></div>
+        <div class="story-nav">
+          <button class="snav" id="sPrev" onclick="storyPrev()">‹</button>
+          <button class="snav" id="sNext" onclick="storyNext()">›</button>
+          <button class="snav" onclick="storyEnd()">✕</button>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="detail" id="detail">
-    <div class="detail-empty">▲ 拖曳排版 · 點節點或線看說明 · 或按 ▶ 故事導覽</div>
-  </div>
+    <div class="detail" id="detail">
+      <div class="detail-empty"><div class="detail-placeholder-icon">🗺️</div>點擊任一節點或連線<br>查看設計說明與理念</div>
+    </div>
+  </div><!-- /.main-layout -->
   <div class="note">Preview：場域化 + 放射 + 後端合併 + 故事導覽。階段2 將加三視角切換與新增連線。座標存本機。不影響主系統。</div>
 </div>
 
@@ -209,74 +220,74 @@ var ZONES=[
 var NODES=[
   // 上方=發起/啟動（時間軸上緣）
   {id:'drill',    nm:'平時演練', ico:'\uD83C\uDFAF', x:14, y:14, status:'live', kind:'trigger', trigger:true,
-    script:'這是平時演練的啟動點。沒有災害的日子，我們從這裡載入演練劇本，讓整個系統進入平時模式，幹部可以反覆操練流程、熟悉每個環節。它讓救災不是臨場才學，而是平常就練到位。',
+    script:'救災能力不是天生的，是練出來的。我設計這個模組的出發點很簡單：如果只有真實災害才能操作系統，那志工第一次用就是最緊張的時候，這不合理。平時演練讓整個系統在沒有壓力的情境下被完整走過一遍，幹部熟悉派工流程、志工熟悉報到步驟、後勤熟悉物資調度。它的用處是：定期載入不同災型劇本，讓每一個角色都知道自己在真實災害中該做什麼。未來會加入自動排程，讓演練成為常態，而不是臨時想起來才做。',
     desc:'平時模式啟動源。排程或手動發起演練，載入情境劇本，進入儀表板平時模式。'},
   {id:'activate', nm:'戰時啟動', ico:'\uD83D\uDEA8', x:30, y:9,  status:'live', kind:'trigger', trigger:true,
-    script:'這是戰時啟動。當災害真的發生，當區志工在第一線一觸發，系統立刻切換到戰時模式，依災害類型和受災等級自動開關需要的模組。從這一刻起，整個平台從演練狀態變成真正的應變指揮中心。',
+    script:'我把戰時啟動設計為「現場發動，不等上面」。傳統模式是等待指揮部下令，但災害現場的狀況往往是第一線志工先知道。讓當區志工能在手機上觸發啟動，系統就立刻切換到戰時模式、依災害類型自動開關對應模組，省去手動設定的時間。這背後的理念是：反應速度本身就是救援能力，每一分鐘都可能影響一個家庭能不能得到幫助。未來計劃加入 LINE 推播通知，讓整個指揮鏈在觸發的同一時間就都知道。',
     desc:'戰時模式啟動源。當區志工觸發，系統切戰時，依災型/受災等級動態開關模組，進入儀表板。'},
   {id:'dashboard',nm:'總控儀表板', ico:'\uD83D\uDCCA', x:34, y:24, status:'live', kind:'core',
-    script:'這是總控儀表板，整個系統的大腦與起點。平時演練和戰時啟動兩條線都回到這裡。打開它，受災戶數、撤離人數、志工到位、物資進度一目瞭然，高層不必等任何人回報，就能即時掌握全局、下達戰時派遣。',
+    script:'設計這個儀表板的核心想法是：高層不應該靠人回報才知道現場狀況。在傳統救災模式裡，指揮官需要打電話、問現場、等資料彙整，這個過程本身就是延誤。總控儀表板讓受災戶數、撤離人數、志工到位率、物資完成率在同一個畫面即時呈現，平時演練和戰時啟動都從這裡進入。它的用處不只是「看數字」，更是讓幹部在正確的資訊下做決策——支援哪裡、加派哪裡、哪條線卡住了。可編輯版面讓不同單位依自己需要調整看板，AI 戰術分析模組（規劃中）未來會在這裡提供調度建議。',
     desc:'高層/總控專用。系統起點：平時演練與戰時啟動兩條線都回到此。KPI、情境模擬(10災型)、戰時派遣、可編輯版面、AI 戰術分析。'},
 
   // 左=慈濟指揮
   {id:'staff',    nm:'幹部/高層', ico:'\uD83D\uDC54', x:13, y:32, status:'live', kind:'actor',
-    script:'這是慈濟基金會的指揮端，包含幹部、總控和高層。他們在電腦後台操作，依照各自的角色看到不同的模組、握有不同的權限。重大的調度與決策，都從這裡發出。',
+    script:'指揮端設計的基本原則是「角色決定視野」。同樣的系統，幹部看到的模組、能執行的操作，和高層、總控不同。這樣設計是因為資訊過多反而造成干擾——高層需要的是全局 KPI，現場幹部需要的是任務細節，讓他們看到同一個畫面只會互相打架。這個角色分層也是資安的基礎：不同角色的操作邊界清楚，就能防止誤操作或越權。目前角色判斷在前端執行，計劃移到後端驗證以提升安全性。',
     desc:'慈濟指揮端(Web 後台)。幹部、總控、高層，依角色不同權限與可見模組。'},
   {id:'monitor',  nm:'全域監控', ico:'\uD83D\uDDA5\uFE0F', x:11, y:54, status:'live', kind:'core',
-    script:'這是全域監控，給高層的決策大屏。它只看不操作，把情資、前線需求、即時影像和連線狀態彙整成一個畫面。當你要對外簡報、或在指揮中心投影時，看的就是這一頁。',
+    script:'全域監控是「只看不碰」的設計。我把它獨立出來，是因為在指揮中心裡，投影在大屏上的畫面不能是會被人亂按的操作介面。它彙整情資、前線需求、即時影像、外部連線狀態，專門為簡報、對外說明、和高層決策設計。它從調度中台唯讀拉取資料，不回寫，確保現場操作不受干擾。目前考慮將它與總控儀表板的「簡報模式」整合，讓一個系統切換模式，而非維護兩個介面。',
     desc:'高層唯讀決策視圖：情資彙整、前線需求、即時影像、外部連線狀態。不涉操作。'},
   {id:'reg',      nm:'報名報到', ico:'\uD83D\uDCCB', x:14, y:73, status:'live', kind:'core',
-    script:'這是報名報到，幹部端的人力名冊管理。志工在 Line OA 自助報到後，資料就寫進這裡，再送進調度中台成為可以被派的人力。它同時管今日報到和明日預約報名，兩條線並行不打架。',
+    script:'報名報到解決的是一個很現實的問題：志工到場了，但幹部不知道誰來了、能派誰。以前靠人工點名或紙本，資料傳遞慢且容易遺漏。這個模組讓志工在 Line OA 自助完成報到，資料自動進入幹部端名冊，再進入調度中台成為可派人力——全程不需要幹部手動輸入。雙軌設計（今日報到 + 明日預約報名）是因為大型災害往往需要提前部署，讓幹部能提前掌握明天的人力庫存。',
     desc:'幹部端報到管理視圖。Line OA 報到資料寫入名冊，供調度派工。今日報到+明日報名雙軌。'},
   {id:'sheet_reg',nm:'報名資料總表', ico:'\uD83D\uDCD1', x:28, y:68, status:'partial', kind:'core',
-    script:'這是報名資料總表，對接 Google Sheets，管理慈誠委員和社區志工的完整名冊。後端程式已經建好，只差設定一個網址就能上線。它是我們未來把報名資料雲端化的關鍵一步。',
+    script:'這個模組的設計初衷是讓報名資料有一個「主表」。慈誠委員和社區志工的名冊散落在不同地方時，派工會出現重複或遺漏。報名資料總表對接 Google Sheets，讓所有資料集中在一個地方，任何更動都即時反映。後端程式（GAS）已建好，目前只差設定 /exec 網址就能上線——這個「最後一步」之所以先暫停，是在等確認使用的 Sheets 欄位格式定案後再接，避免後續反覆修改。接好後這裡會成為所有報名相關功能的資料源頭。',
     desc:'幹部端 Sheets 報名管理(慈誠委員+社區志工)。GAS 後端已建，需設定 /exec 網址。'},
   {id:'vms',      nm:'志工管理', ico:'\uD83D\uDC65', x:27, y:42, status:'live', kind:'core',
-    script:'這是志工管理與報告，掌握每一位人員的資料與任務指派。誰擅長什麼、誰被派到哪，都在這裡整理清楚，指派的結果直接送進調度中台。',
+    script:'志工管理解決的是調度的基礎問題：你必須先知道有誰、他們能做什麼，才能做出有意義的派工決定。這個模組管理每位志工的技能、聯絡方式、歷史任務紀錄，讓幹部在派工時有依據，而不是靠記憶或直覺。指派結果直接進入調度中台，讓「決定誰去」和「通知他去哪」之間沒有斷點。未來計劃和報到系統整合，讓「人到場」和「人可被派」這兩件事自動連動。',
     desc:'人員資料、任務指派、報告。指派結果進調度中台。'},
   {id:'sysadmin', nm:'系統管理層', ico:'\uD83D\uDEE1\uFE0F', x:40, y:58, status:'live', kind:'admin',
-    script:'這是系統管理層，整個平台的設定中樞。權限矩陣、模組開關、版本備份還原、戰時各災型的預設，都在這裡調整。它也是權限控管的所在地——而這正是我們接下來要把判斷搬到後端、堵住漏洞的重點。',
+    script:'系統管理層是整個平台的「設定中樞」，讓系統本身可以被配置，而不是寫死在程式裡。每個組織的救災需求不同，不同災型需要開不同的模組——這些都應該能在介面上調整，不需要改程式碼。版本備份還原讓誤操作有後路，Gmail/LINE 串接設定讓通訊管道集中管理。這裡也是目前資安最需要加強的地方：權限矩陣目前在前端執行，意味著懂技術的人可以在 console 繞過，這是 P1 待修項目，計劃移到後端驗證。',
     desc:'功能後台(權限矩陣、模組管理)+後台維運(系統設定、Gmail/Line 串接、版本備份還原、戰時災型預設、開發待辦)。權限控管與設定所在地。'},
 
   // 中央核心
   {id:'rtsync',   nm:'即時調度中台', ico:'\u26A1', x:50, y:50, status:'live', kind:'core', center:true, locked:true,
-    script:'這是即時調度中台，整個現場的唯一指揮橋樑，我們把它放在正中央是有意義的。任務的建立、派工、物資調度、緊急警報、SOS、點名，全部在這裡發生。它分成任務池、任務互動、結案、緊急四個分頁，所有第一線的動作都從這裡流進流出。',
+    script:'我把即時調度中台放在心智圖正中央，不是視覺設計的習慣，而是它真的就是整個系統的核心。在真實救災現場，最常出現的混亂是：這個需求誰負責？這個物資哪裡來？這個志工在哪？這些問題沒有一個統一的入口，就會不斷被詢問、不斷重複協調，浪費時間也容易出錯。調度中台的設計理念是把所有第一線的動作收攏到一個地方——任務建立、派工、物資調度、緊急警報、SOS、點名，全部在同一個介面完成。四個分頁（任務池、任務互動、結案、緊急）對應四種不同的工作節奏，讓幹部不需要在多個系統之間切換。',
     desc:'現場唯一指揮橋樑。4 tab：任務池/任務互動(含出貨)/結案/緊急(警報+SOS+點名)。所有派工、調度、叫料媒合在此。'},
 
   // 右上=志工前線
   {id:'volunteer',nm:'當區志工', ico:'\uD83D\uDC65', x:58, y:12, status:'live', kind:'actor',
-    script:'這是我們的當區志工，站在第一線的人。他們用手機透過 Line OA 進來：戰時的啟動由他們觸發、報到由他們完成、現場的服務與回報也由他們執行。系統設計的一切，最後都是為了讓他們在現場更順手。',
+    script:'整個系統設計的最終使用者，其實是這群拿著手機在現場服務的志工。他們不會有時間看複雜的介面、等待頁面載入、或輸入大量表單。所以我的設計原則是：志工在 Line OA 完成所有操作，不需要下載 App，不需要登入帳號，手機開 LINE 就能用。戰時啟動、自助報到、收任務通知、叫料回報、照片上傳——每一個動作都盡量縮短到最少步驟。系統好不好用，最終的測試標準就是現場的志工覺不覺得麻煩。',
     desc:'前線志工(手機/Line OA)。戰時觸發啟動、報到入列、現場執行與回報。'},
   {id:'lineoa',   nm:'Line OA', ico:'\uD83D\uDCAC', x:62, y:30, status:'partial', kind:'channel',
-    script:'這是 Line OA，志工進入系統的大門。報到、收任務、勘災回報、三步驟叫料，甚至餐食細項，全都在手機上完成。目前模擬器已經做得很完整，下一步是接上真實的 LINE 後端，讓它從展示變成實戰工具。',
+    script:'選擇 LINE OA 作為志工介面，是因為它已經是志工日常生活的一部分。要求志工下載 App、記帳號密碼，這個門檻在緊急狀況下會直接讓人放棄。LINE OA 讓系統的操作介面和他們平常聯絡的工具合而為一。目前模擬器已完整實作了報到、三步驟叫料、勘災回報、餐食表單等功能，真實的 LINE Webhook 後端是下一個里程碑——那一步接上後，這個系統就從「展示原型」變成「可以真的用」的工具。個資從這個入口進入，是目前資安需要特別注意的地方。',
     desc:'志工自助報到入口 + 收任務 + 勘災回報 + 叫料輸入/派送通知。模擬器已內嵌，真實 Webhook 待接。'},
   {id:'sorting',  nm:'物資整理站', ico:'\uD83D\uDCE5', x:78, y:14, status:'live', kind:'limb',
-    script:'這是物資整理站，現場物資的第一關。收到的物資在這裡拆箱、分類、報廢覆核、重新包裝，再送進倉儲。它把一堆混亂的捐贈物資，整理成可以調度的庫存。',
+    script:'捐贈物資到達現場的時候，往往是混亂的——不同種類、不同狀況、不同包裝全部混在一起。如果直接進倉儲，後續調度時根本無法準確知道手上有什麼。物資整理站是「讓混亂變成庫存」的第一關：拆箱、分類、報廢篩選、重新包裝，每一步都有紀錄。這個流程的設計讓後續的倉儲管理和調度媒合有可靠的資料基礎——你不能調度你不知道自己有的東西。',
     desc:'志工線。收件→拆箱分類→報廢/覆核→重包裝→入庫。一般物資處理起點。'},
   {id:'warehouse',nm:'物資倉儲', ico:'\uD83D\uDCE6', x:90, y:26, status:'live', kind:'limb',
-    script:'這是物資倉儲，管理我們手上所有的一般物資。三級分類造冊、入庫盤點、發送調度都在這裡，缺什麼、剩多少一清二楚。對外要出貨時，由調度中台統一媒合。',
+    script:'物資倉儲讓「我們有什麼」這件事變得透明。三級分類造冊讓任何一個幹部打開系統都能立刻知道庫存狀態，不需要問人、不需要靠記憶。對外出貨不由倉儲直接處理，而是統一經過調度中台媒合——這個設計確保物資分配有整體視野，不會出現「甲單位補到飽、乙單位缺貨」的情況。未來計劃接上 Google Sheets 讓造冊資料雲端化，多個站點同時更新不打架。',
     desc:'志工線。三級分類造冊、入庫、發送。一般物資。對外出貨經調度媒合。'},
   {id:'drive',    nm:'照片回報分類', ico:'\uD83D\uDCF7', x:70, y:44, status:'partial', kind:'limb',
-    script:'這是照片回報與分類。志工從 Line OA 傳回現場照片，系統自動歸類到 Google Drive。前端流程已經完成，接上 Drive 之後，每張現場照片都能自動對應到正確的個案與任務。',
+    script:'現場照片是救災紀錄最重要的一部分，但如果照片散落在每個人的手機裡，事後要整理、對帳、或對外說明時會非常困難。照片回報分類讓志工直接在 LINE 上傳照片，系統自動對應個案和任務、歸類到 Google Drive 正確的資料夾。前端分類流程已完成，目前等待 Google Drive API 金鑰設定完成後就能接上。接好後，每一場救災的影像紀錄都會自動整理完畢，不再需要事後手動分類。',
     desc:'Line OA 回傳照片→Drive→自動分類。前端流程完成，Drive API 待設定。'},
 
   // 右中=鄉親受助
   {id:'fieldgroup',nm:'L3 現場群', ico:'\uD83C\uDFD5\uFE0F', x:66, y:62, status:'live', kind:'limb', center:false,
-    script:'這是 L3 現場群，真正照顧到鄉親的地方。它把安置收容、個案管理、關懷紀錄、資產調度整合在一起，安心祝福金也從這裡發放。志工在這裡服務，鄉親在這裡被照顧，是整個系統最有溫度的一段。',
+    script:'L3 現場群是整個系統最靠近鄉親的地方，也是我設計這套系統最核心的初衷。前面所有的調度、派工、物資管理，最終目的都是讓這一段——安置收容、個案管理、關懷紀錄、安心祝福金發放——能夠順暢進行。它把四個面向整合在同一個群組裡，讓志工在現場服務時不需要在多個介面之間切換。安心祝福金併入關懷紀錄發放，是因為金錢援助和關懷探訪本來就是同一個服務流程，不應該被切開記錄。個案資料含有個資，目前是未加密狀態，這是最優先要處理的資安問題。',
     desc:'服務鄉親的現場執行群(志工操作、鄉親受助)。安心祝福金併於關懷紀錄發放。',
     subs:['安置收容管理','個案管理系統','關懷行動紀錄(含安心祝福金)','慈濟資產調度']},
 
   // 政府(縮小)
   {id:'emic',     nm:'政府 EMIC', ico:'\uD83C\uDFDB\uFE0F', x:93, y:60, status:'planned', kind:'future', mini:true,
-    script:'這是政府的 EMIC，消防署的災害應變系統。未來我們希望和它雙向交換災情與資源資料，讓慈濟的行動和政府的調度能對接起來。目前還在規劃階段，先預留位置。',
+    script:'政府 EMIC（消防署災害應變系統）的節點先放在這裡，是一個方向性的預留，不是近期實作目標。設計理念是：慈濟的救災行動不應該和政府的調度脫節，雙向交換災情與資源資料，可以讓兩個體系的行動互相補位而不是重複。目前這個整合的技術和行政條件都還沒到位，先在架構圖上標示出來，讓所有人知道這是我們想要走到的地方。等條件成熟，從全域監控開始對接是最自然的切入點。',
     desc:'消防署災害應變系統。未來與全域監控雙向交換災情/資源，尚未規劃實作。'},
 
   // 下=結案歸檔 + 後端服務層
   {id:'story',    nm:'故事線結案', ico:'\uD83D\uDCD6', x:55, y:74, status:'live', kind:'core',
-    script:'這是故事線結案。每一場救災結束時，系統會把所有的稽核紀錄串成一條時間軸：做了什麼、誰做的、花了多久、哪裡卡住。它既是對外交代的完整紀錄，也能匯出成下一次演練的劇本，讓每一次救災都變成養分。',
+    script:'故事線結案解決的是一個長期被忽視的問題：每一場救災結束後，我們做了什麼、為什麼這樣做、哪裡出了問題，這些經驗往往散落在個人記憶和零散紀錄裡，下一次很難傳承。故事線結案從稽核日誌自動串出時間軸敘事，讓整個救災過程有完整的、可查閱的紀錄。它同時有兩個用途：對外說明（給捐助人、政府、媒體看到我們做了什麼）和對內傳承（把這場救災的經驗匯出成演練劇本，讓下一次更好）。每一場救災都應該讓組織更有能力，而不是結束後歸零。',
     desc:'結案讀 audit log 串時間軸敘事，含 session 場次/錯誤聚合/UX 卡頓遙測。匯出 JSON 當演練劇本。'},
   {id:'backend',  nm:'後端服務層', ico:'\uD83D\uDDC4\uFE0F', x:50, y:89, status:'partial', kind:'backend',
-    script:'這是後端服務層，所有資料的家。它包含三塊：本機的 localStorage 讓系統離線也能用、Google Sheets 存報名和個案、未來的 Firebase 支援多人共編。要特別提醒，志工的個資目前還是明文存放，這是我們最優先要加密的一環。',
+    script:'後端服務層的設計是分三個階段走，而不是一開始就上最複雜的架構。第一階段：localStorage，讓系統在沒有網路的現場也能運作，所有狀態存在本機，連線後再上傳。這是最務實的選擇，因為災區網路不穩定是常態。第二階段：Google Sheets + GAS，讓報名和個案資料有雲端備份，幹部能從任何電腦查閱。第三階段：Firebase RTDB，支援多個站點的幹部同時操作、即時看到同一份資料，介面已預留，等需求確認後啟用。最需要立即處理的問題是：志工的身分證號、電話等個資目前明文存放在 localStorage 和 Sheets，僅靠前端遮蔽，沒有加密。這是 P1 最高優先的資安待修項。',
     desc:'資料存放與同步層。點開看子項：本機儲存、雲端後端、即時同步。',
     subs:['localStorage（本機資料/版本備份/場次/遙測，離線可用）','GAS + Sheets（報名/個案後端，待設定 /exec）','Firebase RTDB（多人共編，規劃中）']}
 ];
@@ -284,79 +295,79 @@ var NODES=[
 // ── 連線 ──
 var EDGES=[
   {from:'drill',to:'dashboard',label:'平時啟動',story:0,
-    talk:'平常沒有災情的時候，我們就從「平時演練」這條線進入儀表板，載入演練劇本、把流程練熟。這條線代表的是準備，不是真的災害。',
+    talk:'平時演練和儀表板之間的連線，代表系統有兩種運作模式。這條線確保系統在沒有災害的時候不會閒置——幹部可以隨時發起演練場次，讓所有人在低壓環境下熟悉完整流程。',
     flow:'平時模式進入。傳輸：演練劇本載入、情境參數初始化，儀表板進入平時模式。'},
   {from:'volunteer',to:'activate',label:'當區觸發',story:0,
-    talk:'當災害真的發生，是第一線的當區志工先察覺、先按下啟動。這條線很關鍵——它代表整個系統的反應是由現場發動的，不是等上面下令。',
+    talk:'這條線代表一個重要的設計選擇：啟動權在現場，不在指揮部。讓第一線志工觸發戰時啟動，系統反應速度就等於志工的反應速度，而不是等逐層回報再下令。',
     flow:'當區志工於災害發生時觸發戰時啟動。傳輸：災害位置、初判等級。'},
   {from:'activate',to:'dashboard',label:'戰時啟動',story:0,
-    talk:'志工一觸發，戰時啟動就把訊號送進儀表板，系統依災害類型和等級自動切換到戰時模式。從這條線之後，整個平台就進入備戰狀態。',
+    talk:'戰時啟動到儀表板這條線，讓系統配置自動跟著災害類型走。不同的災型（颱風、地震、水災）需要開不同的模組，這條連線讓這件事自動發生，不需要幹部手動切換。',
     flow:'戰時模式進入。傳輸：災型/受災等級，動態開關模組並預置任務範本，儀表板進入戰時模式。'},
   {from:'staff',to:'dashboard',label:'操作',
-    talk:'幹部和高層平常就在儀表板上操作、調整、看數據。這條線是純粹的人機互動，代表指揮端怎麼使用這個系統。',
+    talk:'指揮端與儀表板的連線是雙向互動：幹部在儀表板上看數據、下達指令、調整情境模擬。儀表板是幹部日常管理系統的主要入口，不只是觀看，而是實際操作。',
     flow:'幹部/高層操作儀表板。傳輸：UI 互動、模擬參數、版面設定。純前端。'},
   {from:'dashboard',to:'rtsync',label:'戰時派遣',story:1,
-    talk:'進入戰時後，儀表板把派遣指令往下送到即時調度中台，連同災型和優先級。這條線是「決策變成行動」的轉折點。',
+    talk:'儀表板到調度中台是「決策轉為行動」的關鍵連線。高層在儀表板做的判斷（支援哪裡、優先哪個），透過這條線轉成調度中台的任務範本和優先級，讓現場執行有明確依據。',
     flow:'戰時自儀表板觸發派遣。傳輸：災型/等級參數，預置調度中台任務範本與優先級。'},
   {from:'staff',to:'rtsync',label:'指揮',
-    talk:'幹部也能直接對調度中台下指揮，建立任務、指派人力。這條線代表指揮端對現場的直接掌控。',
+    talk:'幹部到調度中台的直接連線，讓指揮和調度能同步進行。幹部不需要透過儀表板中轉就能直接建立任務、調整指派——在快速變化的現場，減少操作步驟就是減少出錯的機會。',
     flow:'幹部下達指揮。傳輸：任務建立/指派/狀態變更，寫派工並觸發推播與稽核。'},
   {from:'volunteer',to:'lineoa',label:'報到',story:2,
-    talk:'志工用手機打開 Line OA 報到，這是他們進入系統的第一步。這條線代表「人到了」。',
+    talk:'志工用 LINE 報到這條線的設計前提是：不能要求志工在緊急狀況下學新工具。LINE 是他們已經熟悉的通訊軟體，報到流程嵌在裡面，進入系統的門檻就接近零。',
     flow:'志工經 Line OA 自助報到。傳輸：身分、報到時間、場次標記。'},
   {from:'lineoa',to:'reg',label:'寫名冊',story:2,
-    talk:'報到的資料會從 Line OA 自動寫進幹部端的名冊。這條線把零散的報到，整理成一份可調度的人力清單。',
+    talk:'LINE OA 到名冊這條線消除了人工抄寫的環節。過去志工報到後，幹部需要手動記錄或整理，容易漏、容易錯。自動寫入讓「人到位」這個事實立刻進入系統，沒有延遲。',
     flow:'報到資料寫入幹部端名冊。傳輸：志工身分、報到狀態。'},
   {from:'reg',to:'rtsync',label:'可派人力',story:2,
-    talk:'名冊再把可用的人力送進調度中台，系統就知道現在手上有誰、能派誰。這條線代表「人力到位」。',
+    talk:'名冊到調度中台這條線讓「人到了」和「可以被派工」之間沒有斷點。調度中台不需要幹部手動告知「現在有多少人」，它從名冊自動取得可用人力清單，加上技能標記，派工時就有完整依據。',
     flow:'名冊提供可派人力。傳輸：在位志工清單、技能標記，供調度媒合。'},
   {from:'vms',to:'rtsync',label:'指派',
-    talk:'志工管理把指派的結果送進調度中台。這條線代表「誰做什麼」的決定如何進入現場調度。',
+    talk:'志工管理到調度中台，讓人員編組的決策直接反映在現場執行上。幹部在志工管理模組決定誰加入哪個隊伍，這個結果自動進入調度中台，不需要再次手動輸入。',
     flow:'志工管理指派結果進中台。傳輸：人員編組、任務分派名單。'},
   {from:'lineoa',to:'rtsync',label:'叫料/回報 ↔ 派送',bi:true,story:3,
-    talk:'這是一條雙向線，也是現場最常用的。志工從手機叫料、回報，調度中台居中媒合，再把派工和派送通知發回手機。一來一回，前線和指揮就連起來了。',
+    talk:'LINE OA 和調度中台之間的雙向連線是整個系統使用頻率最高的一條。去程是志工的聲音進入系統（叫料需求、勘災回報、完工回執）；回程是系統通知志工（派工指令、物資派送通知、廣播、點名）。這條線讓前線和指揮在同一個資訊空間裡，不再靠電話傳話。',
     flow:'雙向。去程(志工→中台)：叫料需求(品項/數量/地點)、勘災回報、完成回執。回程(中台→志工)：派送通知、派工、廣播、點名。中台居中媒合，Line OA 兩端進出。'},
   {from:'sorting',to:'warehouse',label:'入庫',story:4,
-    talk:'物資在整理站分類處理好，就入庫到倉儲。這條線代表「混亂的物資變成可管理的庫存」。',
+    talk:'整理站到倉儲這條線是物資管理流程的第一個轉折點：捐贈物資在整理站完成分類和品質確認後才入庫，確保進入倉儲的每一件物資都有清楚的分類紀錄，不讓「不知道有什麼」的情況發生在調度時。',
     flow:'整理後入庫。傳輸：分類完成物資、品項數量造冊。'},
   {from:'warehouse',to:'rtsync',label:'庫存可用',story:4,
-    talk:'倉儲把目前有多少、缺多少回報給調度中台，供調度判斷。這條線讓調度的決定建立在真實庫存上，不是憑感覺。',
+    talk:'倉儲到調度中台這條連線讓物資分配有了客觀基礎。幹部在調度媒合時直接看到即時庫存，缺料告警也從這裡觸發——決策不再靠記憶或詢問，而是看數字。',
     flow:'倉儲回報可用量供調度。傳輸：庫存量、備貨進度、缺料告警。'},
   {from:'rtsync',to:'fieldgroup',label:'分案/進度',bi:true,story:5,
-    talk:'這也是雙向線。調度中台把任務分派到現場，特殊物資和安心祝福金也從這裡下達；現場再把執行進度和個案紀錄回傳。它連接的是「指揮」和「真正照顧到人」的兩端。',
+    talk:'調度中台和現場群之間的雙向線，是「指令」和「執行」之間的橋樑。從中台到現場：任務分案、物資指令、人力編組。從現場到中台：執行進度、個案紀錄、現場需求。這條線讓指揮端不需要打電話就能知道現場的實際狀況。',
     flow:'雙向。去程(中台→現場)：任務分案、特殊物資/安心祝福金發放指令、人力編組、座標。回程(現場→中台)：執行進度、個案/關懷紀錄、現場需求。'},
   {from:'lineoa',to:'drive',label:'照片上傳',
-    talk:'志工在現場拍的照片，從 Line OA 上傳。這條線是現場影像進入系統的入口。',
+    talk:'照片從 LINE OA 上傳是最低門檻的現場回報方式。志工不需要額外的工具，拍完直接傳，系統負責對應個案和分類——讓「留下影像紀錄」這件事的阻力接近零。',
     flow:'志工回傳照片。傳輸：現場影像→Drive 自動分類。'},
   {from:'drive',to:'fieldgroup',label:'歸檔',dash:true,
-    talk:'照片自動歸類後，關聯到對應的個案和現場紀錄。這條線目前還是虛線，因為 Drive 後端還沒接上。',
+    talk:'照片歸檔到個案這條線目前是虛線（規劃中），等 Google Drive API 設定完成後啟用。設計目標是讓每張照片都自動對應到正確的個案資料，事後整理時不需要人工對號。',
     flow:'照片歸入個案/現場紀錄。傳輸：分類後影像關聯個案。後端待設定，虛線。'},
   {from:'rtsync',to:'story',label:'結案',story:6,
-    talk:'任務結束時，調度中台把整個過程的紀錄送進故事線。這條線代表「做過的事被完整留下來」。',
+    talk:'調度中台到故事線結案，是讓每一場救災的經驗被留存下來的關鍵連線。任務結束後，完整的 audit log 自動進入故事線，不需要人工彙整報告——做了什麼、誰做的、什麼時候、花了多少時間，全部都在。',
     flow:'任務結案彙整。傳輸：全生命週期 audit log、照片、回執，串故事線。'},
   {from:'rtsync',to:'backend',label:'即時暫存',story:6,
-    talk:'調度的每一個狀態都即時寫進後端，離線也能用，連上線再上傳。這條線是系統就算斷網也不掉資料的保命線。',
+    talk:'調度中台到後端的即時暫存是針對「災區網路不穩定」這個現實設計的。每個操作都先寫本機 localStorage，不管網路狀況都不掉資料，連線後自動上傳。這確保幹部在現場可以放心操作，不用擔心斷網就前功盡棄。',
     flow:'調度狀態即時落後端。傳輸：任務/派工/警報狀態寫 localStorage，離線可用，連線後上傳。'},
   {from:'backend',to:'story',label:'場次遙測',story:6,
-    talk:'後端把這一場的場次數據、錯誤、卡頓送進故事線。這條線讓結案敘事不只是文字，還有真實的運作數據佐證。',
+    talk:'後端場次遙測到故事線，讓結案報告不只有「做了什麼」，還有「系統表現如何」。哪個功能卡頓、哪個步驟出錯、整場的操作時序——這些數據讓下一次迭代有具體的改善依據，而不是靠感覺說「這裡不順」。',
     flow:'後端遙測供敘事。傳輸：session 場次、錯誤聚合、UX 卡頓，注入故事線。'},
   {from:'warehouse',to:'backend',label:'造冊',dash:true,
-    talk:'倉儲的物資造冊同步到後端。這條線目前虛線，因為雲端串接還在設定。',
+    talk:'倉儲造冊到後端這條虛線，等 Google Sheets 設定完成後啟用。目標是讓物資進出紀錄有雲端備份，任何幹部都能從不同裝置查閱當前庫存，不受限於哪台電腦有最新資料。',
     flow:'倉儲造冊同步後端。傳輸：物資與庫存異動至 Sheets。待設定，虛線。'},
   {from:'fieldgroup',to:'backend',label:'個案存',dash:true,
-    talk:'個案資料寫進後端保存。這條線特別要注意——它帶著鄉親的個資，目前還沒加密，是我們最優先要處理的資安項目。',
+    talk:'個案資料寫入後端這條連線帶著最敏感的資料——鄉親的姓名、身分、聯絡方式、受災情況。目前這條線是虛線且個資未加密，是整個系統最高優先的資安待修項目（P1）。在加密機制到位之前，個資的操作和存取都需要特別謹慎。',
     flow:'個案資料寫後端。傳輸：訪視紀錄、慰問金、修繕至 GAS/Sheets。含個資待加密，虛線。'},
   {from:'sysadmin',to:'backend',label:'設定/備份',
-    talk:'系統管理層對後端讀寫設定和備份。這條線代表整個平台的設定和還原都集中在這裡控管。',
+    talk:'系統管理層到後端的連線，讓所有設定都有持久化的記錄。版本備份讓誤操作有後路，戰時災型預設讓不同場景的系統配置可以一鍵還原——這條線確保「設定」這件事是可管理的，而不是每次都要重新來過。',
     flow:'系統管理讀寫設定與備份。傳輸：權限設定、模組開關、版本備份還原、戰時災型預設。'},
   {from:'monitor',to:'rtsync',label:'監看',dash:true,
-    talk:'全域監控從調度中台拉資料來看，但只看不改。這條線是單向的、虛線的，代表高層的監看不會干擾現場操作。',
+    talk:'全域監控唯讀監看的設計原則是「看的人不能誤按到什麼」。當指揮中心的大屏投影給外部單位或長官看的時候，不能有任何可被意外觸發的操作。這條線是單向虛線，確保監看行為不回寫、不干擾現場調度。',
     flow:'全域監控唯讀監看。傳輸：任務/需求/連線狀態摘要單向上拋，不回寫，虛線。'},
   {from:'monitor',to:'emic',label:'未來對接',dash:true,
-    talk:'未來全域監控要和政府 EMIC 對接，雙向交換災情。這條線還是規劃中，先畫出來代表方向。',
+    talk:'全域監控和政府 EMIC 之間的連線是一個長期目標的預告。把它畫在架構圖上，是讓所有參與者都知道這個系統最終不是孤立運作的——它應該成為政府救災體系的一部分，而不只是慈濟內部的工具。',
     flow:'規劃中與政府對接。傳輸：與 EMIC 雙向交換災情/資源。尚未實作，虛線。'},
   {from:'rtsync',to:'backend',label:'同步 ↔',bi:true,dash:true,
-    talk:'這條雙向虛線代表未來的多人共編：透過 Firebase，不同站點的幹部能即時看到同一份資料。介面已經預留，等伺服器就能啟用。',
+    talk:'調度中台和後端之間的雙向同步（Firebase RTDB）解決的是多站點協作問題。當救災規模擴大，多個行政區的幹部需要同時操作同一套系統時，localStorage 就不夠用了——不同電腦的資料會脫節。Firebase 多人共編介面已預留，等使用需求確認後啟用，讓系統從「單點工具」進化成「分散式指揮平台」。',
     flow:'雙向(規劃)。多站點即時共編：任務/人力/設備經 Firebase RTDB 雙向同步。介面已預留未啟用，虛線。'}
 ];
 
@@ -523,8 +534,8 @@ function attachDrag(el,n){var dragging=false,moved=false,sx,sy;
 }
 
 function clearSel(){var ss=document.querySelectorAll('.node.sel,.elabel.sel');for(var i=0;i<ss.length;i++)ss[i].classList.remove('sel');EDGES.forEach(function(e,i){var p=document.getElementById('edge-'+i);if(p){p.classList.remove('edge-active');p.setAttribute('stroke','#C4C4CC');p.setAttribute('marker-end','url(#arr)');if(e.bi)p.setAttribute('marker-start','url(#arrR)');}});}
-function selectNode(id){if(storyOn)return;clearSel();var el=document.getElementById('node-'+id);if(el)el.classList.add('sel');var n=nodeById[id];EDGES.forEach(function(e,i){if(e.from===id||e.to===id){var p=document.getElementById('edge-'+i);if(p){p.classList.add('edge-active');p.setAttribute('marker-end','url(#arrH)');if(e.bi)p.setAttribute('marker-start','url(#arrRH)');}}});var subs=n.subs?'<div class="sub-mods">'+n.subs.map(function(s){return '<span class="sub-mod">'+s+'</span>';}).join('')+'</div>':'';var hext='';if(curView==='health'&&HEALTH[id]){var hs=HEALTH[id].s;var hcol={done:'green',todo:'amber',risk:'red',merge:'planned'}[hs];hext='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span class="tag '+hcol+'">🩺 '+HEALTH_LBL[hs]+'</span> <span style="font-size:11px">'+HEALTH[id].issue+'</span></div>';}var scr=n.script?'<div style="background:linear-gradient(135deg,var(--accent-bg),var(--blue-bg));border:1px solid var(--accent-border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:10px;font-size:12.5px;line-height:1.85;color:var(--text)"><span style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.05em">📢 講稿</span><br>'+n.script+'</div>':'';var pvBtn='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap"><button onclick="pvShow(\''+n.id+'\',\''+n.nm.replace(/'/g,'')+'\')" style="border:none;background:var(--accent);color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔍 看現況示意</button><button onclick="document.getElementById(\'fbPanel\').classList.add(\'on\');if(!document.getElementById(\'fbNode\').options.length)fbBuildNodeOptions();document.getElementById(\'fbNode\').value=\''+n.nm.replace(/'/g,'')+'\'" style="border:1px solid var(--accent-border);background:var(--accent-bg);color:var(--accent);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📝 對此寫回饋</button></div>';detail.innerHTML='<div class="detail-head"><div class="dico">'+n.ico+'</div><div class="dt"><h3>'+n.nm+' <span class="tag '+n.status+'">'+statusTag[n.status]+'</span></h3><div class="meta">'+n.id+' · '+n.kind+'</div></div></div><div class="detail-body">'+scr+'<div style="font-size:11px;color:var(--text3)">'+n.desc+'</div>'+subs+hext+pvBtn+'</div>';}
-function selectEdge(i){if(storyOn)return;clearSel();var e=EDGES[i];var p=document.getElementById('edge-'+i);if(p){p.classList.add('edge-active');p.setAttribute('marker-end','url(#arrH)');if(e.bi)p.setAttribute('marker-start','url(#arrRH)');}var lab=document.getElementById('elabel-'+i);if(lab)lab.classList.add('sel');var a=nodeById[e.from],b=nodeById[e.to];var dir=e.bi?'\u2194 雙向':'\u2192 單向';var etalk=e.talk?'<div style="background:linear-gradient(135deg,var(--accent-bg),var(--blue-bg));border:1px solid var(--accent-border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:10px;font-size:12.5px;line-height:1.85;color:var(--text)"><span style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.05em">📢 講稿</span><br>'+e.talk+'</div>':'';detail.innerHTML='<div class="detail-head"><div class="dico">'+(e.bi?'\u2194':'\u2192')+'</div><div class="dt"><h3>'+a.nm+' '+(e.bi?'\u2194':'\u2192')+' '+b.nm+' <span class="tag '+(e.dash?'planned':'live')+'">'+(e.dash?'規劃/次要':'現行')+'</span></h3><div class="meta">'+dir+' · 「'+e.label+'」</div></div></div><div class="detail-body">'+etalk+'<div style="font-size:11px;color:var(--text3)">'+e.flow+'</div></div>';}
+function selectNode(id){if(storyOn)return;clearSel();var el=document.getElementById('node-'+id);if(el)el.classList.add('sel');var n=nodeById[id];EDGES.forEach(function(e,i){if(e.from===id||e.to===id){var p=document.getElementById('edge-'+i);if(p){p.classList.add('edge-active');p.setAttribute('marker-end','url(#arrH)');if(e.bi)p.setAttribute('marker-start','url(#arrRH)');}}});var subs=n.subs?'<div class="sub-mods">'+n.subs.map(function(s){return '<span class="sub-mod">'+s+'</span>';}).join('')+'</div>':'';var hext='';if(curView==='health'&&HEALTH[id]){var hs=HEALTH[id].s;var hcol={done:'green',todo:'amber',risk:'red',merge:'planned'}[hs];hext='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span class="tag '+hcol+'">🩺 '+HEALTH_LBL[hs]+'</span> <span style="font-size:11px">'+HEALTH[id].issue+'</span></div>';}var scr=n.script?'<div style="background:linear-gradient(135deg,var(--accent-bg),var(--blue-bg));border:1px solid var(--accent-border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:10px;font-size:12.5px;line-height:1.85;color:var(--text)"><span style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.05em">💡 設計說明</span><br>'+n.script+'</div>':'';var pvBtn='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap"><button onclick="pvShow(\''+n.id+'\',\''+n.nm.replace(/'/g,'')+'\')" style="border:none;background:var(--accent);color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔍 看現況示意</button><button onclick="document.getElementById(\'fbPanel\').classList.add(\'on\');if(!document.getElementById(\'fbNode\').options.length)fbBuildNodeOptions();document.getElementById(\'fbNode\').value=\''+n.nm.replace(/'/g,'')+'\'" style="border:1px solid var(--accent-border);background:var(--accent-bg);color:var(--accent);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📝 對此寫回饋</button></div>';detail.innerHTML='<div class="detail-head"><div class="dico">'+n.ico+'</div><div class="dt"><h3>'+n.nm+' <span class="tag '+n.status+'">'+statusTag[n.status]+'</span></h3><div class="meta">'+n.id+' · '+n.kind+'</div></div></div><div class="detail-body">'+scr+'<div style="font-size:11px;color:var(--text3)">'+n.desc+'</div>'+subs+hext+pvBtn+'</div>';}
+function selectEdge(i){if(storyOn)return;clearSel();var e=EDGES[i];var p=document.getElementById('edge-'+i);if(p){p.classList.add('edge-active');p.setAttribute('marker-end','url(#arrH)');if(e.bi)p.setAttribute('marker-start','url(#arrRH)');}var lab=document.getElementById('elabel-'+i);if(lab)lab.classList.add('sel');var a=nodeById[e.from],b=nodeById[e.to];var dir=e.bi?'\u2194 雙向':'\u2192 單向';var etalk=e.talk?'<div style="background:linear-gradient(135deg,var(--accent-bg),var(--blue-bg));border:1px solid var(--accent-border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:10px;font-size:12.5px;line-height:1.85;color:var(--text)"><span style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.05em">💡 設計說明</span><br>'+e.talk+'</div>':'';detail.innerHTML='<div class="detail-head"><div class="dico">'+(e.bi?'\u2194':'\u2192')+'</div><div class="dt"><h3>'+a.nm+' '+(e.bi?'\u2194':'\u2192')+' '+b.nm+' <span class="tag '+(e.dash?'planned':'live')+'">'+(e.dash?'規劃/次要':'現行')+'</span></h3><div class="meta">'+dir+' · 「'+e.label+'」</div></div></div><div class="detail-body">'+etalk+'<div style="font-size:11px;color:var(--text3)">'+e.flow+'</div></div>';}
 
 // ── 故事導覽 ──
 var storyOn=false,storyIdx=0;
