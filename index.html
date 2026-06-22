@@ -5152,6 +5152,17 @@ function renderNav(){
     nav.appendChild(el);
   });
 }
+// ══════════════════════════════════════════════════════════════
+//  核心 · 分頁模組登錄器 (PageModules)  ── 階段① 新增
+//  讓各分頁「自己註冊」render，取代 showPage 內逐頁 if 硬接。
+//  目前已遷移：case_mgt；其餘分頁仍走下方既有 if，之後可逐頁搬過來。
+// ══════════════════════════════════════════════════════════════
+const PageModules = {
+  _reg:{},
+  register(mod){ this._reg[mod.id]=mod; },
+  get(id){ return this._reg[id]; },
+  render(id){ var m=this._reg[id]; if(m&&m.render) m.render(); }
+};
 function showPage(id){
   if(disabledModules.has(id)&&id!=='dashboard'){ id='dashboard'; }
   activePage=id;
@@ -5185,7 +5196,7 @@ function showPage(id){
   var mainEl=document.querySelector('.main');
   if(mainEl) mainEl.classList.toggle('arch-fullbleed',id==='arch_doc');
   if(id==='arch_doc') renderArchDoc();
-  if(id==='case_mgt') renderCaseMgt();
+  PageModules.render(id);            // 已模組化分頁交給登錄器派發（目前：case_mgt）
   if(id==='care_rec') renderCareRec();
   if(id==='warehouse') renderWarehouse();
   if(id==='shelter_mgt') renderShelterMgt();
@@ -8106,40 +8117,64 @@ function rebuildRefer(i){
   toast('🩺 已轉介心理師：'+h.caseId); renderRebuild(); saveData();
 }
 
-function renderCaseMgt(){
-  var el=document.getElementById('case-mgt-content'); if(!el) return;
-  var d=DATA.case_mgt;
-  var stColor={'待訪視':'badge-amber','訪視中':'badge-blue','已完成':'badge-green'};
-  var html='<div class="card"><div class="card-title">🗂️ '+d.title+'</div>'
-    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px;font-family:monospace">📍 '+d.addrNote+'</div>'
-    +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>地址</th><th>動線</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
-  for(var i=0;i<d.items.length;i++){
-    var it=d.items[i];
-    html+='<tr><td class="sh-time">'+it.caseId+'</td><td style="font-weight:500">'+it.name+'</td>'
-      +'<td style="font-size:11px">'+it.address+'</td>'
-      +'<td><span class="badge badge-purple">'+it.route+'</span></td>'
-      +'<td><span class="badge '+(stColor[it.status]||'badge-blue')+'">'+it.status+'</span></td>'
-      +'<td>'+(it.status==='已完成'?'<span style="font-size:9px;color:var(--text4)">✓</span>':'<button class="btn btn-blue btn-xs" onclick="advanceCase('+i+')">'+(it.status==='待訪視'?'▶ 開始訪視':'✓ 完成訪視')+'</button>')+'</td></tr>';
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  分頁模組 · 個案管理 (case_mgt)                                      ║
+// ║  ─ 資料：DATA.case_mgt（定義於上方 ~L4206，留在核心 store；模組讀寫不擁有）║
+// ║  ─ 掛載：#case-mgt-content（HTML 薄殼在 <body> 的 page 區 ~L1254）   ║
+// ║  ─ 對外：以 PageModules 註冊 render；列表操作 advance()              ║
+// ║                                                                      ║
+// ║  【階段①】此分頁邏輯已收攏成自足模組，但仍住在 index.html 內。        ║
+// ║   → 階段②：整個此區塊可原樣剪成 modules/case_mgt.js，幾乎免改。      ║
+// ║  ⚠ 跨域耦合：advance() 完成個案時直接寫入 DATA.care_rec（個案→關懷）。  ║
+// ║    階段②/③ 建議改走核心事件 bus（emit 'case:done'，由 care_rec 訂閱），║
+// ║    模組之間就不再互相直接寫對方的資料。                                ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const CaseMgtModule = {
+  id:'case_mgt',
+
+  // 畫面：讀 DATA.case_mgt → 渲染到掛載點
+  render(){
+    var el=document.getElementById('case-mgt-content'); if(!el) return;
+    var d=DATA.case_mgt;
+    var stColor={'待訪視':'badge-amber','訪視中':'badge-blue','已完成':'badge-green'};
+    var html='<div class="card"><div class="card-title">🗂️ '+d.title+'</div>'
+      +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px;font-family:monospace">📍 '+d.addrNote+'</div>'
+      +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>地址</th><th>動線</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+    for(var i=0;i<d.items.length;i++){
+      var it=d.items[i];
+      html+='<tr><td class="sh-time">'+it.caseId+'</td><td style="font-weight:500">'+it.name+'</td>'
+        +'<td style="font-size:11px">'+it.address+'</td>'
+        +'<td><span class="badge badge-purple">'+it.route+'</span></td>'
+        +'<td><span class="badge '+(stColor[it.status]||'badge-blue')+'">'+it.status+'</span></td>'
+        +'<td>'+(it.status==='已完成'?'<span style="font-size:9px;color:var(--text4)">✓</span>':'<button class="btn btn-blue btn-xs" onclick="advanceCase('+i+')">'+(it.status==='待訪視'?'▶ 開始訪視':'✓ 完成訪視')+'</button>')+'</td></tr>';
+    }
+    html+='</tbody></table>'
+      +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
+    el.innerHTML=html;
+  },
+
+  // 操作：推進個案狀態（待訪視 → 訪視中 → 已完成）
+  advance(i){
+    var it=DATA.case_mgt.items[i];
+    if(it.status==='待訪視'){
+      it.status='訪視中';
+      logSys('info','【個案】'+it.caseId+' '+it.name+' 開始訪視（'+it.route+'），GPS 簽到已記錄');
+      toast('▶ '+it.caseId+' 訪視開始');
+    } else if(it.status==='訪視中'){
+      it.status='已完成';
+      // ⚠ 跨域寫入（階段②改為事件）：個案完成 → 自動補一筆關懷行動紀錄
+      DATA.care_rec.logs.unshift({type:'訪視關懷',target:it.name+'（'+it.address.substring(0,6)+'…）',summary:'個案訪視完成，'+it.route+' GPS 軌跡已存',recorder:'系統自動'});
+      DATA.care_rec.stats.visit++;
+      logSys('ok','【個案】'+it.caseId+' 訪視完成 → 自動寫入關懷行動紀錄，訪視統計 +1');
+      toast('✓ '+it.caseId+' 完成，已同步關懷紀錄');
+    }
+    this.render(); saveData();
   }
-  html+='</tbody></table>'
-    +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
-  el.innerHTML=html;
-}
-function advanceCase(i){
-  var it=DATA.case_mgt.items[i];
-  if(it.status==='待訪視'){
-    it.status='訪視中';
-    logSys('info','【個案】'+it.caseId+' '+it.name+' 開始訪視（'+it.route+'），GPS 簽到已記錄');
-    toast('▶ '+it.caseId+' 訪視開始');
-  } else if(it.status==='訪視中'){
-    it.status='已完成';
-    DATA.care_rec.logs.unshift({type:'訪視關懷',target:it.name+'（'+it.address.substring(0,6)+'…）',summary:'個案訪視完成，'+it.route+' GPS 軌跡已存',recorder:'系統自動'});
-    DATA.care_rec.stats.visit++;
-    logSys('ok','【個案】'+it.caseId+' 訪視完成 → 自動寫入關懷行動紀錄，訪視統計 +1');
-    toast('✓ '+it.caseId+' 完成，已同步關懷紀錄');
-  }
-  renderCaseMgt();saveData();
-}
+};
+PageModules.register(CaseMgtModule);
+
+// 相容層（階段①暫留）：inline onclick 需要全域名稱；階段② 將 onclick 改為 CaseMgtModule.advance 後即可刪除。
+function advanceCase(i){ CaseMgtModule.advance(i); }
 function renderCareRec(){
   var el=document.getElementById('care-rec-content'); if(!el) return;
   var d=DATA.care_rec;
