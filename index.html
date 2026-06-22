@@ -123,6 +123,8 @@ body.nav-collapsed .main{margin-left:0}
   .kpi-row{grid-template-columns:1fr !important}
 }
 .page{display:none;animation:fin .2s ease}
+#page-arch_doc{padding:0!important;overflow:hidden}
+.main.arch-fullbleed{padding:0!important}
 .page.act{display:block}
 @keyframes fin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .pg-hdr{margin-bottom:28px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px}
@@ -1418,9 +1420,11 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 </div>
 
 <!-- ══ 系統架構說明 ══ -->
-<div class="page" id="page-arch_doc">
-  <div class="pg-hdr"><div><div class="pg-title">🗺️ 系統架構說明</div><div class="pg-sub">單一事實來源 · 與 IT 討論架構規劃用 · 隨系統改動同步更新</div></div></div>
-  <div id="arch-doc-content" style="max-width:880px"></div>
+<div class="page" id="page-arch_doc" style="display:flex;flex-direction:column;padding:0">
+  <div class="pg-hdr" style="padding:14px 20px;flex-shrink:0"><div><div class="pg-title">🗺️ 系統架構說明</div><div class="pg-sub">單一事實來源 · 與 IT 討論架構規劃用 · 隨系統改動同步更新</div></div></div>
+  <iframe id="arch-doc-frame" src="arch_preview7.html"
+    style="flex:1;width:100%;border:none;min-height:calc(100vh - 108px)"
+    loading="lazy" title="DRMS 架構心智圖"></iframe>
 </div>
 
 </div><!-- /main -->
@@ -1618,47 +1622,9 @@ function showArchNode(id){
   }
 }
 function renderArchDoc(){
-  var el=document.getElementById('arch-doc-content'); if(!el) return;
-  var d=ARCH_DOC;
-  function dot(s){ var col={live:'#7BAE8E',partial:'#C9A876',planned:'#C98A8A'}[s]||'#AAA'; return '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+col+';margin-right:6px;flex-shrink:0"></span>'; }
-  function lbl(s){ return {live:'已開通',partial:'部分',planned:'未開通'}[s]||s; }
-  var h='';
-  // 拓樸圖
-  h+='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">';
-  h+='<div style="font-size:15px;font-weight:700">🗺️ 系統架構拓樸圖 <span style="font-size:11px;font-weight:400;color:var(--text4);font-family:monospace">v'+d.version+' · '+d.updated+'</span></div>';
-  h+='<div style="display:flex;gap:12px;font-size:11px">'+dot('live')+'已開通'+dot('partial')+'部分'+dot('planned')+'未開通</div>';
-  h+='</div>';
-  h+='<div style="font-size:11px;color:var(--text4);margin-bottom:10px">點任一節點看說明。由上而下：用戶 → 安全路由 → 核心服務 → 數據基礎設施。</div>';
-  h+=renderArchGraph();
-  // 待辦
-  h+='<div style="font-size:15px;font-weight:700;margin:24px 0 10px">📌 開發待辦（點擊展開細節）</div>';
-  h+='<div style="display:grid;gap:6px">';
-  d.todos.forEach(function(t,i){
-    var pc={P1:'#C98A8A',P2:'#C9A876',P3:'#6B8CBE'}[t.pri]||'#AAA';
-    h+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden">';
-    h+='<div onclick="toggleArchTodo('+i+')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer">';
-    h+='<span style="font-size:9px;font-weight:800;color:#fff;background:'+pc+';padding:2px 7px;border-radius:10px">'+t.pri+'</span>';
-    h+=dot(t.status);
-    h+='<span style="flex:1;font-size:12px;font-weight:600">'+t.title+'</span>';
-    h+='<span style="font-size:11px;color:var(--text4)">'+lbl(t.status)+'</span>';
-    h+='<span id="arch-todo-arrow-'+i+'" style="font-size:10px;color:var(--text4);transition:transform .2s">\u25bc</span></div>';
-    h+='<div id="arch-todo-body-'+i+'" style="display:none;padding:0 12px 12px 12px;font-size:11px;line-height:1.8;color:var(--text2)">';
-    h+='<div style="border-top:1px solid var(--border);padding-top:8px"><b style="color:var(--text3)">\u80cc\u666f\uff1a</b>'+t.bg+'</div>';
-    h+='<div><b style="color:var(--text3)">\u70ba\u4f55\u91cd\u8981\uff1a</b>'+t.why+'</div>';
-    h+='<div><b style="color:var(--text3)">\u6280\u8853\u65b9\u5411\uff1a</b>'+t.how+'</div></div>';
-    h+='</div>';
-  });
-  h+='</div>';
-  el.innerHTML=h;
+  // arch_preview7.html 已以 iframe 內嵌，不需額外渲染
 }
-function toggleArchTodo(i){
-  var body=document.getElementById('arch-todo-body-'+i);
-  var arrow=document.getElementById('arch-todo-arrow-'+i);
-  if(!body) return;
-  var open=body.style.display!=='none';
-  body.style.display=open?'none':'block';
-  if(arrow) arrow.style.transform=open?'rotate(0deg)':'rotate(180deg)';
-}
+function toggleArchTodo(i){}
 // ─── Line OA 總控面板 ───
 var LOA_ACTIVE_TAB='push';
 function loaLog(msg){
@@ -4345,6 +4311,8 @@ function showPage(id){
   }
   if(id==='permissions'){renderPermMatrix();renderAPIRows();renderModuleManager();}
   if(id==='monitor') renderMonitor();
+  var mainEl=document.querySelector('.main');
+  if(mainEl) mainEl.classList.toggle('arch-fullbleed',id==='arch_doc');
   if(id==='arch_doc') renderArchDoc();
   if(id==='case_mgt') renderCaseMgt();
   if(id==='care_rec') renderCareRec();
