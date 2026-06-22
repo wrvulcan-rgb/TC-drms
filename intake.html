@@ -1,9 +1,9 @@
-<!-- 收集站 · 純前端提交碼版（無後端、無帳號牆、無外部架構）-->
-<!-- 用法：雙擊用瀏覽器開即可。其他人填寫後產生「提交碼」傳給你，你用管理者密碼進後台貼碼匯入。 -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>需求結論收集站</title>
-
 <style>
   :root{
     --ink:#1a1d24; --paper:#faf8f3; --line:#d8d2c4; --accent:#b5482e;
@@ -65,6 +65,8 @@
   footer{max-width:760px;margin:20px auto 40px;padding:0 24px;font-size:12px;color:var(--muted);text-align:center}
   @media(max-width:520px){h1{font-size:27px}.version-grid{grid-template-columns:1fr}.wrap{padding:0 16px}.panel{padding:16px}}
 </style>
+</head>
+<body>
 
 <header>
   <div class="mark">論證收束</div>
@@ -77,12 +79,9 @@
 <footer>提交內容請勿包含服務對象姓名、個資或個案隱私。本工具不經任何伺服器，資料僅在本機與你產生的提交碼中。</footer>
 
 <script>
-// ============================================================
-// 管理者密碼：換成你自己的字串（前端密碼，屬防誤觸等級）
+// 管理者密碼：換成你自己的字串（純前端，屬防誤觸等級，非加密保護）
 const ADMIN_PASSCODE = "ADMIN_PASSCODE";
-// ============================================================
 
-// 兩版 prompt（提交者複製）
 const A_PROMPT = [
 "你是一個高度專業且兼具高情商的「系統需求多方論證與收集器」。你的體內共生著 5 位性格鮮明、立場堅定的專家。任務是審視使用者輸入的想像、需求與痛點，透過交叉詰問淬煉成可落地的系統架構規格。",
 "",
@@ -133,25 +132,20 @@ const GUIDE_PROMPT = [
 "若已理解，只回覆這句開場：「嗨，我們隨便聊聊就好，不用想答案對不對。先問你——最近一次你在忙志工的事情時，有沒有哪個環節讓你覺得『有夠麻煩』或『怎麼又來了』？」然後等待回應。"
 ].join("\n");
 
-// 狀態
 const STORE_KEY = "intake_submissions_v1";
 let isAdmin = false;
 
 function loadStore(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"[]"); }catch(_){ return []; } }
 function saveStore(arr){ localStorage.setItem(STORE_KEY, JSON.stringify(arr)); }
 
-// 提交碼編解碼（UTF-8 安全 Base64）
 function encodeEntry(obj){
-  const json=JSON.stringify(obj);
-  return "INTAKE1:"+btoa(unescape(encodeURIComponent(json)));
+  return "INTAKE1:"+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
 }
 function decodeEntry(code){
   const t=code.trim().replace(/^INTAKE1:/,"");
-  const json=decodeURIComponent(escape(atob(t)));
-  return JSON.parse(json);
+  return JSON.parse(decodeURIComponent(escape(atob(t))));
 }
 
-// 工具
 function fmt(ts){const d=new Date(ts);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 function copy(text,label){navigator.clipboard.writeText(text).then(()=>flash("已複製"+label+" ✓")).catch(()=>flash("複製失敗",true))}
@@ -160,7 +154,6 @@ function flash(msg,isErr){const e=document.getElementById("flash");if(e){e.textC
 
 function render(){ isAdmin ? renderAdmin() : renderSubmitter() }
 
-// 提交者視角
 function renderSubmitter(){
   document.getElementById("app").innerHTML =
   '<main>'+
@@ -186,7 +179,6 @@ function renderSubmitter(){
         '</div>'+
       '</div>'+
     '</section>'+
-
     '<section class="panel">'+
       '<div class="eyebrow">第二步 · 產生提交碼</div>'+
       '<div class="warn-box">請勿填入服務對象姓名、個資或個案隱私。只描述流程、需求、痛點。</div>'+
@@ -200,7 +192,6 @@ function renderSubmitter(){
       '<div id="flash"></div>'+
       '<div id="code-area"></div>'+
     '</section>'+
-
     '<section class="panel" style="background:var(--paper)">'+
       '<div class="eyebrow">管理者</div>'+
       '<div class="gate-row">'+
@@ -242,7 +233,6 @@ function adminLogin(){
   else { el.className="err"; el.textContent="密碼錯誤"; }
 }
 
-// 管理者視角
 function renderAdmin(){
   var list=loadStore().sort(function(a,b){return b.ts-a.ts;});
   var cards=list.map(function(s){
@@ -290,6 +280,7 @@ function importCode(){
   arr.push(obj);
   saveStore(arr);
   renderAdmin();
+  flash("匯入成功 ✓");
 }
 
 window.copyOne=function(id){
@@ -305,3 +296,5 @@ function adminLogout(){ isAdmin=false; render(); }
 
 render();
 </script>
+</body>
+</html>

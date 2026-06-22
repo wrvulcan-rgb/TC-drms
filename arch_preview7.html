@@ -514,11 +514,11 @@ function drawEdge(e,i){var a=nodeById[e.from],b=nodeById[e.to];var pp=edgePath(a
 function refreshEdges(){EDGES.forEach(function(e,i){var a=nodeById[e.from],b=nodeById[e.to];var pp=edgePath(a,b);var path=document.getElementById('edge-'+i);if(path)path.setAttribute('d',pp.d);var lab=document.getElementById('elabel-'+i);if(lab){lab.style.left=(pp.lx/VW*100)+'%';lab.style.top=(pp.ly/VH*100)+'%';}});}
 
 function attachDrag(el,n){var dragging=false,moved=false,sx,sy;
-  function down(ev){if(n.locked)return;dragging=true;moved=false;el.classList.add('dragging');var pt=ev.touches?ev.touches[0]:ev;sx=pt.clientX;sy=pt.clientY;ev.preventDefault();}
+  function down(ev){if(n.locked)return;dragging=true;moved=false;el.classList.add('dragging');var pt=ev.touches?ev.touches[0]:ev;sx=pt.clientX;sy=pt.clientY;window.addEventListener('mousemove',move);window.addEventListener('mouseup',up);window.addEventListener('touchmove',move,{passive:false});window.addEventListener('touchend',up);ev.preventDefault();}
   function move(ev){if(!dragging)return;var pt=ev.touches?ev.touches[0]:ev;if(Math.abs(pt.clientX-sx)>3||Math.abs(pt.clientY-sy)>3)moved=true;var rect=stage.getBoundingClientRect();var nx=(pt.clientX-rect.left)/rect.width*100,ny=(pt.clientY-rect.top)/rect.height*100;nx=Math.max(2,Math.min(98,nx));ny=Math.max(2,Math.min(98,ny));n.x=nx;n.y=ny;el.style.left=nx+'%';el.style.top=ny+'%';refreshEdges();if(curView==='health')positionMergeFrames();ev.preventDefault();}
-  function up(){if(!dragging)return;dragging=false;el.classList.remove('dragging');if(moved){savePos();}else{if(n.locked){selectNode(n.id);}else{selectNode(n.id);}}}
-  el.addEventListener('mousedown',down);window.addEventListener('mousemove',move);window.addEventListener('mouseup',up);
-  el.addEventListener('touchstart',down,{passive:false});window.addEventListener('touchmove',move,{passive:false});window.addEventListener('touchend',up);
+  function up(){if(!dragging)return;dragging=false;el.classList.remove('dragging');window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',up);window.removeEventListener('touchmove',move);window.removeEventListener('touchend',up);if(moved){savePos();}else{selectNode(n.id);}}
+  el.addEventListener('mousedown',down);
+  el.addEventListener('touchstart',down,{passive:false});
   if(n.locked){el.style.cursor='pointer';el.addEventListener('click',function(){selectNode(n.id);});}
 }
 
