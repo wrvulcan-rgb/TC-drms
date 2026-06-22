@@ -2371,7 +2371,10 @@ var ARCH_DOC={
     {id:'storage',name:'localStorage',x:54,y:76,status:'live',kind:'backend',desc:'本機資料(drms_data)、版本備份(backup_1/2)、應變場次(session)、遙測。離線可用。'},
     {id:'story',name:'故事線結案',x:78,y:64,status:'live',kind:'core',desc:'結案時讀 audit log 串時間軸敘事，含 session場次/錯誤聚合/UX卡頓。匯出 JSON 當演練劇本。'},
     {id:'firebase',name:'Firebase RTDB',x:78,y:14,status:'planned',kind:'future',desc:'多人共編。介面已預留可無痛切換，需架基金會伺服器後啟用。'},
-    {id:'emic',name:'政府 EMIC',x:78,y:88,status:'planned',kind:'future',desc:'消防署災害應變系統。未來 API 資料交換，尚未規劃。'}
+    {id:'emic',name:'政府 EMIC',x:78,y:88,status:'planned',kind:'future',desc:'消防署災害應變系統。未來 API 資料交換，尚未規劃。'},
+    {id:'gas_webhook',name:'GAS Webhook',x:63,y:14,status:'partial',kind:'backend',desc:'Line OA Webhook 接收端 + Messaging API 推播。doPost 處理 follow/message 事件，doGet 供 DRMS 查詢。需部署並設定 /exec 網址。'},
+    {id:'drive_api',name:'Google Drive',x:92,y:50,status:'planned',kind:'future',desc:'照片上傳儲存（drive 模組），結案報告 PDF/JSON 匯出。需 OAuth2 授權流程或 Service Account。'},
+    {id:'line_webhook',name:'Line Webhook',x:8,y:50,status:'planned',kind:'channel',desc:'志工從 Line 傳「報到/完成/求助」→ GAS 解析 → 更新 Sheets → DRMS 輪詢抓取。真實 Webhook 尚未啟用。'}
   ],
   // ── 連線：from→to，label 資料流說明 ──
   graphEdges:[
@@ -2390,7 +2393,14 @@ var ARCH_DOC={
     {from:'storage',to:'story',label:'場次遙測'},
     {from:'monitor',to:'rtsync',label:'監看',dash:true},
     {from:'rtsync',to:'firebase',label:'未來同步',dash:true},
-    {from:'monitor',to:'emic',label:'未來對接',dash:true}
+    {from:'monitor',to:'emic',label:'未來對接',dash:true},
+    {from:'lineoa',to:'line_webhook',label:'傳訊息'},
+    {from:'line_webhook',to:'gas_webhook',label:'POST events'},
+    {from:'gas_webhook',to:'sheets',label:'寫資料'},
+    {from:'sheets',to:'user',label:'30s 輪詢',dash:true},
+    {from:'rtsync',to:'gas_webhook',label:'推播任務',dash:true},
+    {from:'gas_webhook',to:'lineoa',label:'pushMessage',dash:true},
+    {from:'drive_api',to:'story',label:'匯出報告',dash:true}
   ]
 };
 function renderArchGraph(){
@@ -4432,6 +4442,18 @@ DATA.devTasks = [
   {id:'dt8',  pri:'lo', mod:'intake',    title:'intake.html：「產生提交碼」按鈕綁定確認，確保 importCode() 成功後的 flash("匯入成功 ✓") 有正確觸發', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt9',  pri:'lo', mod:'vol_hub',   title:'志工人力中心-管理指派子頁：目前為靜態框架，詳細搜尋/篩選/任務指派功能待補', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt10', pri:'lo', mod:'assets',    title:'assets / sorting：部份 tab 動作按鈕點擊無反應，逐一確認哪些功能仍是佔位符', assignee:'', done:false, created:'2026-06-22'},
+  // ── 架構規劃 2026-06-22：Line OA Webhook 全流程整合 ──
+  {id:'dt-arch-01', pri:'hi', mod:'arch_doc',  title:'[架構] 心智圖新增 gas_webhook/line_webhook/drive_api 三節點及對應邊，反映真實 Line OA Webhook 完整架構（已執行 2026-06-22）', assignee:'', done:true,  created:'2026-06-22'},
+  {id:'dt-arch-02', pri:'hi', mod:'line_oa',   title:'[Line OA] 實作真實 Webhook：GAS doPost 接收 Line events → 解析 message/follow → 寫 Sheets Event_Logs', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-03', pri:'hi', mod:'line_oa',   title:'[Line OA] 推播方向：DRMS 操作（派任務/SOS/點名）→ loaSendTask() fetch GAS → Line Messaging API pushMessage', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-04', pri:'hi', mod:'vol_hub',   title:'[報到] checkIn(vid) 實作完整：RTDB update + loaPush 報到確認 + GAS Event_Logs 寫入', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-05', pri:'md', mod:'rtsync',    title:'[派工] rtWizAssign 派任後自動觸發 loaSendTask(vid, taskTitle, location) 推播給志工 Line', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-06', pri:'md', mod:'warehouse', title:'[倉儲] 物資出庫後觸發 GAS doPost 寫 Sheets Warehouse 表（目前只存 localStorage）', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-07', pri:'md', mod:'case_mgt',  title:'[個案] 新建/更新個案觸發 GAS doPost 寫 Sheets Cases 表', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-08', pri:'md', mod:'admin',     title:'[GAS Token] GAS doPost 加 sessionToken 驗證，防前端繞過（P1 安全補強）', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-09', pri:'md', mod:'vol_hub',   title:'[報名] innerGasUrl QR 產生邏輯連通：掃 QR → Line 加入 → GAS follow handler → Master_Profiles', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-10', pri:'lo', mod:'drive',     title:'[Drive] 照片上傳後觸發 GAS → 存 Drive photos/ 資料夾 → 回傳 fileId 顯示縮圖', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-11', pri:'lo', mod:'rtsync',    title:'[結案] rtCloseCase() 完成後自動生成 JSON 劇本 → fetch GAS → 上傳 Drive exports/', assignee:'', done:false, created:'2026-06-22'},
 ];
 
 // ══════════════════════════════════════════════════════
