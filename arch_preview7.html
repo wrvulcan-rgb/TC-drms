@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRMS 架構心智圖 · Preview</title>
+<style>
+:root{
+  --bg:#F5F5F5;--bg2:#FFFFFF;--bg3:#FAFAFA;--bg4:#F0F0F2;
+  --border:#EAEAEC;--border2:#DCDCE0;--border3:#C8C8CE;
+  --text:#333333;--text2:#555555;--text3:#888888;--text4:#AAAAAA;
+  --accent:#C8A2C8;--accent-bg:#F7F2F7;--accent-border:#E5D5E5;--accent-soft:#EFE6EF;
+  --blue:#6B8CBE;--blue-bg:#F2F5FA;--blue-border:#D5E0EE;
+  --green:#7BAE8E;--green-bg:#F1F7F3;--green-border:#D2E6DA;
+  --red:#C98A8A;--red-bg:#FAF2F2;--red-border:#EDD5D5;
+  --amber:#C9A876;--amber-bg:#FAF6EF;--amber-border:#EDE0CC;
+  --purple:#C8A2C8;--purple-bg:#F7F2F7;--purple-border:#E5D5E5;
+  --orange:#C99A76;--orange-bg:#FAF5EF;--orange-border:#EDDCCC;
+  --r:12px;--r-sm:8px;
+  --shadow:0 2px 6px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 10px rgba(0,0,0,0.06);
+  --shadow-lg:0 10px 30px rgba(0,0,0,0.10);
+  --z-tzu:rgba(200,162,200,0.07);
+  --z-vol:rgba(123,174,142,0.07);
+  --z-ppl:rgba(107,140,190,0.07);
+  --z-gov:rgba(136,136,136,0.06);
+  --z-back:rgba(201,168,118,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans TC',-apple-system,sans-serif;font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased;padding:18px}
+.wrap{max-width:1320px;margin:0 auto}
+.head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:10px}
+.head h1{font-size:18px;font-weight:700;letter-spacing:-.3px}
+.head .ver{font-size:11px;color:var(--text4);font-family:monospace}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tbtn{font-size:11px;padding:6px 12px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:inherit;font-weight:500;transition:all .15s}
+.tbtn:hover{border-color:var(--blue-border);color:var(--blue);background:var(--blue-bg)}
+.tbtn.play{border-color:var(--green-border);color:var(--green);background:var(--green-bg)}
+.tbtn.play:hover{filter:brightness(.98)}
+.legend{display:flex;gap:13px;flex-wrap:wrap;font-size:11px;color:var(--text2);align-items:center;margin-bottom:8px}
+.lg{display:flex;align-items:center;gap:5px}
+.lg .d{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.lg .ln{width:22px;height:0;border-top:2px solid var(--text3);flex-shrink:0}
+.lg .ln.dash{border-top-style:dashed}
+.hint{font-size:11px;color:var(--text4);margin-bottom:10px}
+
+.stage{position:relative;background:var(--bg2);
+  border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);
+  width:100%;aspect-ratio:16/11;min-height:600px;overflow:hidden;touch-action:none}
+
+/* 場域：半透明背景色塊，非牢籠 */
+.zone{position:absolute;border-radius:24px;pointer-events:none;z-index:0;transition:opacity .3s}
+.zone-lbl{position:absolute;top:11px;left:18px;font-size:10px;text-transform:uppercase;font-weight:800;letter-spacing:.1em;opacity:.85}
+.zone.tzu{background:var(--z-tzu)} .zone.tzu .zone-lbl{color:var(--purple)}
+.zone.vol{background:var(--z-vol)} .zone.vol .zone-lbl{color:var(--green)}
+.zone.ppl{background:var(--z-ppl)} .zone.ppl .zone-lbl{color:var(--blue)}
+.zone.gov{background:var(--z-gov)} .zone.gov .zone-lbl{color:var(--text3)}
+.zone.back{background:var(--z-back)} .zone.back .zone-lbl{color:var(--amber)}
+
+svg.edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+svg.edges path{pointer-events:stroke;cursor:pointer;stroke-opacity:.55;transition:stroke-opacity .25s,stroke-width .15s,stroke .15s}
+svg.edges path:hover{stroke-opacity:1;stroke-width:3.5}
+svg.edges path.hot{stroke-opacity:1}
+svg.edges path.edge-active{stroke:#6B8CBE!important;stroke-width:3!important;stroke-opacity:1!important;stroke-dasharray:8,6!important;animation:arch-march 1s linear infinite}
+@keyframes arch-march{to{stroke-dashoffset:-14}}
+svg.edges path.dim{stroke-opacity:.12}
+.elabel{position:absolute;transform:translate(-50%,-50%);font-size:10px;font-weight:600;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:2px 8px;
+  color:var(--text2);cursor:pointer;white-space:nowrap;box-shadow:var(--shadow);transition:all .2s;z-index:4}
+.elabel:hover{border-color:var(--blue);color:var(--blue)}
+.elabel.sel{border-color:var(--blue);background:var(--blue-bg);color:var(--blue)}
+.elabel.dim{opacity:.18}
+
+.node{position:absolute;transform:translate(-50%,-50%);background:var(--bg2);
+  border:1.5px solid var(--border2);border-radius:var(--r-sm);padding:8px 11px;
+  min-width:84px;text-align:center;cursor:grab;box-shadow:var(--shadow);
+  transition:box-shadow .15s,border-color .15s,opacity .25s;z-index:6;user-select:none;touch-action:none}
+.node:active{cursor:grabbing}
+.node.dragging{box-shadow:var(--shadow-lg);z-index:20;opacity:.95}
+.node.sel{box-shadow:0 0 0 3px var(--accent-soft),var(--shadow-md)}
+.node.hot{box-shadow:0 0 0 3px var(--green-bg),var(--shadow-md);border-color:var(--green-border)}
+.node.dim{opacity:.25}
+.node.center{min-width:118px;padding:12px 15px;border-width:2px;box-shadow:0 0 0 4px var(--accent-soft),var(--shadow-md)}
+.node .ico{font-size:19px;line-height:1;margin-bottom:2px;pointer-events:none}
+.node .nm{font-size:11.5px;font-weight:600;color:var(--text);line-height:1.25;pointer-events:none}
+.node .kd{font-size:9px;color:var(--text4);font-family:monospace;margin-top:1px;text-transform:uppercase;pointer-events:none}
+.node .st{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%}
+.st.live{background:var(--green)}.st.partial{background:var(--amber)}.st.planned{background:var(--red)}
+.node.live{border-color:var(--green-border)}
+.node.partial{border-color:var(--amber-border)}
+.node.planned{border-color:var(--red-border);border-style:dashed}
+.node.trigger{background:var(--amber-bg);border-color:var(--amber-border)}
+/* EMIC 縮成小圖示 */
+.node.mini{min-width:0;padding:6px 8px}
+.node.mini .nm,.node.mini .kd{display:none}
+.node.mini .ico{font-size:17px;margin:0}
+
+.detail{margin-top:14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  box-shadow:var(--shadow);overflow:hidden;min-height:92px}
+.detail-empty{padding:24px 20px;text-align:center;color:var(--text4);font-size:12px}
+.detail-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--border)}
+.detail-head .dico{font-size:23px}
+.detail-head .dt{flex:1;min-width:0}
+.detail-head .dt h3{font-size:14px;font-weight:700}
+.detail-head .dt .meta{font-size:11px;color:var(--text4);font-family:monospace;margin-top:1px}
+.detail-body{padding:13px 18px;font-size:12px;color:var(--text2);line-height:1.75}
+.sub-mods{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.sub-mod{font-size:11px;padding:3px 9px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);color:var(--text2)}
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600}
+.tag.live{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.tag.partial{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.tag.planned{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+
+/* 故事旁白條 */
+.views{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.vpill{font-size:12px;padding:7px 16px;border-radius:20px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s}
+.vpill:hover{border-color:var(--blue-border)}
+.vpill.act{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--shadow-md)}
+.vpill .vsub{font-size:10px;font-weight:400;opacity:.8;margin-left:4px}
+.node.warn{box-shadow:0 0 0 3px var(--red-bg),var(--shadow-md);border-color:var(--red)!important;border-style:solid!important}
+/* 健檢視角著色 */
+.node.h-done{border-color:var(--green)!important;box-shadow:0 0 0 2px var(--green-bg)}
+.node.h-todo{border-color:var(--amber)!important;box-shadow:0 0 0 2px var(--amber-bg)}
+.node.h-risk{border-color:var(--red)!important;border-style:solid!important;box-shadow:0 0 0 3px var(--red-bg)}
+.node.h-merge{border-color:var(--text3)!important;border-style:dashed!important;box-shadow:0 0 0 2px var(--bg4)}
+.node .hbadge{position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:8px;font-weight:800;padding:1px 6px;border-radius:7px;white-space:nowrap;display:none;z-index:8}
+.node.h-done .hbadge{display:block;background:var(--green);color:#fff}
+.node.h-todo .hbadge{display:block;background:var(--amber);color:#fff}
+.node.h-risk .hbadge{display:block;background:var(--red);color:#fff}
+.node.h-merge .hbadge{display:block;background:var(--text3);color:#fff}
+/* 整合群組灰框 */
+.merge-frame{position:absolute;border:1.5px dashed var(--text3);border-radius:16px;pointer-events:none;z-index:2;display:none}
+.merge-frame .mf-lbl{position:absolute;top:-8px;left:12px;font-size:9px;font-weight:700;padding:1px 8px;border-radius:8px;background:var(--bg2);color:var(--text3);border:1px solid var(--border2)}
+body.health-on .merge-frame{display:block}
+.story-bar{margin-top:12px;background:linear-gradient(135deg,var(--green-bg),var(--blue-bg));border:1px solid var(--green-border);border-radius:var(--r);padding:14px 18px;display:none;align-items:center;gap:14px}
+.story-bar.warn-bar{background:linear-gradient(135deg,var(--red-bg),var(--amber-bg));border-color:var(--red-border)}
+.story-bar.warn-bar .story-step{color:var(--red);border-color:var(--red-border)}
+.story-bar.show{display:flex}
+.story-step{font-size:10px;font-weight:800;color:var(--green);font-family:monospace;background:var(--bg2);border:1px solid var(--green-border);border-radius:8px;padding:3px 9px;flex-shrink:0}
+.story-text{flex:1;font-size:13px;color:var(--text);line-height:1.6}
+.story-nav{display:flex;gap:6px;flex-shrink:0}
+.snav{width:30px;height:30px;border-radius:8px;border:1px solid var(--green-border);background:var(--bg2);color:var(--green);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.snav:disabled{opacity:.35;cursor:default}
+.note{font-size:11px;color:var(--text4);margin-top:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>🗺️ 系統架構心智圖 <span class="ver" id="ver"></span></h1>
+      <div class="hint">即時調度中台鎖定中央，其餘放射環繞（上=發起 / 下=結案歸檔 / 左=慈濟 / 右=志工現場）。拖曳排版 · 點節點或線看說明 · ▶ 故事導覽逐段講解。</div>
+    </div>
+    <div class="toolbar">
+      <button class="tbtn play" onclick="storyStart()">▶ 故事導覽</button>
+      <button class="tbtn" onclick="resetLayout()">↺ 重置佈局</button>
+      <button class="tbtn" onclick="exportLayout()">⬇ 匯出座標</button>
+      <button class="tbtn" onclick="importLayout()">⬆ 匯入座標</button>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="lg"><span class="d" style="background:var(--green)"></span>已開通</div>
+    <div class="lg"><span class="d" style="background:var(--amber)"></span>部分</div>
+    <div class="lg"><span class="d" style="background:var(--red)"></span>未開通</div>
+    <div class="lg"><span class="ln"></span>現行</div>
+    <div class="lg"><span class="ln dash"></span>規劃/次要</div>
+    <div class="lg">→ 單向 · ↔ 雙向</div>
+  </div>
+
+  <div class="views" id="views">
+    <button class="vpill act" data-view="decider" onclick="setView('decider')">👔 決策者<span class="vsub">救災怎麼跑</span></button>
+    <button class="vpill" data-view="volunteer" onclick="setView('volunteer')">🙋 志工<span class="vsub">我的一條線</span></button>
+    <button class="vpill" data-view="tech" onclick="setView('tech')">🔧 技術維運<span class="vsub">資料與待修</span></button>
+    <button class="vpill" data-view="health" onclick="setView('health')">🩺 健檢<span class="vsub">補/整合/風險</span></button>
+    <button class="vpill" data-view="all" onclick="setView('all')">◍ 全部</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <svg class="edges" id="edges" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="story-bar" id="storyBar">
+    <div class="story-step" id="storyStep">1 / N</div>
+    <div class="story-text" id="storyText"></div>
+    <div class="story-nav">
+      <button class="snav" id="sPrev" onclick="storyPrev()">‹</button>
+      <button class="snav" id="sNext" onclick="storyNext()">›</button>
+      <button class="snav" onclick="storyEnd()">✕</button>
+    </div>
+  </div>
+
+  <div class="detail" id="detail">
+    <div class="detail-empty">▲ 拖曳排版 · 點節點或線看說明 · 或按 ▶ 故事導覽</div>
+  </div>
+  <div class="note">Preview：場域化 + 放射 + 後端合併 + 故事導覽。階段2 將加三視角切換與新增連線。座標存本機。不影響主系統。</div>
+</div>
+
+<script>
+// ── 場域（背景色塊，非框）──
+var ZONES=[
+  {cls:'tzu', lbl:'慈濟基金會 · 指揮', x:2,  y:8,  w:44, h:84},
+  {cls:'vol', lbl:'志工端 · 前線',     x:54, y:4,  w:44, h:42},
+  {cls:'ppl', lbl:'鄉親端 · 受助',     x:54, y:48, w:30, h:30},
+  {cls:'gov', lbl:'政府',             x:88, y:50, w:10, h:26},
+  {cls:'back',lbl:'後端服務層',         x:30, y:82, w:44, h:15}
+];
+
+// ── 節點：rtsync 鎖中央(50,50)，放射環繞 ──
+var NODES=[
+  // 上方=發起/啟動（時間軸上緣）
+  {id:'drill',    nm:'平時演練', ico:'\uD83C\uDFAF', x:14, y:14, status:'live', kind:'trigger', trigger:true,
+    script:'這是平時演練的啟動點。沒有災害的日子，我們從這裡載入演練劇本，讓整個系統進入平時模式，幹部可以反覆操練流程、熟悉每個環節。它讓救災不是臨場才學，而是平常就練到位。',
+    desc:'平時模式啟動源。排程或手動發起演練，載入情境劇本，進入儀表板平時模式。'},
+  {id:'activate', nm:'戰時啟動', ico:'\uD83D\uDEA8', x:30, y:9,  status:'live', kind:'trigger', trigger:true,
+    script:'這是戰時啟動。當災害真的發生，當區志工在第一線一觸發，系統立刻切換到戰時模式，依災害類型和受災等級自動開關需要的模組。從這一刻起，整個平台從演練狀態變成真正的應變指揮中心。',
+    desc:'戰時模式啟動源。當區志工觸發，系統切戰時，依災型/受災等級動態開關模組，進入儀表板。'},
+  {id:'dashboard',nm:'總控儀表板', ico:'\uD83D\uDCCA', x:34, y:24, status:'live', kind:'core',
+    script:'這是總控儀表板，整個系統的大腦與起點。平時演練和戰時啟動兩條線都回到這裡。打開它，受災戶數、撤離人數、志工到位、物資進度一目瞭然，高層不必等任何人回報，就能即時掌握全局、下達戰時派遣。',
+    desc:'高層/總控專用。系統起點：平時演練與戰時啟動兩條線都回到此。KPI、情境模擬(10災型)、戰時派遣、可編輯版面、AI 戰術分析。'},
+
+  // 左=慈濟指揮
+  {id:'staff',    nm:'幹部/高層', ico:'\uD83D\uDC54', x:13, y:32, status:'live', kind:'actor',
+    script:'這是慈濟基金會的指揮端，包含幹部、總控和高層。他們在電腦後台操作，依照各自的角色看到不同的模組、握有不同的權限。重大的調度與決策，都從這裡發出。',
+    desc:'慈濟指揮端(Web 後台)。幹部、總控、高層，依角色不同權限與可見模組。'},
+  {id:'monitor',  nm:'全域監控', ico:'\uD83D\uDDA5\uFE0F', x:11, y:54, status:'live', kind:'core',
+    script:'這是全域監控，給高層的決策大屏。它只看不操作，把情資、前線需求、即時影像和連線狀態彙整成一個畫面。當你要對外簡報、或在指揮中心投影時，看的就是這一頁。',
+    desc:'高層唯讀決策視圖：情資彙整、前線需求、即時影像、外部連線狀態。不涉操作。'},
+  {id:'reg',      nm:'報名報到', ico:'\uD83D\uDCCB', x:14, y:73, status:'live', kind:'core',
+    script:'這是報名報到，幹部端的人力名冊管理。志工在 Line OA 自助報到後，資料就寫進這裡，再送進調度中台成為可以被派的人力。它同時管今日報到和明日預約報名，兩條線並行不打架。',
+    desc:'幹部端報到管理視圖。Line OA 報到資料寫入名冊，供調度派工。今日報到+明日報名雙軌。'},
+  {id:'sheet_reg',nm:'報名資料總表', ico:'\uD83D\uDCD1', x:28, y:68, status:'partial', kind:'core',
+    script:'這是報名資料總表，對接 Google Sheets，管理慈誠委員和社區志工的完整名冊。後端程式已經建好，只差設定一個網址就能上線。它是我們未來把報名資料雲端化的關鍵一步。',
+    desc:'幹部端 Sheets 報名管理(慈誠委員+社區志工)。GAS 後端已建，需設定 /exec 網址。'},
+  {id:'vms',      nm:'志工管理', ico:'\uD83D\uDC65', x:27, y:42, status:'live', kind:'core',
+    script:'這是志工管理與報告，掌握每一位人員的資料與任務指派。誰擅長什麼、誰被派到哪，都在這裡整理清楚，指派的結果直接送進調度中台。',
+    desc:'人員資料、任務指派、報告。指派結果進調度中台。'},
+  {id:'sysadmin', nm:'系統管理層', ico:'\uD83D\uDEE1\uFE0F', x:40, y:58, status:'live', kind:'admin',
+    script:'這是系統管理層，整個平台的設定中樞。權限矩陣、模組開關、版本備份還原、戰時各災型的預設，都在這裡調整。它也是權限控管的所在地——而這正是我們接下來要把判斷搬到後端、堵住漏洞的重點。',
+    desc:'功能後台(權限矩陣、模組管理)+後台維運(系統設定、Gmail/Line 串接、版本備份還原、戰時災型預設、開發待辦)。權限控管與設定所在地。'},
+
+  // 中央核心
+  {id:'rtsync',   nm:'即時調度中台', ico:'\u26A1', x:50, y:50, status:'live', kind:'core', center:true, locked:true,
+    script:'這是即時調度中台，整個現場的唯一指揮橋樑，我們把它放在正中央是有意義的。任務的建立、派工、物資調度、緊急警報、SOS、點名，全部在這裡發生。它分成任務池、任務互動、結案、緊急四個分頁，所有第一線的動作都從這裡流進流出。',
+    desc:'現場唯一指揮橋樑。4 tab：任務池/任務互動(含出貨)/結案/緊急(警報+SOS+點名)。所有派工、調度、叫料媒合在此。'},
+
+  // 右上=志工前線
+  {id:'volunteer',nm:'當區志工', ico:'\uD83D\uDC65', x:58, y:12, status:'live', kind:'actor',
+    script:'這是我們的當區志工，站在第一線的人。他們用手機透過 Line OA 進來：戰時的啟動由他們觸發、報到由他們完成、現場的服務與回報也由他們執行。系統設計的一切，最後都是為了讓他們在現場更順手。',
+    desc:'前線志工(手機/Line OA)。戰時觸發啟動、報到入列、現場執行與回報。'},
+  {id:'lineoa',   nm:'Line OA', ico:'\uD83D\uDCAC', x:62, y:30, status:'partial', kind:'channel',
+    script:'這是 Line OA，志工進入系統的大門。報到、收任務、勘災回報、三步驟叫料，甚至餐食細項，全都在手機上完成。目前模擬器已經做得很完整，下一步是接上真實的 LINE 後端，讓它從展示變成實戰工具。',
+    desc:'志工自助報到入口 + 收任務 + 勘災回報 + 叫料輸入/派送通知。模擬器已內嵌，真實 Webhook 待接。'},
+  {id:'sorting',  nm:'物資整理站', ico:'\uD83D\uDCE5', x:78, y:14, status:'live', kind:'limb',
+    script:'這是物資整理站，現場物資的第一關。收到的物資在這裡拆箱、分類、報廢覆核、重新包裝，再送進倉儲。它把一堆混亂的捐贈物資，整理成可以調度的庫存。',
+    desc:'志工線。收件→拆箱分類→報廢/覆核→重包裝→入庫。一般物資處理起點。'},
+  {id:'warehouse',nm:'物資倉儲', ico:'\uD83D\uDCE6', x:90, y:26, status:'live', kind:'limb',
+    script:'這是物資倉儲，管理我們手上所有的一般物資。三級分類造冊、入庫盤點、發送調度都在這裡，缺什麼、剩多少一清二楚。對外要出貨時，由調度中台統一媒合。',
+    desc:'志工線。三級分類造冊、入庫、發送。一般物資。對外出貨經調度媒合。'},
+  {id:'drive',    nm:'照片回報分類', ico:'\uD83D\uDCF7', x:70, y:44, status:'partial', kind:'limb',
+    script:'這是照片回報與分類。志工從 Line OA 傳回現場照片，系統自動歸類到 Google Drive。前端流程已經完成，接上 Drive 之後，每張現場照片都能自動對應到正確的個案與任務。',
+    desc:'Line OA 回傳照片→Drive→自動分類。前端流程完成，Drive API 待設定。'},
+
+  // 右中=鄉親受助
+  {id:'fieldgroup',nm:'L3 現場群', ico:'\uD83C\uDFD5\uFE0F', x:66, y:62, status:'live', kind:'limb', center:false,
+    script:'這是 L3 現場群，真正照顧到鄉親的地方。它把安置收容、個案管理、關懷紀錄、資產調度整合在一起，安心祝福金也從這裡發放。志工在這裡服務，鄉親在這裡被照顧，是整個系統最有溫度的一段。',
+    desc:'服務鄉親的現場執行群(志工操作、鄉親受助)。安心祝福金併於關懷紀錄發放。',
+    subs:['安置收容管理','個案管理系統','關懷行動紀錄(含安心祝福金)','慈濟資產調度']},
+
+  // 政府(縮小)
+  {id:'emic',     nm:'政府 EMIC', ico:'\uD83C\uDFDB\uFE0F', x:93, y:60, status:'planned', kind:'future', mini:true,
+    script:'這是政府的 EMIC，消防署的災害應變系統。未來我們希望和它雙向交換災情與資源資料，讓慈濟的行動和政府的調度能對接起來。目前還在規劃階段，先預留位置。',
+    desc:'消防署災害應變系統。未來與全域監控雙向交換災情/資源，尚未規劃實作。'},
+
+  // 下=結案歸檔 + 後端服務層
+  {id:'story',    nm:'故事線結案', ico:'\uD83D\uDCD6', x:55, y:74, status:'live', kind:'core',
+    script:'這是故事線結案。每一場救災結束時，系統會把所有的稽核紀錄串成一條時間軸：做了什麼、誰做的、花了多久、哪裡卡住。它既是對外交代的完整紀錄，也能匯出成下一次演練的劇本，讓每一次救災都變成養分。',
+    desc:'結案讀 audit log 串時間軸敘事，含 session 場次/錯誤聚合/UX 卡頓遙測。匯出 JSON 當演練劇本。'},
+  {id:'backend',  nm:'後端服務層', ico:'\uD83D\uDDC4\uFE0F', x:50, y:89, status:'partial', kind:'backend',
+    script:'這是後端服務層，所有資料的家。它包含三塊：本機的 localStorage 讓系統離線也能用、Google Sheets 存報名和個案、未來的 Firebase 支援多人共編。要特別提醒，志工的個資目前還是明文存放，這是我們最優先要加密的一環。',
+    desc:'資料存放與同步層。點開看子項：本機儲存、雲端後端、即時同步。',
+    subs:['localStorage（本機資料/版本備份/場次/遙測，離線可用）','GAS + Sheets（報名/個案後端，待設定 /exec）','Firebase RTDB（多人共編，規劃中）']}
+];
+
+// ── 連線 ──
+var EDGES=[
+  {from:'drill',to:'dashboard',label:'平時啟動',story:0,
+    talk:'平常沒有災情的時候，我們就從「平時演練」這條線進入儀表板，載入演練劇本、把流程練熟。這條線代表的是準備，不是真的災害。',
+    flow:'平時模式進入。傳輸：演練劇本載入、情境參數初始化，儀表板進入平時模式。'},
+  {from:'volunteer',to:'activate',label:'當區觸發',story:0,
+    talk:'當災害真的發生，是第一線的當區志工先察覺、先按下啟動。這條線很關鍵——它代表整個系統的反應是由現場發動的，不是等上面下令。',
+    flow:'當區志工於災害發生時觸發戰時啟動。傳輸：災害位置、初判等級。'},
+  {from:'activate',to:'dashboard',label:'戰時啟動',story:0,
+    talk:'志工一觸發，戰時啟動就把訊號送進儀表板，系統依災害類型和等級自動切換到戰時模式。從這條線之後，整個平台就進入備戰狀態。',
+    flow:'戰時模式進入。傳輸：災型/受災等級，動態開關模組並預置任務範本，儀表板進入戰時模式。'},
+  {from:'staff',to:'dashboard',label:'操作',
+    talk:'幹部和高層平常就在儀表板上操作、調整、看數據。這條線是純粹的人機互動，代表指揮端怎麼使用這個系統。',
+    flow:'幹部/高層操作儀表板。傳輸：UI 互動、模擬參數、版面設定。純前端。'},
+  {from:'dashboard',to:'rtsync',label:'戰時派遣',story:1,
+    talk:'進入戰時後，儀表板把派遣指令往下送到即時調度中台，連同災型和優先級。這條線是「決策變成行動」的轉折點。',
+    flow:'戰時自儀表板觸發派遣。傳輸：災型/等級參數，預置調度中台任務範本與優先級。'},
+  {from:'staff',to:'rtsync',label:'指揮',
+    talk:'幹部也能直接對調度中台下指揮，建立任務、指派人力。這條線代表指揮端對現場的直接掌控。',
+    flow:'幹部下達指揮。傳輸：任務建立/指派/狀態變更，寫派工並觸發推播與稽核。'},
+  {from:'volunteer',to:'lineoa',label:'報到',story:2,
+    talk:'志工用手機打開 Line OA 報到，這是他們進入系統的第一步。這條線代表「人到了」。',
+    flow:'志工經 Line OA 自助報到。傳輸：身分、報到時間、場次標記。'},
+  {from:'lineoa',to:'reg',label:'寫名冊',story:2,
+    talk:'報到的資料會從 Line OA 自動寫進幹部端的名冊。這條線把零散的報到，整理成一份可調度的人力清單。',
+    flow:'報到資料寫入幹部端名冊。傳輸：志工身分、報到狀態。'},
+  {from:'reg',to:'rtsync',label:'可派人力',story:2,
+    talk:'名冊再把可用的人力送進調度中台，系統就知道現在手上有誰、能派誰。這條線代表「人力到位」。',
+    flow:'名冊提供可派人力。傳輸：在位志工清單、技能標記，供調度媒合。'},
+  {from:'vms',to:'rtsync',label:'指派',
+    talk:'志工管理把指派的結果送進調度中台。這條線代表「誰做什麼」的決定如何進入現場調度。',
+    flow:'志工管理指派結果進中台。傳輸：人員編組、任務分派名單。'},
+  {from:'lineoa',to:'rtsync',label:'叫料/回報 ↔ 派送',bi:true,story:3,
+    talk:'這是一條雙向線，也是現場最常用的。志工從手機叫料、回報，調度中台居中媒合，再把派工和派送通知發回手機。一來一回，前線和指揮就連起來了。',
+    flow:'雙向。去程(志工→中台)：叫料需求(品項/數量/地點)、勘災回報、完成回執。回程(中台→志工)：派送通知、派工、廣播、點名。中台居中媒合，Line OA 兩端進出。'},
+  {from:'sorting',to:'warehouse',label:'入庫',story:4,
+    talk:'物資在整理站分類處理好，就入庫到倉儲。這條線代表「混亂的物資變成可管理的庫存」。',
+    flow:'整理後入庫。傳輸：分類完成物資、品項數量造冊。'},
+  {from:'warehouse',to:'rtsync',label:'庫存可用',story:4,
+    talk:'倉儲把目前有多少、缺多少回報給調度中台，供調度判斷。這條線讓調度的決定建立在真實庫存上，不是憑感覺。',
+    flow:'倉儲回報可用量供調度。傳輸：庫存量、備貨進度、缺料告警。'},
+  {from:'rtsync',to:'fieldgroup',label:'分案/進度',bi:true,story:5,
+    talk:'這也是雙向線。調度中台把任務分派到現場，特殊物資和安心祝福金也從這裡下達；現場再把執行進度和個案紀錄回傳。它連接的是「指揮」和「真正照顧到人」的兩端。',
+    flow:'雙向。去程(中台→現場)：任務分案、特殊物資/安心祝福金發放指令、人力編組、座標。回程(現場→中台)：執行進度、個案/關懷紀錄、現場需求。'},
+  {from:'lineoa',to:'drive',label:'照片上傳',
+    talk:'志工在現場拍的照片，從 Line OA 上傳。這條線是現場影像進入系統的入口。',
+    flow:'志工回傳照片。傳輸：現場影像→Drive 自動分類。'},
+  {from:'drive',to:'fieldgroup',label:'歸檔',dash:true,
+    talk:'照片自動歸類後，關聯到對應的個案和現場紀錄。這條線目前還是虛線，因為 Drive 後端還沒接上。',
+    flow:'照片歸入個案/現場紀錄。傳輸：分類後影像關聯個案。後端待設定，虛線。'},
+  {from:'rtsync',to:'story',label:'結案',story:6,
+    talk:'任務結束時，調度中台把整個過程的紀錄送進故事線。這條線代表「做過的事被完整留下來」。',
+    flow:'任務結案彙整。傳輸：全生命週期 audit log、照片、回執，串故事線。'},
+  {from:'rtsync',to:'backend',label:'即時暫存',story:6,
+    talk:'調度的每一個狀態都即時寫進後端，離線也能用，連上線再上傳。這條線是系統就算斷網也不掉資料的保命線。',
+    flow:'調度狀態即時落後端。傳輸：任務/派工/警報狀態寫 localStorage，離線可用，連線後上傳。'},
+  {from:'backend',to:'story',label:'場次遙測',story:6,
+    talk:'後端把這一場的場次數據、錯誤、卡頓送進故事線。這條線讓結案敘事不只是文字，還有真實的運作數據佐證。',
+    flow:'後端遙測供敘事。傳輸：session 場次、錯誤聚合、UX 卡頓，注入故事線。'},
+  {from:'warehouse',to:'backend',label:'造冊',dash:true,
+    talk:'倉儲的物資造冊同步到後端。這條線目前虛線，因為雲端串接還在設定。',
+    flow:'倉儲造冊同步後端。傳輸：物資與庫存異動至 Sheets。待設定，虛線。'},
+  {from:'fieldgroup',to:'backend',label:'個案存',dash:true,
+    talk:'個案資料寫進後端保存。這條線特別要注意——它帶著鄉親的個資，目前還沒加密，是我們最優先要處理的資安項目。',
+    flow:'個案資料寫後端。傳輸：訪視紀錄、慰問金、修繕至 GAS/Sheets。含個資待加密，虛線。'},
+  {from:'sysadmin',to:'backend',label:'設定/備份',
+    talk:'系統管理層對後端讀寫設定和備份。這條線代表整個平台的設定和還原都集中在這裡控管。',
+    flow:'系統管理讀寫設定與備份。傳輸：權限設定、模組開關、版本備份還原、戰時災型預設。'},
+  {from:'monitor',to:'rtsync',label:'監看',dash:true,
+    talk:'全域監控從調度中台拉資料來看，但只看不改。這條線是單向的、虛線的，代表高層的監看不會干擾現場操作。',
+    flow:'全域監控唯讀監看。傳輸：任務/需求/連線狀態摘要單向上拋，不回寫，虛線。'},
+  {from:'monitor',to:'emic',label:'未來對接',dash:true,
+    talk:'未來全域監控要和政府 EMIC 對接，雙向交換災情。這條線還是規劃中，先畫出來代表方向。',
+    flow:'規劃中與政府對接。傳輸：與 EMIC 雙向交換災情/資源。尚未實作，虛線。'},
+  {from:'rtsync',to:'backend',label:'同步 ↔',bi:true,dash:true,
+    talk:'這條雙向虛線代表未來的多人共編：透過 Firebase，不同站點的幹部能即時看到同一份資料。介面已經預留，等伺服器就能啟用。',
+    flow:'雙向(規劃)。多站點即時共編：任務/人力/設備經 Firebase RTDB 雙向同步。介面已預留未啟用，虛線。'}
+];
+
+// ── 三視角：每視角的節點集 + 專屬故事腳本 ──
+// VIEWS[view].nodes = 該視角顯示(其餘淡出)；stories = 旁白，每段 on=點亮節點，warn=紅標
+var VIEWS={
+  decider:{
+    label:'決策者',
+    nodes:['drill','activate','volunteer','dashboard','staff','rtsync','reg','fieldgroup','sorting','warehouse','story','lineoa'],
+    stories:[
+      {step:'啟動',on:['activate','volunteer','drill','dashboard'],
+        text:'災害發生，當區志工觸發戰時啟動，系統一鍵切戰時模式，總控儀表板亮起 — 這是所有決策的起點。'},
+      {step:'盤點',on:['dashboard'],
+        text:'儀表板即時顯示受災戶數、撤離人數、志工到位、物資完成率。一眼掌握全局，不必等回報。'},
+      {step:'調度',on:['dashboard','rtsync'],
+        text:'儀表板下達戰時派遣，即時調度中台接手，把任務派到第一線。'},
+      {step:'動員',on:['volunteer','lineoa','reg','rtsync'],
+        text:'志工完成報到後立刻成為可派人力 — 人到位，任務就能發。'},
+      {step:'照顧',on:['rtsync','fieldgroup'],
+        text:'任務分案到現場，安置、個案、關懷同步啟動，特殊物資與安心祝福金送到鄉親手上。'},
+      {step:'物資',on:['sorting','warehouse','rtsync'],
+        text:'一般物資由志工整理入庫、依需求調撥，缺料即時補。'},
+      {step:'交代',on:['rtsync','story'],
+        text:'每場救災自動串成故事線時間軸 — 做了什麼、誰做的、成效如何，可匯出成完整紀錄向外說明。'}
+    ]
+  },
+  volunteer:{
+    label:'志工',
+    nodes:['volunteer','lineoa','reg','rtsync','fieldgroup','sorting','warehouse','drive'],
+    stories:[
+      {step:'我報到',on:['volunteer','lineoa'],
+        text:'我用手機開 Line OA，完成報到，系統就知道我到了。'},
+      {step:'我入列',on:['lineoa','reg'],
+        text:'我的報到資料進入名冊，我成為今天可以被派任務的人。'},
+      {step:'我收任務',on:['rtsync','lineoa'],
+        text:'調度中台把任務透過 Line OA 發給我，我在手機上就收到。'},
+      {step:'我叫料',on:['lineoa','rtsync'],
+        text:'現場缺東西，我直接在 Line OA 回報需求，後勤媒合好再通知我領取。'},
+      {step:'我執行',on:['rtsync','fieldgroup'],
+        text:'我到安置點 / 個案家現場服務，發放物資或安心祝福金。'},
+      {step:'我回報',on:['drive','lineoa','rtsync'],
+        text:'我拍照、回填進度，經 Line OA 傳回中台，任務狀態即時更新。'}
+    ]
+  },
+  tech:{
+    label:'技術維運',
+    nodes:['lineoa','rtsync','backend','story','sysadmin','monitor','emic','dashboard'],
+    stories:[
+      {step:'入口',on:['lineoa','rtsync','dashboard'],
+        text:'前端是單檔 HTML，無框架。使用者操作與 Line OA 回報都先進即時調度中台這個前端樞紐。'},
+      {step:'落盤',on:['rtsync','backend'],
+        text:'所有狀態即時寫 localStorage（drms_data / 版本備份 / 場次 / 遙測），離線可用，連線後再分段上傳。'},
+      {step:'後端',on:['backend'],
+        text:'後端服務層含三塊 — 本機 localStorage、GAS+Sheets（報名/個案，待設定 /exec）、Firebase RTDB（多人共編，介面已預留未啟用）。'},
+      {step:'設定',on:['sysadmin','backend'],
+        text:'系統管理層讀寫權限設定、模組開關、版本備份還原、戰時災型預設。'},
+      {step:'遙測',on:['backend','story'],
+        text:'場次與錯誤聚合、UX 卡頓資料注入故事線，結案時串成可重播的演練劇本。'},
+      {step:'待修',on:['backend','sysadmin','lineoa'],warn:['backend','sysadmin','lineoa'],
+        text:'⚠ 個資明文存 localStorage/Sheets 僅前端遮蔽（P1 待加密）；role 判斷前端可竄改（待後端驗證）；GAS URL 硬編碼；政府 EMIC / 警報 API 尚未串接。'}
+    ]
+  }
+};
+var curView='decider';
+// 相容舊變數：storyShow 用 activeStories()
+function activeStories(){return VIEWS[curView]?VIEWS[curView].stories:[];}
+
+// ── 健檢資料：每節點健康狀態 done/todo/risk/merge + 問題詳情 ──
+var HEALTH={
+  dashboard:{s:'done',issue:'運作中。但與全域監控 KPI 重疊，建議釐清「可操作總覽 vs 唯讀大屏」分工。AI 戰術分析入口為規劃中。'},
+  monitor:{s:'merge',issue:'與總控儀表板 KPI 重疊。建議整合為儀表板的「簡報/唯讀大屏模式」，或明確分工。即時影像與連線狀態目前為模擬。'},
+  rtsync:{s:'done',issue:'核心運作正常。現場唯一指揮橋樑，4 tab 完整。'},
+  reg:{s:'merge',issue:'與報名資料總表、志工管理共用 Master_Profiles，職責邊界模糊。建議半拆為「志工資料域」群組。'},
+  sheet_reg:{s:'todo',issue:'GAS 後端已建但需設定 /exec 網址；且 GAS URL 目前硬編碼待改（P1）。與 reg/vms 可整合。'},
+  vms:{s:'merge',issue:'人員資料與任務指派。與 reg/sheet_reg 共用名冊資料，建議整合為志工資料域。'},
+  lineoa:{s:'risk',issue:'模擬器完整（報到/3-tap叫料/餐食表單/關懷）但真實 LINE Webhook 後端 0%。個資經此入口，role 前端可竄改（P1 資安）。'},
+  drive:{s:'todo',issue:'前端分類邏輯完成，Google Drive API 串接待設定。'},
+  sorting:{s:'done',issue:'物資整理站運作正常。'},
+  warehouse:{s:'done',issue:'三級造冊運作正常。對外出貨經調度中台媒合。'},
+  fieldgroup:{s:'done',issue:'L3 現場群運作正常。含安置/個案/關懷/資產。個案含個資，寫後端時需加密（見 backend）。'},
+  story:{s:'todo',issue:'單場故事線完成。建議新增「跨場次比較」供決策者看趨勢。'},
+  staff:{s:'done',issue:'指揮端角色正常。'},
+  volunteer:{s:'done',issue:'前線志工角色正常。建議依角色裁剪 Line OA 選單（一般志工不需關懷/提權）。'},
+  sysadmin:{s:'risk',issue:'權限控管所在地。前端 role 判斷可被 console 竄改，提權流程發金鑰全在前端可偽造，需後端驗證（P1）。'},
+  backend:{s:'risk',issue:'個資（身分證/電話）明文存 localStorage 與 Sheets，僅前端遮蔽未加密（P1 最高優先）。多人共編 Firebase 已預留未啟用。'},
+  emic:{s:'todo',issue:'政府 EMIC 與警報 API 尚未串接，近期不做可考慮再縮小或移除。'},
+  drill:{s:'done',issue:'平時演練啟動正常。'},
+  activate:{s:'done',issue:'戰時啟動正常。'}
+};
+var HEALTH_LBL={done:'完成',todo:'待補',risk:'風險',merge:'可整合'};
+// 整合群組灰框（健檢視角顯示，標記建議不動結構）
+var MERGE_FRAMES=[
+  {lbl:'建議整合：志工資料域',nodes:['reg','sheet_reg','vms']},
+  {lbl:'建議整合：監控併簡報模式',nodes:['monitor','dashboard']}
+];
+// 健檢走查旁白
+VIEWS.health={
+  label:'健檢',
+  nodes:Object.keys(HEALTH),
+  stories:[
+    {step:'總覽',on:[],
+      text:'健檢視角：綠=完成、黃=待補、紅=資安風險、灰=建議整合。點任一節點看該模組的健檢結論。以下逐項走查。'},
+    {step:'資安風險',on:['backend','sysadmin','lineoa'],warn:['backend','sysadmin','lineoa'],
+      text:'🔴 三個資安紅點：後端（個資明文存 localStorage/Sheets 未加密，P1 最高優先）、系統管理層（role 前端可竄改、提權可偽造）、Line OA（真實 Webhook 0%、個資入口）。'},
+    {step:'待補功能',on:['sheet_reg','drive','story','emic'],
+      text:'🟡 待補：報名總表（GAS /exec 待設定、URL 硬編碼）、照片分類（Drive API 未接）、故事線（缺跨場次比較）、政府 EMIC（未串接）。'},
+    {step:'可整合',on:['reg','sheet_reg','vms','monitor','dashboard'],
+      text:'⬜ 建議整合：報到/報名總表/志工管理共用名冊→併「志工資料域」；全域監控與儀表板 KPI 重疊→併簡報模式。此為建議標記，不動現有結構。'},
+    {step:'新增建議',on:['volunteer','fieldgroup','lineoa'],
+      text:'🟢 新增建議：任務地圖（P3，志工/現場最需要「我要去哪」）；志工選單依角色裁剪（一般志工不需關懷/提權）；Firebase 多人共編演進。'}
+  ]
+};
+
+var statusTag={live:'\uD83D\uDFE2 已開通',partial:'\uD83D\uDFE1 部分 / 待設定',planned:'\uD83D\uDD34 未開通 / 規劃中'};
+var nodeById={};NODES.forEach(function(n){nodeById[n.id]=n;});
+var DEFAULT_POS={};NODES.forEach(function(n){DEFAULT_POS[n.id]={x:n.x,y:n.y};});
+var STORE_KEY='drms_arch_layout_v2';
+document.getElementById('ver').textContent='v4.0 · Preview';
+var stage=document.getElementById('stage');
+var svg=document.getElementById('edges');
+var detail=document.getElementById('detail');
+var VW=1000,VH=688;
+
+function loadPos(){try{var raw=window.sessionStorage.getItem(STORE_KEY);if(raw){var p=JSON.parse(raw);NODES.forEach(function(n){if(p[n.id]&&!n.locked){n.x=p[n.id].x;n.y=p[n.id].y;}});}}catch(e){}}
+function savePos(){var p={};NODES.forEach(function(n){p[n.id]={x:n.x,y:n.y};});try{window.sessionStorage.setItem(STORE_KEY,JSON.stringify(p));}catch(e){}}
+
+function buildZones(){ZONES.forEach(function(z){var el=document.createElement('div');el.className='zone '+z.cls;el.style.left=z.x+'%';el.style.top=z.y+'%';el.style.width=z.w+'%';el.style.height=z.h+'%';el.innerHTML='<div class="zone-lbl">'+z.lbl+'</div>';stage.appendChild(el);});}
+function buildNodes(){NODES.forEach(function(n){var el=document.createElement('div');el.className='node '+n.status+(n.center?' center':'')+(n.trigger?' trigger':'')+(n.mini?' mini':'');el.id='node-'+n.id;el.style.left=n.x+'%';el.style.top=n.y+'%';el.innerHTML='<div class="hbadge" id="hb-'+n.id+'"></div><div class="st '+n.status+'"></div><div class="ico">'+n.ico+'</div><div class="nm">'+n.nm+'</div><div class="kd">'+n.kind+'</div>';stage.appendChild(el);attachDrag(el,n);});}
+function buildMergeFrames(){MERGE_FRAMES.forEach(function(mf,fi){var el=document.createElement('div');el.className='merge-frame';el.id='mf-'+fi;el.innerHTML='<div class="mf-lbl">'+mf.lbl+'</div>';stage.appendChild(el);});}
+function positionMergeFrames(){MERGE_FRAMES.forEach(function(mf,fi){var el=document.getElementById('mf-'+fi);if(!el)return;var xs=[],ys=[];mf.nodes.forEach(function(id){var n=nodeById[id];if(n){xs.push(n.x);ys.push(n.y);}});if(!xs.length)return;var pad=7;var minx=Math.min.apply(null,xs)-pad,maxx=Math.max.apply(null,xs)+pad,miny=Math.min.apply(null,ys)-pad,maxy=Math.max.apply(null,ys)+pad;el.style.left=minx+'%';el.style.top=miny+'%';el.style.width=(maxx-minx)+'%';el.style.height=(maxy-miny)+'%';});}
+function px(p){return p/100*VW;}function py(p){return p/100*VH;}
+function buildEdges(){svg.setAttribute('viewBox','0 0 '+VW+' '+VH);var defs='<defs>'
+  +'<marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#B8B8C0"/></marker>'
+  +'<marker id="arrH" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#6B8CBE"/></marker>'
+  +'<marker id="arrR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse"><path d="M0,0 L7,3 L0,6 Z" fill="#B8B8C0"/></marker>'
+  +'<marker id="arrRH" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse"><path d="M0,0 L7,3 L0,6 Z" fill="#6B8CBE"/></marker>'
+  +'</defs>';svg.innerHTML=defs;EDGES.forEach(function(e,i){drawEdge(e,i);});}
+function edgePath(a,b){
+  var x1=px(a.x),y1=py(a.y),x2=px(b.x),y2=py(b.y);
+  var dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy)||1;
+  var ux=dx/len,uy=dy/len;        // 連線單位向量
+  var nx=-uy,ny=ux;                // 法線單位向量
+  // 法線側推：依長度比例(8%)，夾在 14~46px，短線少彎長線多彎
+  var bow=Math.max(14,Math.min(46,len*0.08));
+  // 控制點沿連線方向內縮 28%，讓曲線從端點「順出順入」而非從中點硬折
+  var off=len*0.28;
+  var c1x=x1+ux*off+nx*bow, c1y=y1+uy*off+ny*bow;
+  var c2x=x2-ux*off+nx*bow, c2y=y2-uy*off+ny*bow;
+  // label 取曲線參數中點(t=0.5)的三次貝茲座標
+  var mx=0.125*x1+0.375*c1x+0.375*c2x+0.125*x2;
+  var my=0.125*y1+0.375*c1y+0.375*c2y+0.125*y2;
+  return {d:'M'+x1+','+y1+' C'+c1x+','+c1y+' '+c2x+','+c2y+' '+x2+','+y2, lx:mx, ly:my};
+}
+function drawEdge(e,i){var a=nodeById[e.from],b=nodeById[e.to];var pp=edgePath(a,b);var path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',pp.d);path.setAttribute('fill','none');path.setAttribute('stroke','#C4C4CC');path.setAttribute('stroke-width','2');path.setAttribute('marker-end','url(#arr)');if(e.dash)path.setAttribute('stroke-dasharray','5,5');if(e.bi)path.setAttribute('marker-start','url(#arrR)');path.setAttribute('id','edge-'+i);path.onclick=(function(idx){return function(){selectEdge(idx);};})(i);svg.appendChild(path);var lab=document.createElement('div');lab.className='elabel';lab.id='elabel-'+i;lab.style.left=(pp.lx/VW*100)+'%';lab.style.top=(pp.ly/VH*100)+'%';lab.textContent=e.label;lab.onclick=(function(idx){return function(){selectEdge(idx);};})(i);stage.appendChild(lab);}
+function refreshEdges(){EDGES.forEach(function(e,i){var a=nodeById[e.from],b=nodeById[e.to];var pp=edgePath(a,b);var path=document.getElementById('edge-'+i);if(path)path.setAttribute('d',pp.d);var lab=document.getElementById('elabel-'+i);if(lab){lab.style.left=(pp.lx/VW*100)+'%';lab.style.top=(pp.ly/VH*100)+'%';}});}
+
+function attachDrag(el,n){var dragging=false,moved=false,sx,sy;
+  function down(ev){if(n.locked)return;dragging=true;moved=false;el.classList.add('dragging');var pt=ev.touches?ev.touches[0]:ev;sx=pt.clientX;sy=pt.clientY;ev.preventDefault();}
+  function move(ev){if(!dragging)return;var pt=ev.touches?ev.touches[0]:ev;if(Math.abs(pt.clientX-sx)>3||Math.abs(pt.clientY-sy)>3)moved=true;var rect=stage.getBoundingClientRect();var nx=(pt.clientX-rect.left)/rect.width*100,ny=(pt.clientY-rect.top)/rect.height*100;nx=Math.max(2,Math.min(98,nx));ny=Math.max(2,Math.min(98,ny));n.x=nx;n.y=ny;el.style.left=nx+'%';el.style.top=ny+'%';refreshEdges();if(curView==='health')positionMergeFrames();ev.preventDefault();}
+  function up(){if(!dragging)return;dragging=false;el.classList.remove('dragging');if(moved){savePos();}else{if(n.locked){selectNode(n.id);}else{selectNode(n.id);}}}
+  el.addEventListener('mousedown',down);window.addEventListener('mousemove',move);window.addEventListener('mouseup',up);
+  el.addEventListener('touchstart',down,{passive:false});window.addEventListener('touchmove',move,{passive:false});window.addEventListener('touchend',up);
+  if(n.locked){el.style.cursor='pointer';el.addEventListener('click',function(){selectNode(n.id);});}
+}
+
+function clearSel(){var ss=document.querySelectorAll('.node.sel,.elabel.sel');for(var i=0;i<ss.length;i++)ss[i].classList.remove('sel');EDGES.forEach(function(e,i){var p=document.getElementById('edge-'+i);if(p){p.classList.remove('edge-active');p.setAttribute('stroke','#C4C4CC');p.setAttribute('marker-end','url(#arr)');if(e.bi)p.setAttribute('marker-start','url(#arrR)');}});}
+function selectNode(id){if(storyOn)return;clearSel();var el=document.getElementById('node-'+id);if(el)el.classList.add('sel');var n=nodeById[id];EDGES.forEach(function(e,i){if(e.from===id||e.to===id){var p=document.getElementById('edge-'+i);if(p){p.classList.add('edge-active');p.setAttribute('marker-end','url(#arrH)');if(e.bi)p.setAttribute('marker-start','url(#arrRH)');}}});var subs=n.subs?'<div class="sub-mods">'+n.subs.map(function(s){return '<span class="sub-mod">'+s+'</span>';}).join('')+'</div>':'';var hext='';if(curView==='health'&&HEALTH[id]){var hs=HEALTH[id].s;var hcol={done:'green',todo:'amber',risk:'red',merge:'planned'}[hs];hext='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span class="tag '+hcol+'">🩺 '+HEALTH_LBL[hs]+'</span> <span style="font-size:11px">'+HEALTH[id].issue+'</span></div>';}var scr=n.script?'<div style="background:linear-gradient(135deg,var(--accent-bg),var(--blue-bg));border:1px solid var(--accent-border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:10px;font-size:12.5px;line-height:1.85;color:var(--text)"><span style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.05em">📢 講稿</span><br>'+n.script+'</div>':'';var pvBtn='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap"><button onclick="pvShow(\''+n.id+'\',\''+n.nm.replace(/'/g,'')+'\')" style="border:none;background:var(--accent);color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔍 看現況示意</button><button onclick="document.getElementById(\'fbPanel\').classList.add(\'on\');if(!document.getElementById(\'fbNode\').options.length)fbBuildNodeOptions();document.getElementById(\'fbNode\').value=\''+n.nm.replace(/'/g,'')+'\'" style="border:1px solid var(--accent-border);background:var(--accent-bg);color:var(--accent);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📝 對此寫回饋</button></div>';detail.innerHTML='<div class="detail-head"><div class="dico">'+n.ico+'</div><div class="dt"><h3>'+n.nm+' <span class="tag '+n.status+'">'+statusTag[n.status]+'</span></h3><div class="meta">'+n.id+' · '+n.kind+'</div></div></div><div class="detail-body">'+scr+'<div style="font-size:11px;color:var(--text3)">'+n.desc+'</div>'+subs+hext+pvBtn+'</div>';}
+function selectEdge(i){if(storyOn)return;clearSel();var e=EDGES[i];var p=document.getElementById('edge-'+i);if(p){p.classList.add('edge-active');p.setAttribute('marker-end','url(#arrH)');if(e.bi)p.setAttribute('marker-start','url(#arrRH)');}var lab=document.getElementById('elabel-'+i);if(lab)lab.classList.add('sel');var a=nodeById[e.from],b=nodeById[e.to];var dir=e.bi?'\u2194 雙向':'\u2192 單向';var etalk=e.talk?'<div style="background:linear-gradient(135deg,var(--accent-bg),var(--blue-bg));border:1px solid var(--accent-border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:10px;font-size:12.5px;line-height:1.85;color:var(--text)"><span style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.05em">📢 講稿</span><br>'+e.talk+'</div>':'';detail.innerHTML='<div class="detail-head"><div class="dico">'+(e.bi?'\u2194':'\u2192')+'</div><div class="dt"><h3>'+a.nm+' '+(e.bi?'\u2194':'\u2192')+' '+b.nm+' <span class="tag '+(e.dash?'planned':'live')+'">'+(e.dash?'規劃/次要':'現行')+'</span></h3><div class="meta">'+dir+' · 「'+e.label+'」</div></div></div><div class="detail-body">'+etalk+'<div style="font-size:11px;color:var(--text3)">'+e.flow+'</div></div>';}
+
+// ── 故事導覽 ──
+var storyOn=false,storyIdx=0;
+function storyStart(){storyOn=true;storyIdx=0;document.getElementById('storyBar').classList.add('show');storyShow();}
+function storyEnd(){storyOn=false;document.getElementById('storyBar').classList.remove('show','warn-bar');clearDim();clearSel();applyView();detail.innerHTML='<div class="detail-empty">▲ 拖曳排版 · 點節點或線看說明 · 或按 ▶ 故事導覽</div>';}
+function storyPrev(){if(storyIdx>0){storyIdx--;storyShow();}}
+function storyNext(){var S=activeStories();if(storyIdx<S.length-1){storyIdx++;storyShow();}else{storyEnd();}}
+function clearDim(){var ds=document.querySelectorAll('.dim,.hot,.warn,.edge-active');for(var i=0;i<ds.length;i++){ds[i].classList.remove('dim','hot','warn','edge-active');}}
+function storyShow(){
+  var S=activeStories();var s=S[storyIdx];if(!s)return;
+  NODES.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el)el.classList.remove('h-done','h-todo','h-risk','h-merge');});
+  var bar=document.getElementById('storyBar');
+  bar.classList.toggle('warn-bar',!!s.warn);
+  document.getElementById('storyStep').textContent=(storyIdx+1)+' / '+S.length+' · '+s.step;
+  document.getElementById('storyText').textContent=s.text;
+  document.getElementById('sPrev').disabled=(storyIdx===0);
+  document.getElementById('sNext').textContent=(storyIdx===S.length-1)?'✓':'›';
+  var onNodes={};(s.on||[]).forEach(function(id){onNodes[id]=1;});
+  var warnNodes={};(s.warn||[]).forEach(function(id){warnNodes[id]=1;});
+  // 點亮 on 節點，其餘淡出；warn 紅標
+  NODES.forEach(function(n){var el=document.getElementById('node-'+n.id);if(!el)return;el.classList.remove('hot','dim','warn');
+    if(warnNodes[n.id])el.classList.add('warn');
+    else if(onNodes[n.id])el.classList.add('hot');
+    else el.classList.add('dim');});
+  // 點亮兩端都在 on 集合內的線
+  EDGES.forEach(function(e,i){var p=document.getElementById('edge-'+i);var lab=document.getElementById('elabel-'+i);
+    var on=onNodes[e.from]&&onNodes[e.to];
+    if(p){p.classList.toggle('hot',!!on);p.classList.toggle('dim',!on);p.classList.toggle('edge-active',!!on);p.setAttribute('marker-end',on?'url(#arrH)':'url(#arr)');if(e.bi)p.setAttribute('marker-start',on?'url(#arrRH)':'url(#arrR)');}
+    if(lab)lab.classList.toggle('dim',!on);});
+}
+
+// ── 視角切換：過濾(淡出非視角節點) + 換腳本 ──
+function setView(v){
+  curView=v;storyEnd();
+  var pills=document.querySelectorAll('.vpill');
+  for(var i=0;i<pills.length;i++)pills[i].classList.toggle('act',pills[i].getAttribute('data-view')===v);
+  applyView();
+}
+function clearHealth(){document.body.classList.remove('health-on');NODES.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el)el.classList.remove('h-done','h-todo','h-risk','h-merge');});}
+function applyView(){
+  clearDim();clearSel();clearHealth();
+  if(curView==='health'){
+    document.body.classList.add('health-on');
+    positionMergeFrames();
+    NODES.forEach(function(n){var el=document.getElementById('node-'+n.id);if(!el)return;el.classList.remove('dim');var h=HEALTH[n.id];if(h){el.classList.add('h-'+h.s);var hb=document.getElementById('hb-'+n.id);if(hb)hb.textContent=HEALTH_LBL[h.s];}});
+    EDGES.forEach(function(e,i){var p=document.getElementById('edge-'+i);var lab=document.getElementById('elabel-'+i);if(p)p.classList.remove('dim');if(lab)lab.classList.remove('dim');});
+    return;
+  }
+  if(curView==='all'){
+    NODES.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el)el.classList.remove('dim');});
+    EDGES.forEach(function(e,i){var p=document.getElementById('edge-'+i);var lab=document.getElementById('elabel-'+i);if(p)p.classList.remove('dim');if(lab)lab.classList.remove('dim');});
+    return;
+  }
+  var set={};(VIEWS[curView].nodes||[]).forEach(function(id){set[id]=1;});
+  NODES.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el)el.classList.toggle('dim',!set[n.id]);});
+  EDGES.forEach(function(e,i){var on=set[e.from]&&set[e.to];var p=document.getElementById('edge-'+i);var lab=document.getElementById('elabel-'+i);if(p)p.classList.toggle('dim',!on);if(lab)lab.classList.toggle('dim',!on);});
+}
+
+function resetLayout(){NODES.forEach(function(n){n.x=DEFAULT_POS[n.id].x;n.y=DEFAULT_POS[n.id].y;var el=document.getElementById('node-'+n.id);if(el){el.style.left=n.x+'%';el.style.top=n.y+'%';}});refreshEdges();savePos();}
+function exportLayout(){var p={};NODES.forEach(function(n){p[n.id]={x:Math.round(n.x*10)/10,y:Math.round(n.y*10)/10};});window.prompt('複製座標 JSON：',JSON.stringify(p));}
+function importLayout(){var s=window.prompt('貼上座標 JSON：','');if(!s)return;try{var p=JSON.parse(s);NODES.forEach(function(n){if(p[n.id]){n.x=p[n.id].x;n.y=p[n.id].y;var el=document.getElementById('node-'+n.id);if(el){el.style.left=n.x+'%';el.style.top=n.y+'%';}}});refreshEdges();savePos();}catch(e){window.alert('JSON 格式錯誤');}}
+
+loadPos();buildZones();buildMergeFrames();buildEdges();buildNodes();applyView();
+</script>
+
+<!-- ════════ 注入：現況示意圖 + 回饋提交碼 ════════ -->
+<style>
+/* lightbox */
+#pvMask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;backdrop-filter:blur(2px)}
+#pvMask.on{display:flex;align-items:center;justify-content:center;padding:24px}
+#pvBox{background:var(--bg);width:min(960px,96vw);max-height:92vh;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
+#pvHead{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--border);background:var(--bg2)}
+#pvHead h3{margin:0;font-size:15px;font-weight:700;color:var(--text);flex:1}
+#pvHead .pvtag{font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);letter-spacing:.05em}
+#pvClose{border:none;background:var(--bg3);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;color:var(--text3)}
+#pvClose:hover{background:var(--red-bg);color:var(--red)}
+#pvBody{overflow:auto;padding:18px;background:var(--bg)}
+/* 示意 dashboard */
+.dm-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.dm-bar .dt{font-size:16px;font-weight:800;color:var(--text)}
+.dm-bar .ds{font-size:10px;color:var(--text4);font-family:monospace}
+.dm-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px}
+.dm-kpi{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px 13px}
+.dm-kpi .v{font-size:21px;font-weight:800;color:var(--text);line-height:1.1}
+.dm-kpi .l{font-size:10px;color:var(--text3);margin-top:3px}
+.dm-layer{margin-bottom:15px}
+.dm-lh{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-bottom:8px;padding-left:2px}
+.dm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+.dm-mod{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;position:relative}
+.dm-mod .mi{font-size:18px;line-height:1}
+.dm-mod .mn{font-size:12px;font-weight:700;color:var(--text);margin-top:5px}
+.dm-mod .md{font-size:9.5px;color:var(--text4);margin-top:2px;line-height:1.4}
+.dm-mod .ms{position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%}
+.dm-mod.live .ms{background:var(--green)}.dm-mod.partial .ms{background:var(--amber)}.dm-mod.planned .ms{background:var(--red)}
+.dm-mod.planned{border-style:dashed}
+.pvnote{font-size:10px;color:var(--text4);text-align:center;margin-top:6px;font-style:italic}
+/* 回饋浮層 */
+#fbDock{position:fixed;right:16px;bottom:16px;z-index:150;font-family:'Noto Sans TC',sans-serif}
+#fbToggle{border:none;background:var(--accent);color:#fff;padding:11px 16px;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-md)}
+#fbToggle:hover{filter:brightness(1.05)}
+#fbPanel{display:none;position:absolute;right:0;bottom:52px;width:330px;background:var(--bg2);border:1px solid var(--border2);border-radius:14px;box-shadow:var(--shadow-lg);padding:16px;max-height:78vh;overflow:auto}
+#fbPanel.on{display:block}
+#fbPanel h4{margin:0 0 4px;font-size:14px;font-weight:800;color:var(--text)}
+#fbPanel .fbsub{font-size:11px;color:var(--text4);margin-bottom:13px}
+#fbPanel label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin:11px 0 5px}
+#fbPanel input,#fbPanel select,#fbPanel textarea{width:100%;border:1px solid var(--border2);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);box-sizing:border-box}
+#fbPanel textarea{resize:vertical;line-height:1.5}
+#fbPanel .fbwarn{background:var(--amber-bg);border:1px solid var(--amber-border);color:var(--amber);font-size:11px;font-weight:600;padding:7px 9px;border-radius:8px;margin:11px 0}
+#fbGen{width:100%;border:none;background:var(--text);color:#fff;padding:11px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;margin-top:14px}
+#fbGen:hover{background:var(--accent)}
+#fbOut{display:none;margin-top:13px}
+#fbOut.on{display:block}
+#fbCode{font-family:'JetBrains Mono',monospace;font-size:10px;word-break:break-all;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:100px;overflow:auto;color:var(--text2)}
+#fbOut .fbrow{display:flex;gap:8px;margin-top:9px}
+#fbOut button{flex:1;border:1px solid var(--border2);background:var(--bg);color:var(--text);padding:8px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+#fbOut button:hover{background:var(--accent-bg);border-color:var(--accent-border)}
+#fbFlash{font-size:11px;font-weight:700;color:var(--green);margin-top:8px;min-height:14px}
+</style>
+
+<div id="pvMask" onclick="if(event.target===this)pvHide()">
+  <div id="pvBox">
+    <div id="pvHead"><h3 id="pvTitle">現況示意</h3><span class="pvtag">示意圖 · 非實際資料</span><button id="pvClose" onclick="pvHide()">✕</button></div>
+    <div id="pvBody"></div>
+  </div>
+</div>
+
+<div id="fbDock">
+  <button id="fbToggle" onclick="fbT()">📝 寫回饋</button>
+  <div id="fbPanel">
+    <h4>給開發者的回饋</h4>
+    <div class="fbsub">看完心智圖/現況示意後，把想法寫成提交碼傳給負責人</div>
+    <label>暱稱（方便辨識是誰）</label>
+    <input id="fbNick" placeholder="例：花蓮張師兄">
+    <label>針對哪個模組／節點</label>
+    <select id="fbNode"></select>
+    <label>回饋類型</label>
+    <select id="fbType">
+      <option value="現況不符">現況不符（實際做法不一樣）</option>
+      <option value="缺功能">缺功能（少了我要的東西）</option>
+      <option value="建議改善">建議改善</option>
+      <option value="疑問">疑問／看不懂</option>
+      <option value="肯定">這樣很好，保留</option>
+    </select>
+    <label>具體內容</label>
+    <textarea id="fbText" rows="5" placeholder="描述實際流程、痛點或建議。請勿填服務對象姓名或個資。"></textarea>
+    <div class="fbwarn">⚠ 請勿填入個案姓名、個資、隱私，只描述流程與需求</div>
+    <button id="fbGen" onclick="fbGenCode()">產生提交碼</button>
+    <div id="fbOut">
+      <label style="margin-top:4px">你的提交碼（複製後傳給負責人）</label>
+      <div id="fbCode"></div>
+      <div class="fbrow">
+        <button onclick="fbCopy()">📋 複製</button>
+        <button onclick="fbDownload()">⬇ 下載 .txt</button>
+      </div>
+    </div>
+    <div id="fbFlash"></div>
+  </div>
+</div>
+
+<script>
+/* ───── 現況示意：每節點對應自己的內部畫面（仿 drms_v4，假數據、無 fetch） ───── */
+/* Line OA 標竿格：雙線架構 + 5 操作頁籤 + 規則 */
+function viewLineOA(){
+  return ''+
+  '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">'+
+    /* 左：手機框 Line OA 模擬 */
+    '<div style="width:280px;flex-shrink:0;border:1px solid var(--border2);border-radius:16px;overflow:hidden;background:var(--bg2);box-shadow:var(--shadow-md)">'+
+      '<div style="display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--border)">'+
+        '<div style="width:30px;height:30px;background:#06C755;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px">💬</div>'+
+        '<div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--text)">Line OA 總控</div><div style="font-size:9px;color:var(--text4);font-family:monospace">慈濟 DRMS · 官方帳號</div></div></div>'+
+      '<div style="display:flex;border-bottom:1px solid var(--border)">'+
+        ['📤 推播','✅ 報到','🚨 點名','🎯 派工','📦 物資'].map(function(t,i){return '<div style="flex:1;padding:7px 2px;text-align:center;font-size:9.5px;font-weight:'+(i===0?'700':'500')+';color:'+(i===0?'#06C755':'var(--text4)')+';border-bottom:2px solid '+(i===0?'#06C755':'transparent')+'">'+t+'</div>';}).join('')+'</div>'+
+      '<div style="padding:13px;min-height:140px">'+
+        '<div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-weight:700">📤 推播訊息（示意）</div>'+
+        '<div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px;font-size:11px;color:var(--text2);line-height:1.6">🚨 花蓮光復鄉淹水<br>需要志工 30 名<br><span style="color:#06C755;font-weight:700">→ 點我報到</span></div>'+
+        '<div style="display:flex;gap:6px;margin-top:9px"><div style="flex:1;text-align:center;background:#06C755;color:#fff;font-size:10px;font-weight:700;padding:7px;border-radius:7px">推播全體</div><div style="flex:1;text-align:center;background:var(--bg3);color:var(--text3);font-size:10px;font-weight:600;padding:7px;border-radius:7px">分眾</div></div>'+
+      '</div>'+
+      '<div style="background:#0F172A;padding:7px 11px;font-size:9px;color:#475569;font-family:monospace">＞ push 已送出 · 受眾 128</div>'+
+    '</div>'+
+    /* 右：雙線架構 + 規則 */
+    '<div style="flex:1;min-width:260px">'+
+      '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:10px">🔀 雙 Line 架構</div>'+
+      '<div style="display:flex;flex-direction:column;gap:10px">'+
+        '<div style="border:1px solid var(--blue-border);background:var(--blue-bg);border-radius:10px;padding:12px">'+
+          '<div style="font-size:12px;font-weight:700;color:var(--blue)">🌐 對外志工線</div>'+
+          '<div style="font-size:10.5px;color:var(--text2);margin-top:5px;line-height:1.7">QR → <code style="font-family:monospace;background:var(--bg);padding:1px 5px;border-radius:4px">doGet ?email=xxx</code><br>社區志工掃碼 → 帶 email 查詢報名 → 報到</div></div>'+
+        '<div style="border:1px solid var(--accent-border);background:var(--accent-bg);border-radius:10px;padding:12px">'+
+          '<div style="font-size:12px;font-weight:700;color:var(--accent)">🏛 對內慈誠線</div>'+
+          '<div style="font-size:10.5px;color:var(--text2);margin-top:5px;line-height:1.7">QR → <code style="font-family:monospace;background:var(--bg);padding:1px 5px;border-radius:4px">?type=inner</code> → LIFF 彈窗<br>→ <code style="font-family:monospace;background:var(--bg);padding:1px 5px;border-radius:4px">doPost</code> 驗證「編號＋姓名」→ 報到</div></div>'+
+      '</div>'+
+      '<div style="margin-top:12px;font-size:12px;font-weight:800;color:var(--text);margin-bottom:6px">📐 運作規則</div>'+
+      '<ul style="margin:0;padding-left:18px;font-size:10.5px;color:var(--text2);line-height:1.85">'+
+        '<li>兩條獨立 GAS：對外 doGet、對內 doPost，各自部署 /exec 網址</li>'+
+        '<li>對內需編號＋姓名雙重驗證，對外僅 email 查詢</li>'+
+        '<li>報到後自動加入 OA → 後續收推播任務（點名/派工/物資）</li>'+
+        '<li>5 操作面板：推播 · 報到 · 點名 · 派工 · 物資</li>'+
+      '</ul>'+
+    '</div>'+
+  '</div>';
+}
+
+var PV_VIEWS={ lineoa: {title:'Line OA',render:viewLineOA} };
+
+function pvPlaceholder(name){
+  return '<div style="text-align:center;padding:50px 20px;color:var(--text3)">'+
+    '<div style="font-size:34px;margin-bottom:12px">🚧</div>'+
+    '<div style="font-size:14px;font-weight:700;color:var(--text2)">「'+name+'」這格的內部示意製作中</div>'+
+    '<div style="font-size:11px;margin-top:8px;line-height:1.7">目前已完成標竿格：<b>Line OA</b>（雙線架構）<br>確認版型後將逐格補完其餘模組畫面</div></div>';
+}
+function pvShow(id,name){
+  var v=PV_VIEWS[id];
+  document.getElementById('pvTitle').textContent='現況示意　·　'+(name||(v&&v.title)||id);
+  document.getElementById('pvBody').innerHTML=v?v.render():pvPlaceholder(name||id);
+  document.getElementById('pvMask').classList.add('on');
+}
+function pvHide(){document.getElementById('pvMask').classList.remove('on');}
+
+/* ───── 回饋提交碼（相容 intake INTAKE1 格式） ───── */
+function fbEncode(obj){return "INTAKE1:"+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));}
+var _fbCode="";
+function fbBuildNodeOptions(){
+  var sel=document.getElementById('fbNode');if(!sel)return;
+  var opts='<option value="（整體）">（整體／不限特定模組）</option>';
+  if(typeof NODES!=='undefined'){NODES.forEach(function(n){opts+='<option value="'+n.nm+'">'+n.nm+'</option>';});}
+  sel.innerHTML=opts;
+}
+function fbT(){
+  var p=document.getElementById('fbPanel');p.classList.toggle('on');
+  if(p.classList.contains('on')&&!document.getElementById('fbNode').options.length)fbBuildNodeOptions();
+}
+function fbFlash(m,err){var e=document.getElementById('fbFlash');e.textContent=m;e.style.color=err?'var(--red)':'var(--green)';setTimeout(function(){e.textContent='';},3500);}
+function fbGenCode(){
+  var nick=document.getElementById('fbNick').value.trim();
+  var text=document.getElementById('fbText').value.trim();
+  if(!text){fbFlash('請先填寫回饋內容',true);return;}
+  var obj={kind:'feedback',nick:nick||'匿名',node:document.getElementById('fbNode').value,
+    ftype:document.getElementById('fbType').value,text:text,ts:Date.now()};
+  _fbCode=fbEncode(obj);
+  document.getElementById('fbCode').textContent=_fbCode;
+  document.getElementById('fbOut').classList.add('on');
+  fbFlash('提交碼已產生，請複製傳出 ✓');
+}
+function fbCopy(){navigator.clipboard.writeText(_fbCode).then(function(){fbFlash('已複製提交碼 ✓');}).catch(function(){fbFlash('複製失敗，請手動選取',true);});}
+function fbDownload(){var b=new Blob([_fbCode],{type:'text/plain;charset=utf-8'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='回饋提交碼.txt';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u);fbFlash('已下載 ✓');}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')pvHide();});
+</script>
+<!-- ════════ /注入 ════════ -->
+
+</body>
+</html>

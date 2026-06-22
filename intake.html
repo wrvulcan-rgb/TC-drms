@@ -1,0 +1,307 @@
+<!-- 收集站 · 純前端提交碼版（無後端、無帳號牆、無外部架構）-->
+<!-- 用法：雙擊用瀏覽器開即可。其他人填寫後產生「提交碼」傳給你，你用管理者密碼進後台貼碼匯入。 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>需求結論收集站</title>
+
+<style>
+  :root{
+    --ink:#1a1d24; --paper:#faf8f3; --line:#d8d2c4; --accent:#b5482e;
+    --accent-soft:#e8d5cd; --muted:#6b6456; --done:#2f6b4f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:ui-sans-serif,system-ui,"Helvetica Neue",sans-serif;color:var(--ink);background:var(--paper);line-height:1.5}
+  .wrap{max-width:760px;margin:0 auto;padding:0 24px}
+  header{padding:40px 24px 28px;border-bottom:2px solid var(--ink);max-width:760px;margin:0 auto}
+  .mark{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:14px}
+  h1{font-family:Georgia,"Times New Roman",serif;font-size:34px;font-weight:700;margin:0 0 8px;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:0;font-size:15px;max-width:52ch}
+  main{display:flex;flex-direction:column;gap:20px;padding:24px 0}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:2px;padding:22px}
+  .setup-panel{border-left:3px solid var(--accent)}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:16px;border-bottom:1px solid var(--line);padding-bottom:10px}
+  .setup-text{font-size:14px;margin:0 0 16px;line-height:1.6}
+  .setup-text code{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:3px;font-size:13px;font-family:ui-monospace,monospace}
+  .version-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .version-card{border:1px solid var(--line);border-radius:2px;padding:16px;background:var(--paper);display:flex;flex-direction:column}
+  .version-title{font-weight:700;font-size:15px;margin-bottom:6px}
+  .version-desc{font-size:13px;color:var(--muted);line-height:1.55;margin:0 0 14px;flex:1}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  label.lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:600;margin:16px 0 6px}
+  label.lbl:first-of-type{margin-top:0}
+  .count{font-weight:400;color:var(--muted);font-size:12px}
+  input,textarea{width:100%;border:1px solid var(--line);border-radius:2px;padding:10px 12px;font-size:14px;font-family:inherit;background:var(--paper);color:var(--ink)}
+  textarea{resize:vertical;line-height:1.5;font-family:ui-monospace,"SF Mono",monospace;font-size:13px}
+  input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+  .warn-box{background:var(--accent-soft);border:1px solid var(--accent);border-radius:2px;padding:10px 12px;font-size:13px;color:var(--accent);font-weight:600;margin-bottom:16px}
+  .note{font-size:12px;color:var(--muted);margin:6px 0 0}
+  button{cursor:pointer;font-family:inherit}
+  .btn-primary{background:var(--ink);color:#fff;border:none;padding:11px 20px;font-size:14px;font-weight:600;border-radius:2px}
+  .btn-primary:hover{background:var(--accent)}
+  .btn-ghost{background:transparent;border:1px solid var(--ink);color:var(--ink);padding:9px 16px;font-size:13px;font-weight:600;border-radius:2px}
+  .btn-ghost:hover{background:var(--ink);color:#fff}
+  .btn-ghost.sm{padding:5px 12px;font-size:12px}
+  .btn-del{background:transparent;border:none;color:var(--accent);font-size:12px;text-decoration:underline;padding:5px 8px}
+  .msg{margin-top:10px;font-size:13px;color:var(--done);font-weight:600}
+  .err{margin-top:10px;font-size:13px;color:var(--accent);font-weight:600}
+  .hint{font-size:12px;color:var(--muted);margin:0 0 16px}
+  .empty{color:var(--muted);font-size:14px;padding:12px 0}
+  .card{border:1px solid var(--line);border-radius:2px;padding:16px;margin-bottom:12px;background:var(--paper)}
+  .card-admin{background:#fff}
+  .card-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .card-nick{font-weight:700;font-size:14px}
+  .card-time{font-size:12px;color:var(--muted)}
+  .tag{font-size:11px;padding:2px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:700;letter-spacing:.04em;margin-left:auto}
+  details{margin-top:12px}
+  summary{cursor:pointer;font-size:13px;font-weight:600;padding:6px 0;user-select:none}
+  summary:hover{color:var(--accent)}
+  pre.body{white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.6;background:#fff;border:1px solid var(--line);border-radius:2px;padding:14px;margin:8px 0 0;font-family:ui-monospace,"SF Mono",monospace}
+  .raw-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:10px 0 4px}
+  .card-actions{display:flex;gap:8px;align-items:center;margin-top:12px}
+  .gate-row{display:flex;gap:8px}
+  .gate-row input{flex:1}
+  .code-out{width:100%;margin-top:12px;font-family:ui-monospace,monospace;font-size:12px;background:var(--paper);border:1px dashed var(--accent);border-radius:2px;padding:12px;word-break:break-all}
+  .admin-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  footer{max-width:760px;margin:20px auto 40px;padding:0 24px;font-size:12px;color:var(--muted);text-align:center}
+  @media(max-width:520px){h1{font-size:27px}.version-grid{grid-template-columns:1fr}.wrap{padding:0 16px}.panel{padding:16px}}
+</style>
+
+<header>
+  <div class="mark">論證收束</div>
+  <h1>需求結論收集站</h1>
+  <p class="sub">跑完 AI 對話後，產生提交碼傳給管理者。純前端、免帳號、免安裝。</p>
+</header>
+
+<div id="app" class="wrap"></div>
+
+<footer>提交內容請勿包含服務對象姓名、個資或個案隱私。本工具不經任何伺服器，資料僅在本機與你產生的提交碼中。</footer>
+
+<script>
+// ============================================================
+// 管理者密碼：換成你自己的字串（前端密碼，屬防誤觸等級）
+const ADMIN_PASSCODE = "ADMIN_PASSCODE";
+// ============================================================
+
+// 兩版 prompt（提交者複製）
+const A_PROMPT = [
+"你是一個高度專業且兼具高情商的「系統需求多方論證與收集器」。你的體內共生著 5 位性格鮮明、立場堅定的專家。任務是審視使用者輸入的想像、需求與痛點，透過交叉詰問淬煉成可落地的系統架構規格。",
+"",
+"■ 核心準則",
+"1. 禁一味奉承或無意義客套。",
+"2. 對外情商緩衝：立場嚴厲但口氣專業尊重、具建設性，禁說教或打擊熱情。",
+"3. 痛點剝離：發言前第一句點出「此需求背後試圖解決的核心痛點是：[核心痛點]」。",
+"",
+"■ 五專家",
+"1. SOP 管理大師：極致縮短流程、消除浪費(Lean/Six Sigma/BPR)，新增審核節點會杯葛。",
+"2. 架構整理專家(兼裁決官)：維護一致性，評估是否造成架構混亂或功能重複(MECE/IA/TOGAF)。",
+"3. 前線行政專家：捍衛前線與志工體驗，反對複雜表單，堅持最少點擊(認知負荷/服務設計/Nielsen)。",
+"4. 資安控制專家：風險零容忍，最壞惡意揣測審視隱私與個資漏洞(STRIDE/OWASP/最小權限)。",
+"5. Agent 效能專家：成本效率守門員，評估當前 AI 模型能力與限制，控管 token 浪費。",
+"",
+"■ 互動機制(每次輸入)",
+"1.痛點剝離一句。2.默默挑 2~3 位最相關專家。3.給合計 4-5 點實質建議。4.就抵觸點辯論 1 回合，由架構整理專家給「收斂參考方案」(非定論，人工拍板)。5.拋 1-2 個延伸反問。",
+"",
+"■ /summary 觸發彙整",
+"輸入 /summary 停止辯論，產出【系統架構升級需求書】：1.核心痛點與需求歸納 2.專家衝突共識決 3.架構升級規格(P0核心基石/P1長遠規劃/P2邊緣優化) 4.技術債與風險提示。最末附交接區塊(討論輪數/參與專家/未解決衝突/未答反問)，並提醒把全部對話＋需求書複製，回收集站產生提交碼。",
+"",
+"若已理解，只回覆：「論證器已就緒，請描述您的第一個需求、想像或痛點。」然後等待輸入。"
+].join("\n");
+
+const GUIDE_PROMPT = [
+"你是一位溫暖、有耐心的「前線心聲引導員」。使用者是忙碌的前線志工，腦中沒有明確需求，可能沒跟 AI 對話過。任務不是審問，而是用具體情境引他開口，從反應裡挖出他沒意識到的痛點。",
+"",
+"■ 最高原則",
+"1. 絕不要求對方「提出需求／想像功能／描述系統」。",
+"2. 永遠丟「具體情境」讓對方反應，不丟「開放問題」讓對方發想。",
+"3. 一次只問一個問題，短、白話、有畫面感。",
+"4. 語氣像同事閒聊。對方說「不知道」「還好」時不施壓，換更小場景再試。",
+"5. 不批判、不糾正、不說教，先接住再追問。",
+"",
+"■ 引導漏斗(每個痛點跑一遍)",
+"1.場景代入：丟一個對方一定遇過的具體畫面，問他實際會怎麼做。",
+"2.卡點定位：挑一個動作問哪步最煩、最久、最易錯。",
+"3.影響放大：問多常發生、會害到什麼。",
+"4.願望反射：不問「想要什麼功能」，問「你寧願它變怎樣」。",
+"跑完收束，再問「還有沒有別件事也讓你覺得很煩」。累積 2-4 個痛點即可。",
+"",
+"■ 技巧",
+"話少就縮小場景到一句能答；答非所問就從岔題找線索；說「都還好」就丟一個猜測情境讓他否認；多用「然後呢／當下你想什麼」挖到情緒；每 2-3 輪複述對方重點讓他確認。",
+"",
+"■ /summary 觸發彙整",
+"輸入 /summary 或撈到 2-4 個痛點即停，產出【前線心聲需求書】：1.痛點清單(卡在哪/多常卡/卡了會怎樣) 2.每個痛點翻譯成「他其實想要的是__」 3.隱藏線索(岔題/情緒重的地方) 4.猶豫或矛盾處建議人工再確認。最末附交接區塊(對話輪數/痛點數/對方狀態/未挖深線索)，提醒把整段對話＋需求書複製，回收集站產生提交碼。",
+"",
+"若已理解，只回覆這句開場：「嗨，我們隨便聊聊就好，不用想答案對不對。先問你——最近一次你在忙志工的事情時，有沒有哪個環節讓你覺得『有夠麻煩』或『怎麼又來了』？」然後等待回應。"
+].join("\n");
+
+// 狀態
+const STORE_KEY = "intake_submissions_v1";
+let isAdmin = false;
+
+function loadStore(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"[]"); }catch(_){ return []; } }
+function saveStore(arr){ localStorage.setItem(STORE_KEY, JSON.stringify(arr)); }
+
+// 提交碼編解碼（UTF-8 安全 Base64）
+function encodeEntry(obj){
+  const json=JSON.stringify(obj);
+  return "INTAKE1:"+btoa(unescape(encodeURIComponent(json)));
+}
+function decodeEntry(code){
+  const t=code.trim().replace(/^INTAKE1:/,"");
+  const json=decodeURIComponent(escape(atob(t)));
+  return JSON.parse(json);
+}
+
+// 工具
+function fmt(ts){const d=new Date(ts);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
+function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
+function copy(text,label){navigator.clipboard.writeText(text).then(()=>flash("已複製"+label+" ✓")).catch(()=>flash("複製失敗",true))}
+function download(text,fn){const b=new Blob([text],{type:"text/plain;charset=utf-8"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=fn;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u)}
+function flash(msg,isErr){const e=document.getElementById("flash");if(e){e.textContent=msg;e.className=isErr?"err":"msg";setTimeout(()=>{if(e)e.textContent=""},3500)}}
+
+function render(){ isAdmin ? renderAdmin() : renderSubmitter() }
+
+// 提交者視角
+function renderSubmitter(){
+  document.getElementById("app").innerHTML =
+  '<main>'+
+    '<section class="panel setup-panel">'+
+      '<div class="eyebrow">第一步 · 取得對話設定</div>'+
+      '<p class="setup-text">依你的狀態選一版，複製或下載後貼進任一 AI 對話（ChatGPT、Gemini、Claude 皆可）。AI 開場後照著聊，完成輸入 <code>/summary</code>，再把全部對話與產出貼到下方第二步。</p>'+
+      '<div class="version-grid">'+
+        '<div class="version-card">'+
+          '<div class="version-title">我已經有想法</div>'+
+          '<p class="version-desc">對需求清楚、想被嚴格檢驗。五位專家會交叉詰問，淬煉成可落地規格。</p>'+
+          '<div class="actions">'+
+            '<button class="btn-primary" onclick="copy(A_PROMPT,\'（論證版）\')">複製論證版</button>'+
+            '<button class="btn-ghost" onclick="download(A_PROMPT,\'論證版設定.txt\')">下載 .txt</button>'+
+          '</div>'+
+        '</div>'+
+        '<div class="version-card">'+
+          '<div class="version-title">我還沒想法，需要引導</div>'+
+          '<p class="version-desc">腦中沒有明確需求也沒關係。一位引導員會用具體情境陪你聊，把痛點挖出來。</p>'+
+          '<div class="actions">'+
+            '<button class="btn-primary" onclick="copy(GUIDE_PROMPT,\'（引導版）\')">複製引導版</button>'+
+            '<button class="btn-ghost" onclick="download(GUIDE_PROMPT,\'引導版設定.txt\')">下載 .txt</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</section>'+
+
+    '<section class="panel">'+
+      '<div class="eyebrow">第二步 · 產生提交碼</div>'+
+      '<div class="warn-box">請勿填入服務對象姓名、個資或個案隱私。只描述流程、需求、痛點。</div>'+
+      '<label class="lbl">暱稱</label>'+
+      '<input id="f-nick" placeholder="方便管理者辨識是誰提交">'+
+      '<label class="lbl">辯論／對話全文 <span class="count" id="c-debate">0 字</span></label>'+
+      '<textarea id="f-debate" rows="6" placeholder="貼上與 AI 的完整對話"></textarea>'+
+      '<label class="lbl">需求書全文 <span class="count" id="c-req">0 字</span></label>'+
+      '<textarea id="f-req" rows="6" placeholder="貼上 /summary 產出的需求書（含交接區塊）"></textarea>'+
+      '<button class="btn-primary" style="margin-top:16px" onclick="genCode()">產生提交碼</button>'+
+      '<div id="flash"></div>'+
+      '<div id="code-area"></div>'+
+    '</section>'+
+
+    '<section class="panel" style="background:var(--paper)">'+
+      '<div class="eyebrow">管理者</div>'+
+      '<div class="gate-row">'+
+        '<input id="a-pass" type="password" placeholder="管理者密碼" onkeydown="if(event.key===\'Enter\')adminLogin()">'+
+        '<button class="btn-ghost" onclick="adminLogin()">登入</button>'+
+      '</div>'+
+      '<div id="login-err"></div>'+
+    '</section>'+
+  '</main>';
+
+  ["debate","req"].forEach(function(k){
+    var t=document.getElementById("f-"+k), c=document.getElementById("c-"+k);
+    t.addEventListener("input",function(){c.textContent=t.value.length.toLocaleString()+" 字";});
+  });
+}
+
+function genCode(){
+  var nick=document.getElementById("f-nick").value.trim();
+  var debate=document.getElementById("f-debate").value.trim();
+  var req=document.getElementById("f-req").value.trim();
+  if(!nick) return flash("請填暱稱",true);
+  if(!debate && !req) return flash("對話與需求書至少填一項",true);
+  var code=encodeEntry({nick:nick,debate:debate,req:req,ts:Date.now()});
+  document.getElementById("code-area").innerHTML=
+    '<div class="raw-label" style="margin-top:16px">你的提交碼（複製後傳給管理者）</div>'+
+    '<div class="code-out" id="the-code">'+esc(code)+'</div>'+
+    '<div class="actions" style="margin-top:10px">'+
+      '<button class="btn-primary" onclick="copy(document.getElementById(\'the-code\').textContent,\'（提交碼）\')">複製提交碼</button>'+
+      '<button class="btn-ghost" onclick="download(document.getElementById(\'the-code\').textContent,\'提交碼_'+esc(nick)+'.txt\')">下載提交碼</button>'+
+    '</div>'+
+    '<p class="note">把這段碼用 Line／Email 等任一管道傳給管理者即可。</p>';
+  flash("提交碼已產生 ✓");
+}
+
+function adminLogin(){
+  var pass=document.getElementById("a-pass").value;
+  var el=document.getElementById("login-err");
+  if(pass===ADMIN_PASSCODE){ isAdmin=true; render(); }
+  else { el.className="err"; el.textContent="密碼錯誤"; }
+}
+
+// 管理者視角
+function renderAdmin(){
+  var list=loadStore().sort(function(a,b){return b.ts-a.ts;});
+  var cards=list.map(function(s){
+    var total=(s.debate||"").length+(s.req||"").length;
+    return '<div class="card card-admin">'+
+      '<div class="card-top"><span class="card-nick">'+esc(s.nick)+'</span><span class="card-time">'+fmt(s.ts)+'</span>'+
+        '<span class="tag">'+total.toLocaleString()+' 字</span></div>'+
+      '<details><summary>提交內容</summary>'+
+        '<div class="raw-label">辯論／對話</div><pre class="body">'+(esc(s.debate)||"（未提供）")+'</pre>'+
+        '<div class="raw-label">需求書</div><pre class="body">'+(esc(s.req)||"（未提供）")+'</pre>'+
+        '<button class="btn-ghost sm" style="margin-top:10px" onclick="copyOne(\''+s.id+'\')">複製整筆</button>'+
+      '</details>'+
+      '<div class="card-actions"><button class="btn-del" onclick="delOne(\''+s.id+'\')">刪除</button></div>'+
+    '</div>';
+  }).join("");
+
+  document.getElementById("app").innerHTML=
+  '<main>'+
+    '<section class="panel setup-panel">'+
+      '<div class="eyebrow">匯入提交碼</div>'+
+      '<p class="note" style="margin:0 0 12px">把對方傳來的提交碼貼進來，匯入你本機的收集庫。</p>'+
+      '<textarea id="imp-code" rows="3" placeholder="貼上 INTAKE1: 開頭的提交碼"></textarea>'+
+      '<button class="btn-primary" style="margin-top:12px" onclick="importCode()">匯入</button>'+
+      '<div id="flash"></div>'+
+    '</section>'+
+    '<section class="panel">'+
+      '<div class="admin-bar">'+
+        '<div class="eyebrow" style="border:none;margin:0;padding:0">收集庫（'+list.length+'）· 管理者</div>'+
+        '<button class="btn-ghost sm" onclick="adminLogout()">登出</button>'+
+      '</div>'+
+      '<p class="hint">資料存於本機瀏覽器。換瀏覽器或清快取會消失，重要資料請另存。</p>'+
+      (list.length?cards:'<div class="empty">收集庫是空的。貼上提交碼匯入。</div>')+
+    '</section>'+
+  '</main>';
+}
+
+function importCode(){
+  var raw=document.getElementById("imp-code").value.trim();
+  if(!raw) return flash("請貼上提交碼",true);
+  var obj;
+  try{ obj=decodeEntry(raw); }catch(_){ return flash("提交碼無效或已損壞",true); }
+  if(!obj||(!obj.debate&&!obj.req)) return flash("提交碼內容為空",true);
+  var arr=loadStore();
+  obj.id="e"+Date.now()+Math.random().toString(36).slice(2,6);
+  arr.push(obj);
+  saveStore(arr);
+  renderAdmin();
+}
+
+window.copyOne=function(id){
+  var s=loadStore().find(function(x){return x.id===id;}); if(!s) return;
+  copy("=== 辯論／對話 ===\n"+(s.debate||"（未提供）")+"\n\n=== 需求書 ===\n"+(s.req||"（未提供）"),"（整筆）");
+};
+window.delOne=function(id){
+  if(!confirm("確定刪除這筆？")) return;
+  saveStore(loadStore().filter(function(x){return x.id!==id;}));
+  renderAdmin();
+};
+function adminLogout(){ isAdmin=false; render(); }
+
+render();
+</script>
