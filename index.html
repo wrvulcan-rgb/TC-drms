@@ -132,6 +132,14 @@ body.nav-collapsed .main{margin-left:0}
 .rt-wiz-prio{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;border-radius:var(--r-sm);cursor:pointer;transition:.12s;font-family:inherit;font-weight:700}
 .rt-wiz-prio:hover{filter:brightness(.97)}
 .rt-wiz-prio:active{transform:scale(.97)}
+.rt-board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rt-bcol{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px;min-height:90px}
+.rt-bcol-h{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.rt-bcol-cnt{margin-left:auto;font-size:11px;font-weight:700;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--bg4);color:var(--text3);display:inline-flex;align-items:center;justify-content:center}
+.rt-bcard{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px}
+.rt-bcard:last-child{margin-bottom:0}
+.rt-bempty{font-size:12px;color:var(--text4);text-align:center;padding:14px 0}
+@media(max-width:768px){.rt-board{grid-template-columns:1fr}}
 @keyframes fin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .pg-hdr{margin-bottom:28px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .pg-title{font-size:21px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:-.3px;line-height:1.2}
@@ -1445,8 +1453,8 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 <div class="page" id="page-rtsync">
   <div class="pg-hdr"><div><div class="pg-title">⚡ 即時調度中台</div><div class="pg-sub">多點同步作業 · 開兩個分頁即可見即時連動（本機版，可無痛切換 Firebase）</div></div></div>
   <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
-    <button class="btn btn-blue" id="rttab-tasks"     onclick="setRTTab('tasks')">🎯 任務池</button>
-    <button class="btn btn-ghost" id="rttab-report"   onclick="setRTTab('report')">💬 任務互動</button>
+    <button class="btn btn-blue" id="rttab-tasks"     onclick="setRTTab('tasks')">🎯 派任務</button>
+    <button class="btn btn-ghost" id="rttab-report"   onclick="setRTTab('report')">📡 看進度</button>
     <button class="btn btn-ghost" id="rttab-close"    onclick="setRTTab('close')">📋 結案</button>
     <button class="btn btn-ghost" id="rttab-emergency" onclick="setRTTab('emergency')" style="border-color:var(--red-border);color:var(--red)">🚨 緊急</button>
     <button class="btn btn-ghost" style="margin-left:auto" onclick="resetRTDB()">↺ 重置</button>
@@ -1806,7 +1814,7 @@ var NODES=[
   // 中央核心
   {id:'rtsync',   nm:'即時調度中台', ico:'\u26A1', x:50, y:50, status:'live', kind:'core', center:true, locked:true,
     script:'我把即時調度中台放在心智圖正中央，不是視覺設計的習慣，而是它真的就是整個系統的核心。在真實救災現場，最常出現的混亂是：這個需求誰負責？這個物資哪裡來？這個志工在哪？這些問題沒有一個統一的入口，就會不斷被詢問、不斷重複協調，浪費時間也容易出錯。調度中台的設計理念是把所有第一線的動作收攏到一個地方——任務建立、派工、物資調度、緊急警報、SOS、點名，全部在同一個介面完成。四個分頁（任務池、任務互動、結案、緊急）對應四種不同的工作節奏，讓幹部不需要在多個系統之間切換。',
-    desc:'現場唯一指揮橋樑。4 tab：任務池/任務互動(含出貨)/結案/緊急(警報+SOS+點名)。所有派工、調度、叫料媒合在此。'},
+    desc:'現場唯一指揮橋樑。4 tab：派任務/看進度(含出貨)/結案/緊急(警報+SOS+點名)。所有派工、調度、叫料媒合在此。'},
 
   // 右上=志工前線
   {id:'volunteer',nm:'當區志工', ico:'\uD83D\uDC65', x:58, y:12, status:'live', kind:'actor',
@@ -2286,7 +2294,7 @@ var ARCH_DOC={
     {id:'monitor',name:'全域監控',layer:'L1',status:'live',note:'高層決策視圖：即時情資彙整、前線需求大方向、即時影像位、連線狀態。不涉細節操作'},
     {id:'permissions',name:'功能後台',layer:'L1',status:'live',note:'權限矩陣、模組管理'},
     {id:'admin',name:'後台維運',layer:'L1',status:'live',note:'系統設定、Gmail/Line OA 串接、版本備份還原、戰時各災型預設模組設定、開發待辦'},
-    {id:'rtsync',name:'即時調度中台',layer:'L2',status:'live',note:'現場唯一指揮橋樑。4 tab：任務池/任務互動(含物資出貨)/結案(含日誌+照片+故事線)/緊急(警報+SOS+點名)'},
+    {id:'rtsync',name:'即時調度中台',layer:'L2',status:'live',note:'現場唯一指揮橋樑。4 tab：派任務/看進度(含物資出貨)/結案(含日誌+照片+故事線)/緊急(警報+SOS+點名)'},
     {id:'reg',name:'志工報名與報到',layer:'L2',status:'live',note:'今日報到+明日報名雙軌並行。報到後加入 Line OA 收任務'},
     {id:'sheet_reg',name:'報名資料總表',layer:'L2',status:'partial',note:'Google Sheets 對接，慈誠委員+社區志工。GAS 後端已建，需設定 /exec 網址'},
     {id:'vms',name:'志工管理與報告',layer:'L2',status:'live',note:'人員資料、任務指派'},
@@ -2351,7 +2359,7 @@ var ARCH_DOC={
     {id:'user',name:'幹部/志工',x:8,y:30,status:'live',kind:'actor',desc:'系統使用者。依角色(總控/IT/幹部/物流)有不同權限與可見模組。'},
     {id:'lineoa',name:'Line OA',x:8,y:68,status:'partial',kind:'channel',desc:'前線回報入口（模擬器已內嵌）。真實 Webhook 後端未接。報到後加入此頻道收任務/通知/點名。'},
     {id:'dashboard',name:'總控儀表板',x:30,y:14,status:'live',kind:'core',desc:'KPI、情境模擬器(10災型)、可編輯版面、AI戰術分析入口。平時/戰時雙模式起點。'},
-    {id:'rtsync',name:'即時調度中台',x:30,y:38,status:'live',kind:'core',desc:'現場唯一指揮橋樑。4 tab：任務池/任務互動/結案/緊急。所有派工、警報、SOS、出貨在此。'},
+    {id:'rtsync',name:'即時調度中台',x:30,y:38,status:'live',kind:'core',desc:'現場唯一指揮橋樑。4 tab：派任務/看進度/結案/緊急。所有派工、警報、SOS、出貨在此。'},
     {id:'reg',name:'報名報到',x:30,y:62,status:'live',kind:'core',desc:'今日報到+明日報名雙軌並行。報到後導引加入 Line OA。'},
     {id:'monitor',name:'全域監控',x:30,y:86,status:'live',kind:'core',desc:'高層決策視圖：情資彙整、前線需求、即時影像、連線狀態。唯讀不涉操作。'},
     {id:'warehouse',name:'物資倉儲',x:54,y:24,status:'live',kind:'limb',desc:'對內：三級分類造冊、入庫、大車調度。對外出貨在即時調度中台。'},
@@ -2874,6 +2882,33 @@ function rtWizHtml(){
   html+='</div>';
   return html;
 }
+var RT_VIEW=(function(){try{return localStorage.getItem('drms_rt_view')||'board';}catch(e){return 'board';}})();
+function setRTView(v){ RT_VIEW=v; try{localStorage.setItem('drms_rt_view',v);}catch(e){} renderRTSync(); }
+// 共用：依任務狀態 + 簡易/進階模式產生操作按鈕；回傳 {btns, expand}
+function rtCardCtrls(k,t,big){
+  var locked=!!t.lockedBy, btns='', expand='';
+  if(big){
+    if(t.status==='待派工'){ btns+='<button class="btn btn-blue" style="font-size:15px;padding:11px 20px" onclick="rtPickAssign(\''+k+'\')">'+(RT_ASSIGN_FOR===k?'✕ 收起':'👤 派人')+'</button>'; }
+    else if(t.status==='進行中'){ btns+='<button class="btn btn-green" style="font-size:15px;padding:11px 20px" onclick="rtReport(\''+k+'\',\'已完成\')">✅ 完成</button>'; }
+    if(RT_ASSIGN_FOR===k && t.status==='待派工'){
+      expand='<div style="margin-top:8px;padding:10px;background:var(--bg3);border-radius:8px"><div style="font-size:13px;color:var(--text3);margin-bottom:8px">點一下要派的人：</div>'+rtPersonCards("rtDoAssign('"+k+"','VK')",big)+'</div>';
+    }
+  } else {
+    var vols=rtGet('volunteers');
+    if(t.status==='待派工'){
+      var avail=Object.keys(vols).filter(function(vk){return (vols[vk].status==='待命'||vols[vk].status==='已報到')&&!vols[vk].fatigue;});
+      btns+='<select class="inp" style="width:auto;font-size:11px;padding:4px 6px" id="rt-asg-'+k+'"><option value="">指派給…</option>'
+        +avail.map(function(vk){var skl=(vols[vk].skills||[]).join('/');return '<option value="'+vk+'">'+vols[vk].name+(skl?'（'+skl+'）':'')+'</option>';}).join('')
+        +'</select><button class="btn btn-blue btn-xs" onclick="rtAssignTask(\''+k+'\')">派工</button>';
+    }
+    if(!t.forced&&t.status!=='已完成'){ btns+='<button class="btn btn-red btn-xs" onclick="rtForceTop(\''+k+'\')" title="強制置頂最高優先">⬆ 置頂</button>'; }
+    if(t.status==='進行中'){ btns+='<button class="btn btn-amber btn-xs" onclick="rtBlockedRelease(\''+k+'\')" title="斷橋/受阻回報，釋放任務">🌉 受阻釋放</button>'; }
+    if(locked){ btns+='<button class="btn btn-ghost btn-xs" onclick="rtForceRelease(\''+k+'\')">🔓 解鎖</button>'; }
+    else if(t.status==='已完成'){ btns+='<button class="btn btn-ghost btn-xs" onclick="rtReopenTask(\''+k+'\')" title="改回進行中">↺ 重啟</button>'; }
+    else if(t.status!=='待派工'){ btns+='<button class="btn btn-ghost btn-xs" onclick="rtLockTask(\''+k+'\')">🔒 鎖定</button>'; }
+  }
+  return {btns:btns, expand:expand};
+}
 function renderRTTasks(){
   var tasks=rtGet('tasks'), vols=rtGet('volunteers');
   var ids=Object.keys(tasks).sort(function(a,b){ if(tasks[a].forced&&!tasks[b].forced) return -1; if(!tasks[a].forced&&tasks[b].forced) return 1; return (tasks[a].priority||'P9').localeCompare(tasks[b].priority||'P9'); });
@@ -2900,53 +2935,54 @@ function renderRTTasks(){
       +'<button class="btn btn-red" onclick="rtInsertTask()">⚡ 插隊建立</button>'
       +'</div></div>';
   }
-  // 任務池
+  // 任務池 — 看板 / 清單 視圖切換
   var f1=big?'15px':'12px';
-  html+='<div class="card"><div class="card-title">任務池（依優先級排序 · 即時同步）</div>';
   var pc={P1:'var(--red)',P2:'var(--amber)',P3:'var(--green)'};
-  if(!ids.length){ html+='<div style="font-size:13px;color:var(--text4);text-align:center;padding:18px 0">目前沒有任務，按上面的「⚡ 派新任務」開始</div>'; }
-  for(var i=0;i<ids.length;i++){
-    var k=ids[i], t=tasks[k];
-    var locked=!!t.lockedBy;
-    var asgName=t.assignee&&vols[t.assignee]?vols[t.assignee].name:'';
-    html+='<div style="display:flex;align-items:center;gap:10px;padding:'+(big?'14px':'10px')+';margin-bottom:8px;background:var(--bg2);border:1px solid '+(locked?'var(--amber-border)':'var(--border)')+';border-radius:var(--r-sm);flex-wrap:wrap">'
-      +'<span style="font-weight:700;font-family:monospace;color:'+(pc[t.priority]||'var(--text3)')+';font-size:'+(big?'14px':'12px')+'">'+t.priority+'</span>'
-      +'<div style="flex:1;min-width:120px"><div style="font-size:'+f1+';font-weight:600">'+t.title+'</div>'
-      +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)">'+k+' · '+t.created+(asgName?' · 指派：'+asgName:'')+(locked?' · 🔒 鎖定：'+t.lockedBy:'')+'</div></div>'
-      +'<span class="badge badge-'+(t.status==='進行中'?'blue':t.status==='已完成'?'green':'amber')+'">'+t.status+'</span>';
-    if(big){
-      // 簡易模式：每張卡最多兩顆大按鈕
-      if(t.status==='待派工'){ html+='<button class="btn btn-blue" style="font-size:15px;padding:11px 20px" onclick="rtPickAssign(\''+k+'\')">'+(RT_ASSIGN_FOR===k?'✕ 收起':'👤 派人')+'</button>'; }
-      else if(t.status==='進行中'){ html+='<button class="btn btn-green" style="font-size:15px;padding:11px 20px" onclick="rtReport(\''+k+'\',\'已完成\')">✅ 完成</button>'; }
-      if(RT_ASSIGN_FOR===k && t.status==='待派工'){
-        html+='<div style="flex-basis:100%;margin-top:6px;padding:10px;background:var(--bg3);border-radius:8px">'
-          +'<div style="font-size:13px;color:var(--text3);margin-bottom:8px">點一下要派的人：</div>'
-          +rtPersonCards("rtDoAssign('"+k+"','VK')",big)+'</div>';
-      }
-    } else {
-      // 進階模式：保留完整操作（與原本相同）
-      if(t.status==='待派工'){
-        var avail=Object.keys(vols).filter(function(vk){return (vols[vk].status==='待命'||vols[vk].status==='已報到')&&!vols[vk].fatigue;});
-        html+='<select class="inp" style="width:auto;font-size:11px;padding:4px 6px" id="rt-asg-'+k+'"><option value="">指派給…</option>'
-          +avail.map(function(vk){var skl=(vols[vk].skills||[]).join('/');return '<option value="'+vk+'">'+vols[vk].name+(skl?'（'+skl+'）':'')+'</option>';}).join('')
-          +'</select>'
-          +'<button class="btn btn-blue btn-xs" onclick="rtAssignTask(\''+k+'\')">派工</button>';
-      }
-      if(!t.forced&&t.status!=='已完成'){
-        html+='<button class="btn btn-red btn-xs" onclick="rtForceTop(\''+k+'\')" title="強制置頂最高優先">⬆ 置頂</button>';
-      }
-      if(t.status==='進行中'){
-        html+='<button class="btn btn-amber btn-xs" onclick="rtBlockedRelease(\''+k+'\')" title="斷橋/受阻回報，釋放任務">🌉 受阻釋放</button>';
-      }
-      if(locked){
-        html+='<button class="btn btn-ghost btn-xs" onclick="rtForceRelease(\''+k+'\')">🔓 解鎖</button>';
-      } else if(t.status==='已完成'){
-        html+='<button class="btn btn-ghost btn-xs" onclick="rtReopenTask(\''+k+'\')" title="改回進行中">↺ 重啟</button>';
-      } else if(t.status!=='待派工'){
-        html+='<button class="btn btn-ghost btn-xs" onclick="rtLockTask(\''+k+'\')">🔒 鎖定</button>';
-      }
-    }
+  html+='<div class="card"><div class="card-title" style="display:flex;align-items:center">'
+    +'<span>任務池</span>'
+    +'<div style="margin-left:auto;display:flex;gap:4px">'
+    +'<button class="btn '+(RT_VIEW==='board'?'btn-blue':'btn-ghost')+' btn-xs" onclick="setRTView(\'board\')">🗂 看板</button>'
+    +'<button class="btn '+(RT_VIEW==='list'?'btn-blue':'btn-ghost')+' btn-xs" onclick="setRTView(\'list\')">📋 清單</button>'
+    +'</div></div>';
+  if(!ids.length){
+    html+='<div style="font-size:13px;color:var(--text4);text-align:center;padding:18px 0">目前沒有任務，按上面的「⚡ 派新任務」開始</div>';
+  } else if(RT_VIEW==='board'){
+    // 三欄看板：等人做 / 進行中 / 做完了
+    var cols=[{key:'待派工',ico:'⏳',name:'等人做',color:'--amber'},{key:'進行中',ico:'🏃',name:'進行中',color:'--blue'},{key:'已完成',ico:'✅',name:'做完了',color:'--green'}];
+    html+='<div class="rt-board">';
+    cols.forEach(function(col){
+      var items=ids.filter(function(x){return tasks[x].status===col.key;});
+      html+='<div class="rt-bcol"><div class="rt-bcol-h" style="color:var('+col.color+')">'+col.ico+' '+col.name+'<span class="rt-bcol-cnt">'+items.length+'</span></div>';
+      if(!items.length){ html+='<div class="rt-bempty">—</div>'; }
+      items.forEach(function(k){
+        var t=tasks[k]; var locked=!!t.lockedBy;
+        var asgName=t.assignee&&vols[t.assignee]?vols[t.assignee].name:'';
+        var c=rtCardCtrls(k,t,big);
+        html+='<div class="rt-bcard" style="border-left:3px solid '+(pc[t.priority]||'var(--text3)')+'">'
+          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-weight:700;font-family:monospace;font-size:'+(big?'13px':'11px')+';color:'+(pc[t.priority]||'var(--text3)')+'">'+t.priority+'</span><span style="font-size:'+f1+';font-weight:600;flex:1">'+t.title+'</span></div>'
+          +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)'+(c.btns?';margin-bottom:8px':'')+'">'+(asgName?'👤 '+asgName:k)+(locked?' · 🔒':'')+'</div>'
+          +(c.btns?'<div style="display:flex;gap:6px;flex-wrap:wrap">'+c.btns+'</div>':'')
+          +c.expand
+          +'</div>';
+      });
+      html+='</div>';
+    });
     html+='</div>';
+  } else {
+    // 清單
+    for(var i=0;i<ids.length;i++){
+      var k=ids[i], t=tasks[k]; var locked=!!t.lockedBy;
+      var asgName=t.assignee&&vols[t.assignee]?vols[t.assignee].name:'';
+      var c=rtCardCtrls(k,t,big);
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:'+(big?'14px':'10px')+';margin-bottom:8px;background:var(--bg2);border:1px solid '+(locked?'var(--amber-border)':'var(--border)')+';border-radius:var(--r-sm);flex-wrap:wrap">'
+        +'<span style="font-weight:700;font-family:monospace;color:'+(pc[t.priority]||'var(--text3)')+';font-size:'+(big?'14px':'12px')+'">'+t.priority+'</span>'
+        +'<div style="flex:1;min-width:120px"><div style="font-size:'+f1+';font-weight:600">'+t.title+'</div>'
+        +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)">'+k+' · '+t.created+(asgName?' · 指派：'+asgName:'')+(locked?' · 🔒 鎖定：'+t.lockedBy:'')+'</div></div>'
+        +'<span class="badge badge-'+(t.status==='進行中'?'blue':t.status==='已完成'?'green':'amber')+'">'+t.status+'</span>'
+        +c.btns
+        +(c.expand?'<div style="flex-basis:100%">'+c.expand+'</div>':'')
+        +'</div>';
+    }
   }
   html+='</div>';
   return html;
