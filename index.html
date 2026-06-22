@@ -386,6 +386,26 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 /* ── THREE SECTION WIDGETS ── */
 .dash-section{margin-bottom:0}
 .dash-section + .dash-section{margin-top:22px}
+/* DEV-TASKS WIDGET */
+.dt-row{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--bg2);transition:background .15s;margin-bottom:6px}
+.dt-row:hover{background:var(--bg3)}
+.dt-row.dt-done{opacity:.5}
+.dt-row.dt-done .dt-title{text-decoration:line-through;color:var(--text4)}
+.dt-pri{flex-shrink:0;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px}
+.dt-pri.hi{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.dt-pri.md{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.dt-pri.lo{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.dt-body{flex:1;min-width:0}
+.dt-title{font-size:12px;font-weight:500;color:var(--text);line-height:1.45;margin-bottom:3px}
+.dt-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dt-mod{font-size:10px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);border-radius:4px;padding:1px 6px;font-weight:600;font-family:monospace}
+.dt-ass{font-size:10px;color:var(--text3);font-family:'Noto Sans TC',sans-serif}
+.dt-actions{display:flex;gap:4px;flex-shrink:0;align-items:center}
+.dt-check{width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;margin-top:3px}
+.dt-add-form{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r-sm);padding:12px;margin-top:10px;display:none}
+.dt-add-form.show{display:block}
+.dt-form-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.dt-sel{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r-sm);padding:6px 8px;color:var(--text);font-family:'Noto Sans TC','Inter',sans-serif;font-size:11px;outline:none}
 .task-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;transition:box-shadow .15s}
 .task-card:hover{box-shadow:var(--shadow-md)}
 .task-card:last-child{margin-bottom:0}
@@ -904,6 +924,54 @@ textarea.iep-inp{resize:vertical;min-height:56px}
       </div>
     </div>
     <div id="w-tasks-content"></div>
+  </div>
+
+  <!-- ══ IT 待辦需求追蹤 ══ -->
+  <div id="w-devtasks" class="widget dash-section" style="margin-top:22px;position:relative">
+    <div class="widget-chrome"></div>
+    <div class="widget-label">IT待辦</div>
+    <div class="widget-toolbar">
+      <div class="wt-btn wt-drag">⠿</div>
+      <div class="wt-btn wt-hide" onclick="hideWidget('w-devtasks')">×</div>
+    </div>
+    <div class="section-header" style="background:linear-gradient(135deg,#FFF7ED,#FFFBF5);border:1px solid var(--amber-border);border-radius:var(--r);padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">🛠</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--amber)">IT 待辦需求追蹤</div>
+        <div style="font-size:11px;color:var(--text4);font-family:monospace">功能需求 · Bug 回報 · 可指派給 IT 人員</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+        <span id="dt-badge" style="font-size:11px;font-family:monospace;color:var(--text3)"></span>
+        <button class="btn btn-ghost btn-xs" style="border-color:var(--amber-border);color:var(--amber)" onclick="toggleDTForm()">＋ 新增需求</button>
+      </div>
+    </div>
+
+    <!-- 新增表單 -->
+    <div class="dt-add-form" id="dt-add-form">
+      <div class="dt-form-row">
+        <input class="inp" id="dt-inp-title" placeholder="需求說明 / Bug 描述" style="flex:1;min-width:180px;font-size:12px;padding:6px 10px">
+        <select class="dt-sel" id="dt-inp-mod">
+          <option value="">— 模組 —</option>
+          <option>dashboard</option><option>rtsync</option><option>reg</option><option>warehouse</option>
+          <option>case_mgt</option><option>care_rec</option><option>shelter_mgt</option><option>assets</option>
+          <option>sorting</option><option>vms</option><option>sheet_reg</option><option>drive</option>
+          <option>admin</option><option>permissions</option><option>arch7</option><option>intake</option>
+          <option>全系統</option>
+        </select>
+        <select class="dt-sel" id="dt-inp-pri">
+          <option value="hi">🔴 高</option>
+          <option value="md" selected>🟡 中</option>
+          <option value="lo">🟢 低</option>
+        </select>
+        <input class="inp" id="dt-inp-ass" placeholder="指派給（IT 姓名）" style="width:130px;font-size:12px;padding:6px 10px">
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-amber btn-xs" onclick="submitDTTask()" style="background:var(--amber);color:#fff;border-color:var(--amber)">✓ 新增</button>
+        <button class="btn btn-ghost btn-xs" onclick="toggleDTForm()">取消</button>
+      </div>
+    </div>
+
+    <div id="dt-list"></div>
   </div>
 
   <div class="footer" style="margin-top:20px"><span>合心 行政組系統 · 大埔地震（模擬演練）</span><span id="footer-phil" style="color:var(--text3);font-family:'Noto Sans TC',sans-serif"></span><span id="footer-mode">full · peacetime</span></div>
@@ -3280,6 +3348,20 @@ const DATA = {
     ]
   },
 };
+
+// ── IT 待辦需求預設資料（從 UI 測試審計結果初始化）──
+DATA.devTasks = [
+  {id:'dt1',  pri:'hi', mod:'dashboard', title:'儀表板 SOS 按鈕消失：需加「→ 前往緊急 tab」快捷鈕，呼叫 showPage(\'rtsync\') + setRTTab(\'emergency\')', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt2',  pri:'hi', mod:'全系統',    title:'NAV_CFG 缺少 story 頁：決定是否建立獨立故事線頁面（加入 NAV_CFG 並寫 renderStoryPage），或移除所有 showPage(\'story\') 呼叫', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt3',  pri:'md', mod:'arch7',     title:'arch_preview7.html：點擊節點後沒有 detail panel 出現（#node-detail selector 不存在，需確認實際 id）', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt4',  pri:'md', mod:'arch7',     title:'arch_preview7.html：codegen 區塊（#codegen）不存在，確認代碼產生功能是否已實作或補上 id', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt5',  pri:'md', mod:'sheet_reg', title:'sheet_reg / drive 頁面：GAS /exec 網址未設定，需在後台填入 Google Apps Script 部署 URL 才能啟用同步', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt6',  pri:'md', mod:'admin',     title:'admin 後台：Line OA 設定卡片疑似未渲染（renderLineCards() 未被正確呼叫或資料結構缺失）', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt7',  pri:'lo', mod:'dashboard', title:'情境選擇後無 badge 視覺回饋（.scenario-badge class 不存在），點了地震等按鈕後畫面沒有明顯當前狀態標示', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt8',  pri:'lo', mod:'intake',    title:'intake.html：「產生提交碼」按鈕綁定確認，確保 importCode() 成功後的 flash("匯入成功 ✓") 有正確觸發', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt9',  pri:'lo', mod:'vms',       title:'vms 頁面（志工管理與報告）：有框架但詳細功能未完整，確認哪些 tab 還是空殼', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt10', pri:'lo', mod:'assets',    title:'assets / sorting：部份 tab 動作按鈕點擊無反應，逐一確認哪些功能仍是佔位符', assignee:'', done:false, created:'2026-06-22'},
+];
 
 // ══════════════════════════════════════════════════════
 //  RENDER FUNCTIONS
@@ -6301,7 +6383,7 @@ function saveSimEdit(){
 
 
 // ── PERSIST DATA to localStorage ──
-var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','case_mgt','care_rec','shelter_mgt','registry'];
+var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','case_mgt','care_rec','shelter_mgt','registry','devTasks'];
 function saveData(){
   var payload = {};
   for(var i=0;i<DATA_KEYS.length;i++) payload[DATA_KEYS[i]] = DATA[DATA_KEYS[i]];
@@ -6685,6 +6767,77 @@ function wmsReset(){
   }
   saveWarModuleDefaults(); renderWarModuleSettings(); toast('↺ 已恢復系統預設');
 }
+// ── DEV TASKS (IT 待辦需求) ──────────────────────────────────
+function renderDevTasks(){
+  var list=document.getElementById('dt-list'); if(!list) return;
+  var tasks=DATA.devTasks||[];
+  var open=tasks.filter(function(t){return !t.done;}).length;
+  var badge=document.getElementById('dt-badge');
+  if(badge) badge.textContent=open+' 項待辦 / '+tasks.length+' 項總計';
+  if(!tasks.length){list.innerHTML='<div style="padding:16px;text-align:center;color:var(--text4);font-size:12px">目前沒有待辦需求</div>';return;}
+  var priLabel={hi:'高',md:'中',lo:'低'};
+  list.innerHTML=tasks.map(function(t){
+    return '<div class="dt-row'+(t.done?' dt-done':'')+'" id="dtr-'+t.id+'">'
+      +'<input type="checkbox" class="dt-check" '+(t.done?'checked':'')+' onchange="toggleDTDone(\''+t.id+'\')" title="標記完成">'
+      +'<div class="dt-pri '+t.pri+'">'+priLabel[t.pri]+'</div>'
+      +'<div class="dt-body">'
+        +'<div class="dt-title">'+escHtml(t.title)+'</div>'
+        +'<div class="dt-meta">'
+          +(t.mod?'<span class="dt-mod">'+escHtml(t.mod)+'</span>':'')
+          +'<input class="inp dt-ass-inp" value="'+escHtml(t.assignee||'')+'" placeholder="指派給 IT 人員…" '
+            +'style="width:130px;font-size:10px;padding:3px 7px;display:inline-block" '
+            +'onchange="assignDT(\''+t.id+'\',this.value)" onblur="assignDT(\''+t.id+'\',this.value)">'
+          +'<span style="font-size:10px;color:var(--text4);margin-left:auto">'+escHtml(t.created||'')+'</span>'
+        +'</div>'
+      +'</div>'
+      +'<div class="dt-actions">'
+        +'<div class="wt-btn wt-hide" style="font-size:11px" onclick="deleteDT(\''+t.id+'\')" title="刪除">×</div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toggleDTForm(){
+  var f=document.getElementById('dt-add-form');
+  f.classList.toggle('show');
+  if(f.classList.contains('show')) document.getElementById('dt-inp-title').focus();
+}
+function submitDTTask(){
+  var title=(document.getElementById('dt-inp-title').value||'').trim();
+  if(!title){toast('請填寫需求說明');return;}
+  var tasks=DATA.devTasks||[];
+  var now=new Date();
+  var d=now.getFullYear()+'-'+(now.getMonth()+1+'').padStart(2,'0')+'-'+(now.getDate()+'').padStart(2,'0');
+  tasks.push({
+    id:'dt'+(Date.now()),
+    pri:document.getElementById('dt-inp-pri').value||'md',
+    mod:document.getElementById('dt-inp-mod').value||'',
+    title:title,
+    assignee:document.getElementById('dt-inp-ass').value||'',
+    done:false,
+    created:d
+  });
+  DATA.devTasks=tasks;
+  saveData();
+  document.getElementById('dt-inp-title').value='';
+  document.getElementById('dt-inp-ass').value='';
+  toggleDTForm();
+  renderDevTasks();
+  toast('✓ 需求已新增');
+}
+function toggleDTDone(id){
+  var t=(DATA.devTasks||[]).find(function(x){return x.id===id;});
+  if(t){t.done=!t.done;saveData();renderDevTasks();}
+}
+function assignDT(id,val){
+  var t=(DATA.devTasks||[]).find(function(x){return x.id===id;});
+  if(t&&t.assignee!==val){t.assignee=val;saveData();}
+}
+function deleteDT(id){
+  DATA.devTasks=(DATA.devTasks||[]).filter(function(x){return x.id!==id;});
+  saveData();renderDevTasks();
+}
+
 function loadData(){
   loadNavOrder();
   var raw = localStorage.getItem('drms_data');
@@ -7069,6 +7222,7 @@ saveDisabledModules();
 initConfig();
 renderAll();
 renderModuleManager();
+renderDevTasks();
 showPage('dashboard');
 setScenario('quake');
 renderGmailRows();
