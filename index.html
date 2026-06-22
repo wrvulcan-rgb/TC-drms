@@ -2179,14 +2179,14 @@ function arch_fbBuildNodeOptions_inner(){
 }
 function fbT(){
   var p=document.getElementById('arch-fbPanel');p.classList.toggle('on');
-  if(p.classList.contains('on')&&!document.getElementById('arch-arch-fbNode').options.length)arch_fbBuildNodeOptions_inner();
+  if(p.classList.contains('on')&&!document.getElementById('arch-fbNode').options.length)arch_fbBuildNodeOptions_inner();
 }
 function fbFlash(m,err){var e=document.getElementById('arch-fbFlash');e.textContent=m;e.style.color=err?'var(--red)':'var(--green)';setTimeout(function(){e.textContent='';},3500);}
 function fbGenCode(){
   var nick=document.getElementById('arch-fbNick').value.trim();
   var text=document.getElementById('arch-fbText').value.trim();
   if(!text){fbFlash('請先填寫回饋內容',true);return;}
-  var obj={kind:'feedback',nick:nick||'匿名',node:document.getElementById('arch-arch-fbNode').value,
+  var obj={kind:'feedback',nick:nick||'匿名',node:document.getElementById('arch-fbNode').value,
     ftype:document.getElementById('arch-fbType').value,text:text,ts:Date.now()};
   _fbCode=fbEncode(obj);
   document.getElementById('arch-fbCode').textContent=_fbCode;
