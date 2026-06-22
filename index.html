@@ -126,6 +126,12 @@ body.nav-collapsed .main{margin-left:0}
 #page-arch_doc{padding:0!important;overflow:auto}
 .main.arch-fullbleed{padding:0!important}
 .page.act{display:block}
+.rt-wiz-tpl{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;background:var(--bg2);border:2px solid var(--border);border-radius:var(--r-sm);cursor:pointer;color:var(--text);transition:.12s;font-family:inherit}
+.rt-wiz-tpl:hover{border-color:var(--blue-border);background:var(--blue-bg)}
+.rt-wiz-tpl:active{transform:scale(.97)}
+.rt-wiz-prio{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;border-radius:var(--r-sm);cursor:pointer;transition:.12s;font-family:inherit;font-weight:700}
+.rt-wiz-prio:hover{filter:brightness(.97)}
+.rt-wiz-prio:active{transform:scale(.97)}
 @keyframes fin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .pg-hdr{margin-bottom:28px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .pg-title{font-size:21px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:-.3px;line-height:1.2}
@@ -2754,45 +2760,191 @@ function rtCheckFatigue(){
     }
   });
 }
+// ── 派工精靈 + 簡易大字模式 ──
+var RT_SIMPLE=(function(){try{return localStorage.getItem('drms_rt_simple')==='1';}catch(e){return false;}})();
+var RT_WIZ={open:false,step:1,tpl:null,tplLabel:'',prio:null};
+var RT_ASSIGN_FOR=null;
+var RT_TEMPLATES=[
+  {id:'meal', ico:'🍱',label:'送餐'},
+  {id:'water',ico:'💧',label:'送水'},
+  {id:'med',  ico:'🏥',label:'送醫'},
+  {id:'clean',ico:'🧹',label:'清理'},
+  {id:'move', ico:'🚚',label:'搬運'},
+  {id:'other',ico:'✏️',label:'其他'}
+];
+function toggleRTSimple(){ RT_SIMPLE=!RT_SIMPLE; try{localStorage.setItem('drms_rt_simple',RT_SIMPLE?'1':'0');}catch(e){} renderRTSync(); }
+function rtWizOpen(){ RT_WIZ={open:true,step:1,tpl:null,tplLabel:'',prio:null}; RT_ASSIGN_FOR=null; renderRTSync(); }
+function rtWizCancel(){ RT_WIZ.open=false; renderRTSync(); }
+function rtWizBack(s){ RT_WIZ.step=s; renderRTSync(); }
+function rtWizPickTpl(id,label){
+  RT_WIZ.tpl=id;
+  if(id==='other'){ RT_WIZ.step=1.5; } else { RT_WIZ.tplLabel=label; RT_WIZ.step=2; }
+  renderRTSync();
+}
+function rtWizConfirmOther(){
+  var el=document.getElementById('rt-wiz-other'); var v=el?(el.value||'').trim():'';
+  if(!v){ toast('⚠ 請先輸入任務內容'); return; }
+  RT_WIZ.tplLabel=sanitizeInput(v); RT_WIZ.step=2; renderRTSync();
+}
+function rtWizPickPrio(p){ RT_WIZ.prio=p; RT_WIZ.step=3; renderRTSync(); }
+function rtWizAssign(vid){
+  var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var id=RTDB.ref('tasks').push({title:RT_WIZ.tplLabel,priority:RT_WIZ.prio||'P2',status:'待派工',assignee:'',lockedBy:'',created:time});
+  if(vid){
+    var v=rtGet('volunteers/'+vid);
+    RTDB.ref('tasks/'+id).update({assignee:vid,status:'進行中'});
+    RTDB.ref('volunteers/'+vid).update({task:id,status:'任務中',workStart:String(Date.now())});
+    rtAudit('任務派發',id+' '+RT_WIZ.tplLabel+' → '+vid+' '+v.name);
+    logSys('ok','【派工精靈】'+RT_WIZ.tplLabel+' → '+v.name);
+    toast('✅ 已派給 '+v.name);
+  } else {
+    rtAudit('任務建立',id+' '+RT_WIZ.tplLabel+'（待派工）');
+    logSys('ok','【派工精靈】'+RT_WIZ.tplLabel+'（先放著待派）');
+    toast('✅ 任務已建立，待派工');
+  }
+  RT_WIZ.open=false; renderRTSync();
+}
+function rtPickAssign(k){ RT_ASSIGN_FOR=(RT_ASSIGN_FOR===k?null:k); renderRTSync(); }
+function rtDoAssign(k,vid){
+  var v=rtGet('volunteers/'+vid);
+  if(v.fatigue){ toast('⚠ '+v.name+' 疲勞中，無法派工'); return; }
+  var t=rtGet('tasks/'+k);
+  RTDB.ref('tasks/'+k).update({assignee:vid,status:'進行中'});
+  RTDB.ref('volunteers/'+vid).update({task:k,status:'任務中',workStart:String(Date.now())});
+  rtAudit('任務派發',k+' '+t.title+' → '+vid+' '+v.name);
+  logSys('ok','【即時任務】'+k+' 派工給 '+vid);
+  toast('✅ 已派給 '+v.name);
+  RT_ASSIGN_FOR=null; renderRTSync();
+}
+// 共用：列出「現在有空」的志工卡，onclickTpl 內以 VK 當作志工 id 佔位
+function rtPersonCards(onclickTpl,big){
+  var vols=rtGet('volunteers');
+  var avail=Object.keys(vols).filter(function(vk){return (vols[vk].status==='待命'||vols[vk].status==='已報到')&&!vols[vk].fatigue;});
+  if(!avail.length){ return '<div style="font-size:13px;color:var(--amber);padding:10px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:8px;margin-bottom:8px">目前沒有待命中的志工，可先放著等人</div>'; }
+  var h='';
+  avail.forEach(function(vk){
+    var v=vols[vk]; var skl=(v.skills||[]).join('/');
+    h+='<div style="display:flex;align-items:center;gap:12px;padding:'+(big?'13px':'9px')+';margin-bottom:8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm)">'
+      +'<div style="width:'+(big?'40px':'32px')+';height:'+(big?'40px':'32px')+';border-radius:50%;background:var(--green-bg);border:2px solid var(--green-border);display:flex;align-items:center;justify-content:center;font-size:'+(big?'18px':'15px')+';flex-shrink:0">🟢</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:'+(big?'16px':'13px')+';font-weight:700">'+v.name+'</div>'
+      +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)">'+(skl||'一般')+' · 待命中</div></div>'
+      +'<button class="btn btn-blue" style="flex-shrink:0;'+(big?'font-size:15px;padding:11px 20px':'')+'" onclick="'+onclickTpl.replace('VK',vk)+'">派他</button>'
+      +'</div>';
+  });
+  return h;
+}
+function rtWizHtml(){
+  var big=RT_SIMPLE, f1=big?'17px':'14px';
+  var html='<div class="card" style="margin-bottom:12px;border:2px solid var(--blue-border)">';
+  html+='<div style="display:flex;align-items:center;margin-bottom:14px">'
+    +'<div class="card-title" style="margin:0">⚡ 派新任務</div>'
+    +'<span style="margin-left:auto;font-size:11px;color:var(--text4)">第 '+Math.floor(RT_WIZ.step)+' / 3 步</span>'
+    +'<button class="btn btn-ghost btn-xs" style="margin-left:10px" onclick="rtWizCancel()">✕ 取消</button></div>';
+  if(RT_WIZ.step===1){
+    html+='<div style="font-size:'+f1+';font-weight:600;margin-bottom:12px">① 要做什麼？</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">';
+    RT_TEMPLATES.forEach(function(tp){
+      html+='<button class="rt-wiz-tpl" onclick="rtWizPickTpl(\''+tp.id+'\',\''+tp.label+'\')">'
+        +'<div style="font-size:'+(big?'36px':'28px')+'">'+tp.ico+'</div>'
+        +'<div style="font-size:'+f1+';font-weight:600;margin-top:4px">'+tp.label+'</div></button>';
+    });
+    html+='</div>';
+  } else if(RT_WIZ.step===1.5){
+    html+='<div style="font-size:'+f1+';font-weight:600;margin-bottom:12px">① 要做什麼？（自己打）</div>';
+    html+='<input class="inp" id="rt-wiz-other" placeholder="例：協助長者撤離" style="margin-bottom:12px'+(big?';font-size:16px;padding:12px':'')+'">';
+    html+='<div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="rtWizBack(1)">← 返回</button>'
+      +'<button class="btn btn-blue" onclick="rtWizConfirmOther()">下一步 →</button></div>';
+  } else if(RT_WIZ.step===2){
+    html+='<div style="font-size:'+f1+';font-weight:600;margin-bottom:12px">②「'+RT_WIZ.tplLabel+'」有多急？</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">';
+    [['P1','🔴','現在就要','--red'],['P2','🟡','今天','--amber'],['P3','🟢','不急','--green']].forEach(function(p){
+      html+='<button class="rt-wiz-prio" style="background:var('+p[3]+'-bg);border:2px solid var('+p[3]+'-border);color:var('+p[3]+')" onclick="rtWizPickPrio(\''+p[0]+'\')">'
+        +'<div style="font-size:'+(big?'32px':'24px')+'">'+p[1]+'</div>'
+        +'<div style="font-size:'+f1+';font-weight:700;margin-top:4px">'+p[2]+'</div></button>';
+    });
+    html+='</div>';
+    html+='<button class="btn btn-ghost btn-xs" style="margin-top:12px" onclick="rtWizBack(1)">← 返回</button>';
+  } else if(RT_WIZ.step===3){
+    html+='<div style="font-size:'+f1+';font-weight:600;margin-bottom:4px">③「'+RT_WIZ.tplLabel+'」派給誰？</div>';
+    html+='<div style="font-size:11px;color:var(--text4);margin-bottom:12px">只列現在有空的人</div>';
+    html+=rtPersonCards("rtWizAssign('VK')",big);
+    html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:4px'+(big?';font-size:15px;padding:12px':'')+'" onclick="rtWizAssign(\'\')">先放著，等一下再派</button>';
+    html+='<button class="btn btn-ghost btn-xs" style="margin-top:10px" onclick="rtWizBack(2)">← 返回</button>';
+  }
+  html+='</div>';
+  return html;
+}
 function renderRTTasks(){
   var tasks=rtGet('tasks'), vols=rtGet('volunteers');
   var ids=Object.keys(tasks).sort(function(a,b){ if(tasks[a].forced&&!tasks[b].forced) return -1; if(!tasks[a].forced&&tasks[b].forced) return 1; return (tasks[a].priority||'P9').localeCompare(tasks[b].priority||'P9'); });
-  var html='<div class="card" style="margin-bottom:12px"><div class="card-title">➕ 插入新任務（插隊）</div>'
-    +'<div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">'
-    +'<div style="flex:2;min-width:160px"><div class="iep-lbl">任務內容</div><input class="inp" id="rt-tk-title" placeholder="例：緊急醫療物資轉運"></div>'
-    +'<div><div class="iep-lbl">優先級</div><select class="inp" id="rt-tk-prio"><option>P1</option><option>P2</option><option>P3</option></select></div>'
-    +'<button class="btn btn-red" onclick="rtInsertTask()">⚡ 插隊建立</button>'
-    +'</div></div>';
+  var big=RT_SIMPLE;
+  var html='';
+  // 工具列：派新任務 + 簡易大字模式開關
+  html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">';
+  if(!RT_WIZ.open){
+    html+='<button class="btn btn-red" onclick="rtWizOpen()" style="'+(big?'font-size:17px;padding:13px 24px':'font-size:13px')+'">⚡ 派新任務</button>';
+  }
+  html+='<label style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none" onclick="toggleRTSimple()">'
+    +'<span style="font-weight:600">簡易大字模式</span>'
+    +'<span style="display:inline-block;width:46px;height:26px;border-radius:13px;background:'+(big?'var(--green)':'var(--border3)')+';position:relative;transition:.2s">'
+    +'<span style="position:absolute;top:3px;left:'+(big?'23px':'3px')+';width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span></span></label>';
+  html+='</div>';
+  // 精靈
+  if(RT_WIZ.open){ html+=rtWizHtml(); }
+  // 進階手動插隊（僅非簡易、非精靈時顯示）
+  if(!big && !RT_WIZ.open){
+    html+='<div class="card" style="margin-bottom:12px"><div class="card-title">➕ 進階：手動插隊建立</div>'
+      +'<div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">'
+      +'<div style="flex:2;min-width:160px"><div class="iep-lbl">任務內容</div><input class="inp" id="rt-tk-title" placeholder="例：緊急醫療物資轉運"></div>'
+      +'<div><div class="iep-lbl">優先級</div><select class="inp" id="rt-tk-prio"><option>P1</option><option>P2</option><option>P3</option></select></div>'
+      +'<button class="btn btn-red" onclick="rtInsertTask()">⚡ 插隊建立</button>'
+      +'</div></div>';
+  }
+  // 任務池
+  var f1=big?'15px':'12px';
   html+='<div class="card"><div class="card-title">任務池（依優先級排序 · 即時同步）</div>';
   var pc={P1:'var(--red)',P2:'var(--amber)',P3:'var(--green)'};
+  if(!ids.length){ html+='<div style="font-size:13px;color:var(--text4);text-align:center;padding:18px 0">目前沒有任務，按上面的「⚡ 派新任務」開始</div>'; }
   for(var i=0;i<ids.length;i++){
     var k=ids[i], t=tasks[k];
     var locked=!!t.lockedBy;
     var asgName=t.assignee&&vols[t.assignee]?vols[t.assignee].name:'';
-    html+='<div style="display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:8px;background:var(--bg2);border:1px solid '+(locked?'var(--amber-border)':'var(--border)')+';border-radius:var(--r-sm)">'
-      +'<span style="font-weight:700;font-family:monospace;color:'+(pc[t.priority]||'var(--text3)')+';font-size:12px">'+t.priority+'</span>'
-      +'<div style="flex:1"><div style="font-size:12px;font-weight:600">'+t.title+'</div>'
-      +'<div style="font-size:10px;color:var(--text4)">'+k+' · '+t.created+(asgName?' · 指派：'+asgName:'')+(locked?' · 🔒 鎖定：'+t.lockedBy:'')+'</div></div>'
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:'+(big?'14px':'10px')+';margin-bottom:8px;background:var(--bg2);border:1px solid '+(locked?'var(--amber-border)':'var(--border)')+';border-radius:var(--r-sm);flex-wrap:wrap">'
+      +'<span style="font-weight:700;font-family:monospace;color:'+(pc[t.priority]||'var(--text3)')+';font-size:'+(big?'14px':'12px')+'">'+t.priority+'</span>'
+      +'<div style="flex:1;min-width:120px"><div style="font-size:'+f1+';font-weight:600">'+t.title+'</div>'
+      +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)">'+k+' · '+t.created+(asgName?' · 指派：'+asgName:'')+(locked?' · 🔒 鎖定：'+t.lockedBy:'')+'</div></div>'
       +'<span class="badge badge-'+(t.status==='進行中'?'blue':t.status==='已完成'?'green':'amber')+'">'+t.status+'</span>';
-    if(t.status==='待派工'){
-      var avail=Object.keys(vols).filter(function(vk){return (vols[vk].status==='待命'||vols[vk].status==='已報到')&&!vols[vk].fatigue;});
-      html+='<select class="inp" style="width:auto;font-size:11px;padding:4px 6px" id="rt-asg-'+k+'"><option value="">指派給…</option>'
-        +avail.map(function(vk){var skl=(vols[vk].skills||[]).join('/');return '<option value="'+vk+'">'+vols[vk].name+(skl?'（'+skl+'）':'')+'</option>';}).join('')
-        +'</select>'
-        +'<button class="btn btn-blue btn-xs" onclick="rtAssignTask(\''+k+'\')">派工</button>';
-    }
-    if(!t.forced&&t.status!=='已完成'){
-      html+='<button class="btn btn-red btn-xs" onclick="rtForceTop(\''+k+'\')" title="強制置頂最高優先">⬆ 置頂</button>';
-    }
-    if(t.status==='進行中'){
-      html+='<button class="btn btn-amber btn-xs" onclick="rtBlockedRelease(\''+k+'\')" title="斷橋/受阻回報，釋放任務">🌉 受阻釋放</button>';
-    }
-    if(locked){
-      html+='<button class="btn btn-ghost btn-xs" onclick="rtForceRelease(\''+k+'\')">🔓 解鎖</button>';
-    } else if(t.status==='已完成'){
-      html+='<button class="btn btn-ghost btn-xs" onclick="rtReopenTask(\''+k+'\')" title="改回進行中">↺ 重啟</button>';
-    } else if(t.status!=='待派工'){
-      html+='<button class="btn btn-ghost btn-xs" onclick="rtLockTask(\''+k+'\')">🔒 鎖定</button>';
+    if(big){
+      // 簡易模式：每張卡最多兩顆大按鈕
+      if(t.status==='待派工'){ html+='<button class="btn btn-blue" style="font-size:15px;padding:11px 20px" onclick="rtPickAssign(\''+k+'\')">'+(RT_ASSIGN_FOR===k?'✕ 收起':'👤 派人')+'</button>'; }
+      else if(t.status==='進行中'){ html+='<button class="btn btn-green" style="font-size:15px;padding:11px 20px" onclick="rtReport(\''+k+'\',\'已完成\')">✅ 完成</button>'; }
+      if(RT_ASSIGN_FOR===k && t.status==='待派工'){
+        html+='<div style="flex-basis:100%;margin-top:6px;padding:10px;background:var(--bg3);border-radius:8px">'
+          +'<div style="font-size:13px;color:var(--text3);margin-bottom:8px">點一下要派的人：</div>'
+          +rtPersonCards("rtDoAssign('"+k+"','VK')",big)+'</div>';
+      }
+    } else {
+      // 進階模式：保留完整操作（與原本相同）
+      if(t.status==='待派工'){
+        var avail=Object.keys(vols).filter(function(vk){return (vols[vk].status==='待命'||vols[vk].status==='已報到')&&!vols[vk].fatigue;});
+        html+='<select class="inp" style="width:auto;font-size:11px;padding:4px 6px" id="rt-asg-'+k+'"><option value="">指派給…</option>'
+          +avail.map(function(vk){var skl=(vols[vk].skills||[]).join('/');return '<option value="'+vk+'">'+vols[vk].name+(skl?'（'+skl+'）':'')+'</option>';}).join('')
+          +'</select>'
+          +'<button class="btn btn-blue btn-xs" onclick="rtAssignTask(\''+k+'\')">派工</button>';
+      }
+      if(!t.forced&&t.status!=='已完成'){
+        html+='<button class="btn btn-red btn-xs" onclick="rtForceTop(\''+k+'\')" title="強制置頂最高優先">⬆ 置頂</button>';
+      }
+      if(t.status==='進行中'){
+        html+='<button class="btn btn-amber btn-xs" onclick="rtBlockedRelease(\''+k+'\')" title="斷橋/受阻回報，釋放任務">🌉 受阻釋放</button>';
+      }
+      if(locked){
+        html+='<button class="btn btn-ghost btn-xs" onclick="rtForceRelease(\''+k+'\')">🔓 解鎖</button>';
+      } else if(t.status==='已完成'){
+        html+='<button class="btn btn-ghost btn-xs" onclick="rtReopenTask(\''+k+'\')" title="改回進行中">↺ 重啟</button>';
+      } else if(t.status!=='待派工'){
+        html+='<button class="btn btn-ghost btn-xs" onclick="rtLockTask(\''+k+'\')">🔒 鎖定</button>';
+      }
     }
     html+='</div>';
   }
