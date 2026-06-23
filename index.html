@@ -2512,11 +2512,31 @@ function switchLOATab(tab,btn){
 }
 function renderLOATab(tab){
   var el=document.getElementById('loa-body'); if(!el) return;
-  if(tab==='push')     el.innerHTML=renderLOAPush();
-  else if(tab==='checkin')  el.innerHTML=renderLOACheckin();
-  else if(tab==='rollcall') el.innerHTML=renderLOARollcall();
-  else if(tab==='task')     el.innerHTML=renderLOATask();
-  else if(tab==='supply')   el.innerHTML=renderLOASupply();
+  var bar=renderLOASituationBar();
+  var body='';
+  if(tab==='push')     body=renderLOAPush();
+  else if(tab==='checkin')  body=renderLOACheckin();
+  else if(tab==='rollcall') body=renderLOARollcall();
+  else if(tab==='task')     body=renderLOATask();
+  else if(tab==='supply')   body=renderLOASupply();
+  el.innerHTML=bar+body;
+}
+function renderLOASituationBar(){
+  var tasks=rtGet('tasks')||{};
+  var vols=rtGet('volunteers')||{};
+  var sosQ=rtGet('sosQueue')||{};
+  var activeTasks=Object.keys(tasks).filter(function(k){return tasks[k].status!=='已完成';}).length;
+  var activeSOS=Object.keys(sosQ).filter(function(k){return !sosQ[k].resolved;}).length;
+  var fatigued=Object.keys(vols).filter(function(k){return vols[k].fatigue;}).length;
+  var lowStock=(DATA.field&&DATA.field.supplies)?DATA.field.supplies.filter(function(s){return s.status==='red';}).length:0;
+  var items=[];
+  if(activeSOS)   items.push('<span style="color:var(--red);font-weight:800">🆘 SOS ×'+activeSOS+'</span>');
+  if(activeTasks) items.push('<span style="color:var(--blue)">🎯 任務 ×'+activeTasks+'</span>');
+  if(fatigued)    items.push('<span style="color:var(--amber)">😴 疲勞 ×'+fatigued+'</span>');
+  if(lowStock)    items.push('<span style="color:var(--red)">📦 低庫存 ×'+lowStock+'</span>');
+  if(!items.length) return '';
+  return '<div style="background:var(--bg3);border:1px solid '+(activeSOS?'var(--red-border)':'var(--border)')+';border-radius:var(--r-sm);padding:7px 10px;margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:11px">'
+    +items.join('<span style="color:var(--border3);margin:0 2px">·</span>')+'</div>';
 }
 function renderLOAPush(){
   return '<div class="iep-lbl" style="margin-top:0">推播目標</div>'
@@ -2554,8 +2574,51 @@ function renderLOACheckin(){
     +(DATA.registry.gasUrl||'⚠ 請先在後台設定 → 對外 GAS URL')+'?email=<志工信箱>'
     +'</div>';
   html+='<button class="btn btn-blue" style="width:100%;justify-content:center;font-size:12px;margin-top:10px" onclick="loaPushCheckinQR()">📲 推播 QR 至志工 Line</button>';
-  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'vol_hub\');setVolHubTab(\'checkin\')">↗ 前往報名管理頁</button>';
+  html+='<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">';
+  html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px;color:var(--text2)">🖊 人工報到（無 QR 存取者）</div>';
+  html+='<div style="display:flex;gap:6px">'
+    +'<input id="loa-manual-ci-q" class="inp" placeholder="姓名 或 編號搜尋..." style="flex:1;font-size:12px" oninput="loaManualCheckinSearch(this.value)" onkeydown="if(event.key===\'Enter\')loaManualCheckinSearch(this.value)">'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaManualCheckinSearch(document.getElementById(\'loa-manual-ci-q\').value)">🔍</button>'
+    +'</div>';
+  html+='<div id="loa-manual-ci-results" style="margin-top:6px;max-height:140px;overflow-y:auto"></div>';
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'vol_hub\');setVolHubTab(\'checkin\')">↗ 前往報名管理頁</button>';
   return html;
+}
+function loaManualCheckinSearch(q){
+  var el=document.getElementById('loa-manual-ci-results'); if(!el) return;
+  q=(q||'').trim();
+  if(!q){ el.innerHTML=''; return; }
+  var all=[];
+  (DATA.registry.innerMembers||[]).forEach(function(m,i){all.push({src:'inner',idx:i,name:m.name,code:m.code||'',checkin:m.checkin});});
+  (DATA.registry.volunteers||[]).forEach(function(v,i){all.push({src:'outer',idx:i,name:v.name,code:v.code||'',checkin:v.checkin});});
+  var ql=q.toLowerCase();
+  var hits=all.filter(function(x){return x.name.toLowerCase().indexOf(ql)>-1||x.code.toLowerCase().indexOf(ql)>-1;}).slice(0,8);
+  if(!hits.length){ el.innerHTML='<div style="font-size:11px;color:var(--text4);padding:6px 0">查無符合成員</div>'; return; }
+  el.innerHTML=hits.map(function(x){
+    var label=x.src==='inner'?'慈誠':'社區';
+    var labelColor=x.src==='inner'?'badge-blue':'badge-green';
+    var alreadyIn=x.checkin;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:5px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:4px">'
+      +'<span class="badge '+labelColor+'" style="font-size:9px;flex-shrink:0">'+label+'</span>'
+      +'<div style="flex:1;font-size:11px"><b>'+esc(x.name)+'</b>'+(x.code?' <span style="color:var(--text4);font-size:10px">'+esc(x.code)+'</span>':'')+'</div>'
+      +(alreadyIn
+        ?'<span style="font-size:10px;color:var(--green)">✓ 已報到</span>'
+        :'<button class="btn btn-green btn-xs" onclick="loaManualCheckin(\''+x.src+'\','+x.idx+')">✓ 報到</button>')
+      +'</div>';
+  }).join('');
+}
+function loaManualCheckin(src,idx){
+  var list=src==='inner'?DATA.registry.innerMembers:DATA.registry.volunteers;
+  var m=list[idx]; if(!m||m.checkin) return;
+  m.checkin=true;
+  try{saveData();}catch(e){}
+  rtAudit('人工報到','LOA 人工報到：'+m.name+' ('+src+')');
+  loaLog('🖊 人工報到：'+m.name+' ['+src+'] ✓');
+  toast('✅ '+m.name+' 報到完成');
+  // re-render checkin tab to refresh counts
+  renderLOATab('checkin');
+  // clear search box
+  var q=document.getElementById('loa-manual-ci-q'); if(q) q.value='';
 }
 function renderLOARollcall(){
   var s=SAFETY.sent, sf=SAFETY.safe, so=SAFETY.sos;
@@ -2573,22 +2636,48 @@ function renderLOARollcall(){
   return html;
 }
 function renderLOATask(){
-  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">現有任務卡（點推播給組長）</div>';
-  var items=DATA.tasks.items;
-  for(var i=0;i<items.length;i++){
-    var tk=items[i];
-    var sc=tk.status==='done'?'var(--green)':tk.status==='active'?'var(--blue)':'var(--amber)';
-    html+='<div style="display:flex;align-items:center;gap:8px;padding:8px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm)">'
-      +'<span style="font-size:15px">'+tk.icon+'</span>'
-      +'<div style="flex:1;min-width:0;overflow:hidden">'
-      +'<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tk.id+' '+tk.title+'</div>'
-      +'<div style="font-size:10px;color:var(--text4)">'+tk.assign+' · '+tk.endTime+' · <span style="color:'+sc+'">'+(tk.status==='done'?'完成':tk.status==='active'?'進行':'待處理')+'</span></div>'
-      +'</div>'
-      +(tk.status!=='done'?'<button class="btn btn-blue btn-xs" onclick="loaPushTask('+i+')">📲</button>':'<span style="color:var(--green);font-size:11px">✓</span>')
-      +'</div>';
+  var tasks=rtGet('tasks')||{};
+  var vols=rtGet('volunteers')||{};
+  var ids=Object.keys(tasks).sort(function(a,b){
+    return (tasks[a].priority||'P9').localeCompare(tasks[b].priority||'P9');
+  });
+  var open=ids.filter(function(k){return tasks[k].status!=='已完成';});
+  var done=ids.filter(function(k){return tasks[k].status==='已完成';});
+  var pColor={'P1':'var(--red)','P2':'var(--amber)','P3':'var(--green)'};
+  var sBadge={'待派工':'badge-amber','進行中':'badge-blue','已完成':'badge-green'};
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">即時任務池（進行中 '+open.length+'、完成 '+done.length+'）</div>';
+  if(!open.length){
+    html+='<div style="font-size:11px;color:var(--text4);text-align:center;padding:14px 0">無進行中任務</div>';
+  } else {
+    open.forEach(function(k){
+      var t=tasks[k];
+      var asgName=t.assignee&&vols[t.assignee]?vols[t.assignee].name:'待指派';
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:8px;margin-bottom:5px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);border-left:3px solid '+(pColor[t.priority]||'var(--border)')+'">'
+        +'<span style="font-weight:700;color:'+(pColor[t.priority]||'var(--text3)')+';font-family:monospace;font-size:10px;width:22px;flex-shrink:0">'+t.priority+'</span>'
+        +'<div style="flex:1;min-width:0;overflow:hidden">'
+        +'<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(t.title)+'</div>'
+        +'<div style="font-size:10px;color:var(--text4)">'+esc(asgName)+' <span class="badge '+(sBadge[t.status]||'badge-amber')+'" style="font-size:9px">'+esc(t.status)+'</span></div>'
+        +'</div>'
+        +'<button class="btn btn-blue btn-xs" onclick="loaPushRtTask(\''+k+'\')" title="推播給指派人">📲</button>'
+        +'</div>';
+    });
   }
-  html+='<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'vol_hub\');setVolHubTab(\'manage\')">+ 任務管理</button>';
+  html+='<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'rtsync\');setRTTab(\'tasks\')">↗ 即時調度中台</button>';
   return html;
+}
+function loaPushRtTask(k){
+  var t=rtGet('tasks/'+k); if(!t) return;
+  var vols=rtGet('volunteers')||{};
+  if(t.assignee&&vols[t.assignee]){
+    loaSendTask(t.assignee, t.title, '');
+    loaLog('任務推播 → '+vols[t.assignee].name+' ['+k+']'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+    toast('📲 任務 '+k+' 已推播給 '+vols[t.assignee].name);
+  } else {
+    if(!checkGASReady('廣播未指派任務')) return;
+    gasPost({action:'broadcast',message:'📌 任務 ['+k+'] 需要志工承接：'+t.title,role:role},function(){});
+    loaLog('廣播未指派任務 ['+k+'] → 全體待命志工');
+    toast('📲 任務廣播已送出');
+  }
 }
 function renderLOASupply(){
   var pend=DATA.warehouse.reqs.filter(function(r){return r.status==='待派案';});
@@ -2656,11 +2745,19 @@ function loaSendBroadcast(){
   var t=tgt?tgt.value:'全部志工';
   var m=msg?(msg.value.trim()):'';
   if(!m){toast('⚠ 請輸入推播內容');return;}
-  checkGASReady('Line 群發推播');
-  loaLog('Broadcast → '+t+'：'+m.substring(0,25)+(m.length>25?'…':'')+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
-  logSys(DATA.registry.innerGasUrl?'ok':'warn','【LOA 推播】'+t+'：'+m.substring(0,40)+(DATA.registry.innerGasUrl?'':' ⚠ GAS URL 未設定，未真實發送'));
-  toast(DATA.registry.innerGasUrl?'📤 推播已發送至 '+t:'⚠ 推播模擬完成（未真實發送）');
-  if(msg) msg.value='';
+  if(!checkGASReady('Line 群發推播')) return; // GAS 未設定 → modal 已彈出，不繼續
+  gasPost({action:'broadcast',target:t,message:m,role:role,time:new Date().toLocaleTimeString('zh-TW')},function(r,err){
+    if(!err){
+      loaLog('Broadcast ✓ → '+t+'：'+m.substring(0,25)+(m.length>25?'…':''));
+      logSys('ok','【LOA 推播】'+t+'：'+m.substring(0,40));
+      rtAudit('LOA 推播',t+'：'+m.substring(0,40));
+      toast('📤 推播已發送至 '+t);
+      if(msg) msg.value='';
+    } else {
+      logSys('err','【LOA 推播失敗】'+err);
+      toast('❌ 推播失敗：'+err);
+    }
+  });
 }
 function loaPushCheckinQR(){
   checkGASReady('報到 QR 推播');
@@ -2699,9 +2796,20 @@ function loaDispatch(i){
 function triggerSOS(who,detail){
   var t=new Date().toLocaleTimeString('zh-TW');
   RTDB.ref('sos').set({active:true,who:who||'前線志工',detail:detail||'緊急求救',time:t});
-  // 同時推入持久看板佇列
   RTDB.ref('sosQueue').push({who:who||'前線志工',detail:detail||'緊急求救',time:t,resolved:false});
   rtAudit('SOS求救',(who||'前線')+'：'+(detail||'緊急求救'));
+  // Line OA 推播 tab 自動填入緊急內容
+  var panel=document.getElementById('line-oa-panel');
+  if(panel&&panel.style.display!=='none'){
+    switchLOATab('push',document.querySelector('.loa-tab'));
+    setTimeout(function(){
+      var el=document.getElementById('loa-bc-msg');
+      if(el) el.value='🆘 緊急 SOS：'+(who||'前線志工')+'回報「'+(detail||'緊急求救')+'」，請全員注意安全並即時回報位置（'+t+'）';
+      var tg=document.getElementById('loa-bc-target');
+      if(tg) tg.value=tg.options[0]&&tg.options[0].value||tg.options[0].text||'📢 全部志工（142人）';
+    },50);
+  }
+  loaLog('🆘 SOS 已進持久看板：'+(who||'前線')+'·'+(detail||'緊急求救'));
   renderRTSync();
 }
 function showSOSOverlay(data){
@@ -3353,6 +3461,7 @@ function rtReport(k,result){
     }
     logSys('ok','✅ 任務完成：'+who+' 完成「'+t.title+'」，志工釋回待命');
     toast('✅ 任務完成：'+who+' — 已釋回待命');
+    loaLog('✅ [任務完成] '+who+' 完成「'+t.title+'」('+time+') — 志工已釋回待命');
   } else {
     logSys('info','【回報】'+who+' · '+t.title+' → '+result);
     toast('💬 回報已同步：'+result);
