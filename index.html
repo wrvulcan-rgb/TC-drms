@@ -1509,8 +1509,8 @@ background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans TC',-apple
   width:100%;aspect-ratio:16/11;min-height:600px;overflow:hidden;touch-action:none}
 
 /* 場域：半透明背景色塊，非牢籠 */
-#arch-root .zone{position:absolute;border-radius:24px;pointer-events:none;z-index:0;transition:opacity .3s}
-#arch-root .zone-lbl{position:absolute;top:11px;left:18px;font-size:10px;text-transform:uppercase;font-weight:800;letter-spacing:.1em;opacity:.85}
+#arch-root .zone{position:absolute;border-radius:6px;pointer-events:none;z-index:0;transition:opacity .3s}
+#arch-root .zone-lbl{position:absolute;top:50%;left:14px;transform:translateY(-50%);font-size:10px;text-transform:uppercase;font-weight:800;letter-spacing:.1em;opacity:.7}
 #arch-root .zone.tzu{background:var(--z-tzu)} .zone.tzu .zone-lbl{color:var(--purple)}
 #arch-root .zone.vol{background:var(--z-vol)} .zone.vol .zone-lbl{color:var(--green)}
 #arch-root .zone.ppl{background:var(--z-ppl)} .zone.ppl .zone-lbl{color:var(--blue)}
@@ -1762,65 +1762,62 @@ background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans TC',-apple
 var root=document.getElementById('arch-root');
 // ── 場域（背景色塊，非框）──
 var ZONES=[
-  {cls:'tzu', lbl:'慈濟基金會 · 指揮', x:2,  y:8,  w:44, h:84},
-  {cls:'vol', lbl:'志工端 · 前線',     x:54, y:4,  w:44, h:42},
-  {cls:'ppl', lbl:'鄉親端 · 受助',     x:54, y:48, w:30, h:30},
-  {cls:'gov', lbl:'政府',             x:88, y:50, w:10, h:26},
-  {cls:'back',lbl:'後端服務層',         x:30, y:82, w:44, h:15}
+  {cls:'tzu',  lbl:'① 啟動觸發', x:0, y:1,  w:100, h:14},
+  {cls:'vol',  lbl:'② 指揮決策', x:0, y:16, w:100, h:14},
+  {cls:'back', lbl:'③ 調度中台', x:0, y:31, w:100, h:24},
+  {cls:'ppl',  lbl:'④ 執行分線', x:0, y:56, w:100, h:19},
+  {cls:'gov',  lbl:'⑤ 後端存檔', x:0, y:76, w:100, h:23},
 ];
 
 // ── 節點：rtsync 鎖中央(50,50)，放射環繞 ──
 var NODES=[
   // 上方=發起/啟動（時間軸上緣）
-  {id:'drill',    nm:'平時演練', ico:'\uD83C\uDFAF', x:14, y:14, status:'live', kind:'trigger', trigger:true,
+  {id:'drill',    nm:'平時演練', ico:'\uD83C\uDFAF', x:10, y:8, status:'live', kind:'trigger', trigger:true,
     script:'救災能力不是天生的，是練出來的。我設計這個模組的出發點很簡單：如果只有真實災害才能操作系統，那志工第一次用就是最緊張的時候，這不合理。平時演練讓整個系統在沒有壓力的情境下被完整走過一遍，幹部熟悉派工流程、志工熟悉報到步驟、後勤熟悉物資調度。它的用處是：定期載入不同災型劇本，讓每一個角色都知道自己在真實災害中該做什麼。未來會加入自動排程，讓演練成為常態，而不是臨時想起來才做。',
     desc:'平時模式啟動源。排程或手動發起演練，載入情境劇本，進入儀表板平時模式。'},
-  {id:'activate', nm:'戰時啟動', ico:'\uD83D\uDEA8', x:30, y:9,  status:'live', kind:'trigger', trigger:true,
+  {id:'activate', nm:'戰時啟動', ico:'\uD83D\uDEA8', x:35, y:8,  status:'live', kind:'trigger', trigger:true,
     script:'我把戰時啟動設計為「現場發動，不等上面」。傳統模式是等待指揮部下令，但災害現場的狀況往往是第一線志工先知道。讓當區志工能在手機上觸發啟動，系統就立刻切換到戰時模式、依災害類型自動開關對應模組，省去手動設定的時間。這背後的理念是：反應速度本身就是救援能力，每一分鐘都可能影響一個家庭能不能得到幫助。未來計劃加入 LINE 推播通知，讓整個指揮鏈在觸發的同一時間就都知道。',
     desc:'戰時模式啟動源。當區志工觸發，系統切戰時，依災型/受災等級動態開關模組，進入儀表板。'},
-  {id:'dashboard',nm:'總控儀表板', ico:'\uD83D\uDCCA', x:34, y:24, status:'live', kind:'core',
+  {id:'dashboard',nm:'總控儀表板', ico:'\uD83D\uDCCA', x:35, y:22, status:'live', kind:'core',
     script:'設計這個儀表板的核心想法是：高層不應該靠人回報才知道現場狀況。在傳統救災模式裡，指揮官需要打電話、問現場、等資料彙整，這個過程本身就是延誤。總控儀表板讓受災戶數、撤離人數、志工到位率、物資完成率在同一個畫面即時呈現，平時演練和戰時啟動都從這裡進入。它的用處不只是「看數字」，更是讓幹部在正確的資訊下做決策——支援哪裡、加派哪裡、哪條線卡住了。可編輯版面讓不同單位依自己需要調整看板，AI 戰術分析模組（規劃中）未來會在這裡提供調度建議。',
     desc:'高層/總控專用。系統起點：平時演練與戰時啟動兩條線都回到此。KPI、情境模擬(10災型)、戰時派遣、可編輯版面、AI 戰術分析。'},
 
   // 左=慈濟指揮
-  {id:'staff',    nm:'幹部/高層', ico:'\uD83D\uDC54', x:13, y:32, status:'live', kind:'actor',
+  {id:'staff',    nm:'幹部/高層', ico:'\uD83D\uDC54', x:10, y:22, status:'live', kind:'actor',
     script:'指揮端設計的基本原則是「角色決定視野」。同樣的系統，幹部看到的模組、能執行的操作，和高層、總控不同。這樣設計是因為資訊過多反而造成干擾——高層需要的是全局 KPI，現場幹部需要的是任務細節，讓他們看到同一個畫面只會互相打架。這個角色分層也是資安的基礎：不同角色的操作邊界清楚，就能防止誤操作或越權。目前角色判斷在前端執行，計劃移到後端驗證以提升安全性。',
     desc:'慈濟指揮端(Web 後台)。幹部、總控、高層，依角色不同權限與可見模組。'},
-  {id:'monitor',  nm:'全域監控', ico:'\uD83D\uDDA5\uFE0F', x:11, y:54, status:'live', kind:'core',
+  {id:'monitor',  nm:'全域監控', ico:'\uD83D\uDDA5\uFE0F', x:58, y:22, status:'live', kind:'core',
     script:'全域監控是「只看不碰」的設計。我把它獨立出來，是因為在指揮中心裡，投影在大屏上的畫面不能是會被人亂按的操作介面。它彙整情資、前線需求、即時影像、外部連線狀態，專門為簡報、對外說明、和高層決策設計。它從調度中台唯讀拉取資料，不回寫，確保現場操作不受干擾。目前考慮將它與總控儀表板的「簡報模式」整合，讓一個系統切換模式，而非維護兩個介面。',
     desc:'高層唯讀決策視圖：情資彙整、前線需求、即時影像、外部連線狀態。不涉操作。'},
-  {id:'reg',      nm:'報名報到', ico:'\uD83D\uDCCB', x:14, y:73, status:'live', kind:'core',
+  {id:'reg',      nm:'志工人力中心', ico:'\uD83D\uDC65', x:12, y:62, status:'partial', kind:'core',
     script:'報名報到解決的是一個很現實的問題：志工到場了，但幹部不知道誰來了、能派誰。以前靠人工點名或紙本，資料傳遞慢且容易遺漏。這個模組讓志工在 Line OA 自助完成報到，資料自動進入幹部端名冊，再進入調度中台成為可派人力——全程不需要幹部手動輸入。雙軌設計（今日報到 + 明日預約報名）是因為大型災害往往需要提前部署，讓幹部能提前掌握明天的人力庫存。',
-    desc:'幹部端報到管理視圖。Line OA 報到資料寫入名冊，供調度派工。今日報到+明日報名雙軌。'},
-  {id:'sheet_reg',nm:'報名資料總表', ico:'\uD83D\uDCD1', x:28, y:68, status:'partial', kind:'core',
-    script:'這個模組的設計初衷是讓報名資料有一個「主表」。慈誠委員和社區志工的名冊散落在不同地方時，派工會出現重複或遺漏。報名資料總表對接 Google Sheets，讓所有資料集中在一個地方，任何更動都即時反映。後端程式（GAS）已建好，目前只差設定 /exec 網址就能上線——這個「最後一步」之所以先暫停，是在等確認使用的 Sheets 欄位格式定案後再接，避免後續反覆修改。接好後這裡會成為所有報名相關功能的資料源頭。',
-    desc:'幹部端 Sheets 報名管理(慈誠委員+社區志工)。GAS 後端已建，需設定 /exec 網址。'},
-  {id:'vms',      nm:'志工管理', ico:'\uD83D\uDC65', x:27, y:42, status:'live', kind:'core',
+    desc:'志工人力中心：報名報到（今日+明日雙軌）、名冊總表（GAS Sheets 同步待設定）、管理指派（即時搜尋/報到/派工）。三項整合，共用同一份名冊。'}
+  {id:'reg',      nm:'志工管理', ico:'\uD83D\uDC65', x:24, y:62, status:'live', kind:'core',
     script:'志工管理解決的是調度的基礎問題：你必須先知道有誰、他們能做什麼，才能做出有意義的派工決定。這個模組管理每位志工的技能、聯絡方式、歷史任務紀錄，讓幹部在派工時有依據，而不是靠記憶或直覺。指派結果直接進入調度中台，讓「決定誰去」和「通知他去哪」之間沒有斷點。未來計劃和報到系統整合，讓「人到場」和「人可被派」這兩件事自動連動。',
     desc:'人員資料、任務指派、報告。指派結果進調度中台。'},
-  {id:'sysadmin', nm:'系統管理層', ico:'\uD83D\uDEE1\uFE0F', x:40, y:58, status:'live', kind:'admin',
+  {id:'sysadmin', nm:'系統管理層', ico:'\uD83D\uDEE1\uFE0F', x:24, y:78, status:'live', kind:'admin',
     script:'系統管理層是整個平台的「設定中樞」，讓系統本身可以被配置，而不是寫死在程式裡。每個組織的救災需求不同，不同災型需要開不同的模組——這些都應該能在介面上調整，不需要改程式碼。版本備份還原讓誤操作有後路，Gmail/LINE 串接設定讓通訊管道集中管理。這裡也是目前資安最需要加強的地方：權限矩陣目前在前端執行，意味著懂技術的人可以在 console 繞過，這是 P1 待修項目，計劃移到後端驗證。',
     desc:'功能後台(權限矩陣、模組管理)+後台維運(系統設定、Gmail/Line 串接、版本備份還原、戰時災型預設、開發待辦)。權限控管與設定所在地。'},
 
   // 中央核心
-  {id:'rtsync',   nm:'即時調度中台', ico:'\u26A1', x:50, y:50, status:'live', kind:'core', center:true, locked:true,
+  {id:'rtsync',   nm:'即時調度中台', ico:'\u26A1', x:50, y:44, status:'live', kind:'core', center:true, locked:true,
     script:'我把即時調度中台放在心智圖正中央，不是視覺設計的習慣，而是它真的就是整個系統的核心。在真實救災現場，最常出現的混亂是：這個需求誰負責？這個物資哪裡來？這個志工在哪？這些問題沒有一個統一的入口，就會不斷被詢問、不斷重複協調，浪費時間也容易出錯。調度中台的設計理念是把所有第一線的動作收攏到一個地方——任務建立、派工、物資調度、緊急警報、SOS、點名，全部在同一個介面完成。四個分頁（任務池、任務互動、結案、緊急）對應四種不同的工作節奏，讓幹部不需要在多個系統之間切換。',
     desc:'現場唯一指揮橋樑。4 tab：派任務/看進度(含出貨)/結案/緊急(警報+SOS+點名)。所有派工、調度、叫料媒合在此。'},
 
   // 右上=志工前線
-  {id:'volunteer',nm:'當區志工', ico:'\uD83D\uDC65', x:58, y:12, status:'live', kind:'actor',
+  {id:'volunteer',nm:'當區志工', ico:'\uD83D\uDC65', x:72, y:8, status:'live', kind:'actor',
     script:'整個系統設計的最終使用者，其實是這群拿著手機在現場服務的志工。他們不會有時間看複雜的介面、等待頁面載入、或輸入大量表單。所以我的設計原則是：志工在 Line OA 完成所有操作，不需要下載 App，不需要登入帳號，手機開 LINE 就能用。戰時啟動、自助報到、收任務通知、叫料回報、照片上傳——每一個動作都盡量縮短到最少步驟。系統好不好用，最終的測試標準就是現場的志工覺不覺得麻煩。',
     desc:'前線志工(手機/Line OA)。戰時觸發啟動、報到入列、現場執行與回報。'},
-  {id:'lineoa',   nm:'Line OA', ico:'\uD83D\uDCAC', x:62, y:30, status:'partial', kind:'channel',
+  {id:'lineoa',   nm:'Line OA', ico:'\uD83D\uDCAC', x:82, y:22, status:'partial', kind:'channel',
     script:'選擇 LINE OA 作為志工介面，是因為它已經是志工日常生活的一部分。要求志工下載 App、記帳號密碼，這個門檻在緊急狀況下會直接讓人放棄。LINE OA 讓系統的操作介面和他們平常聯絡的工具合而為一。目前模擬器已完整實作了報到、三步驟叫料、勘災回報、餐食表單等功能，真實的 LINE Webhook 後端是下一個里程碑——那一步接上後，這個系統就從「展示原型」變成「可以真的用」的工具。個資從這個入口進入，是目前資安需要特別注意的地方。',
     desc:'志工自助報到入口 + 收任務 + 勘災回報 + 叫料輸入/派送通知。模擬器已內嵌，真實 Webhook 待接。'},
-  {id:'sorting',  nm:'物資整理站', ico:'\uD83D\uDCE5', x:78, y:14, status:'live', kind:'limb',
+  {id:'sorting',  nm:'物資整理站', ico:'\uD83D\uDCE5', x:38, y:62, status:'live', kind:'limb',
     script:'捐贈物資到達現場的時候，往往是混亂的——不同種類、不同狀況、不同包裝全部混在一起。如果直接進倉儲，後續調度時根本無法準確知道手上有什麼。物資整理站是「讓混亂變成庫存」的第一關：拆箱、分類、報廢篩選、重新包裝，每一步都有紀錄。這個流程的設計讓後續的倉儲管理和調度媒合有可靠的資料基礎——你不能調度你不知道自己有的東西。',
     desc:'志工線。收件→拆箱分類→報廢/覆核→重包裝→入庫。一般物資處理起點。'},
-  {id:'warehouse',nm:'物資倉儲', ico:'\uD83D\uDCE6', x:90, y:26, status:'live', kind:'limb',
+  {id:'warehouse',nm:'物資倉儲', ico:'\uD83D\uDCE6', x:52, y:62, status:'live', kind:'limb',
     script:'物資倉儲讓「我們有什麼」這件事變得透明。三級分類造冊讓任何一個幹部打開系統都能立刻知道庫存狀態，不需要問人、不需要靠記憶。對外出貨不由倉儲直接處理，而是統一經過調度中台媒合——這個設計確保物資分配有整體視野，不會出現「甲單位補到飽、乙單位缺貨」的情況。未來計劃接上 Google Sheets 讓造冊資料雲端化，多個站點同時更新不打架。',
     desc:'志工線。三級分類造冊、入庫、發送。一般物資。對外出貨經調度媒合。'},
-  {id:'drive',    nm:'照片回報分類', ico:'\uD83D\uDCF7', x:70, y:44, status:'partial', kind:'limb',
+  {id:'drive',    nm:'照片回報分類', ico:'\uD83D\uDCF7', x:80, y:62, status:'partial', kind:'limb',
     script:'現場照片是救災紀錄最重要的一部分，但如果照片散落在每個人的手機裡，事後要整理、對帳、或對外說明時會非常困難。照片回報分類讓志工直接在 LINE 上傳照片，系統自動對應個案和任務、歸類到 Google Drive 正確的資料夾。前端分類流程已完成，目前等待 Google Drive API 金鑰設定完成後就能接上。接好後，每一場救災的影像紀錄都會自動整理完畢，不再需要事後手動分類。',
     desc:'Line OA 回傳照片→Drive→自動分類。前端流程完成，Drive API 待設定。'},
 
@@ -1831,15 +1828,15 @@ var NODES=[
     subs:['安置收容管理','個案管理系統','關懷行動紀錄(含安心祝福金)','慈濟資產調度']},
 
   // 政府(縮小)
-  {id:'emic',     nm:'政府 EMIC', ico:'\uD83C\uDFDB\uFE0F', x:93, y:60, status:'planned', kind:'future', mini:true,
+  {id:'emic',     nm:'政府 EMIC', ico:'\uD83C\uDFDB\uFE0F', x:80, y:88, status:'planned', kind:'future', mini:true,
     script:'政府 EMIC（消防署災害應變系統）的節點先放在這裡，是一個方向性的預留，不是近期實作目標。設計理念是：慈濟的救災行動不應該和政府的調度脫節，雙向交換災情與資源資料，可以讓兩個體系的行動互相補位而不是重複。目前這個整合的技術和行政條件都還沒到位，先在架構圖上標示出來，讓所有人知道這是我們想要走到的地方。等條件成熟，從全域監控開始對接是最自然的切入點。',
     desc:'消防署災害應變系統。未來與全域監控雙向交換災情/資源，尚未規劃實作。'},
 
   // 下=結案歸檔 + 後端服務層
-  {id:'story',    nm:'故事線結案', ico:'\uD83D\uDCD6', x:55, y:74, status:'live', kind:'core',
+  {id:'story',    nm:'故事線結案', ico:'\uD83D\uDCD6', x:66, y:78, status:'live', kind:'core',
     script:'故事線結案解決的是一個長期被忽視的問題：每一場救災結束後，我們做了什麼、為什麼這樣做、哪裡出了問題，這些經驗往往散落在個人記憶和零散紀錄裡，下一次很難傳承。故事線結案從稽核日誌自動串出時間軸敘事，讓整個救災過程有完整的、可查閱的紀錄。它同時有兩個用途：對外說明（給捐助人、政府、媒體看到我們做了什麼）和對內傳承（把這場救災的經驗匯出成演練劇本，讓下一次更好）。每一場救災都應該讓組織更有能力，而不是結束後歸零。',
     desc:'結案讀 audit log 串時間軸敘事，含 session 場次/錯誤聚合/UX 卡頓遙測。匯出 JSON 當演練劇本。'},
-  {id:'backend',  nm:'後端服務層', ico:'\uD83D\uDDC4\uFE0F', x:50, y:89, status:'partial', kind:'backend',
+  {id:'backend',  nm:'後端服務層', ico:'\uD83D\uDDC4\uFE0F', x:50, y:78, status:'partial', kind:'backend',
     script:'後端服務層的設計是分三個階段走，而不是一開始就上最複雜的架構。第一階段：localStorage，讓系統在沒有網路的現場也能運作，所有狀態存在本機，連線後再上傳。這是最務實的選擇，因為災區網路不穩定是常態。第二階段：Google Sheets + GAS，讓報名和個案資料有雲端備份，幹部能從任何電腦查閱。第三階段：Firebase RTDB，支援多個站點的幹部同時操作、即時看到同一份資料，介面已預留，等需求確認後啟用。最需要立即處理的問題是：志工的身分證號、電話等個資目前明文存放在 localStorage 和 Sheets，僅靠前端遮蔽，沒有加密。這是 P1 最高優先的資安待修項。',
     desc:'資料存放與同步層。點開看子項：本機儲存、雲端後端、即時同步。',
     subs:['localStorage（本機資料/版本備份/場次/遙測，離線可用）','GAS + Sheets（報名/個案後端，待設定 /exec）','Firebase RTDB（多人共編，規劃中）']}
@@ -1874,9 +1871,6 @@ var EDGES=[
   {from:'reg',to:'rtsync',label:'可派人力',story:2,
     talk:'名冊到調度中台這條線讓「人到了」和「可以被派工」之間沒有斷點。調度中台不需要幹部手動告知「現在有多少人」，它從名冊自動取得可用人力清單，加上技能標記，派工時就有完整依據。',
     flow:'名冊提供可派人力。傳輸：在位志工清單、技能標記，供調度媒合。'},
-  {from:'vms',to:'rtsync',label:'指派',
-    talk:'志工管理到調度中台，讓人員編組的決策直接反映在現場執行上。幹部在志工管理模組決定誰加入哪個隊伍，這個結果自動進入調度中台，不需要再次手動輸入。',
-    flow:'志工管理指派結果進中台。傳輸：人員編組、任務分派名單。'},
   {from:'lineoa',to:'rtsync',label:'叫料/回報 ↔ 派送',bi:true,story:3,
     talk:'LINE OA 和調度中台之間的雙向連線是整個系統使用頻率最高的一條。去程是志工的聲音進入系統（叫料需求、勘災回報、完工回執）；回程是系統通知志工（派工指令、物資派送通知、廣播、點名）。這條線讓前線和指揮在同一個資訊空間裡，不再靠電話傳話。',
     flow:'雙向。去程(志工→中台)：叫料需求(品項/數量/地點)、勘災回報、完成回執。回程(中台→志工)：派送通知、派工、廣播、點名。中台居中媒合，Line OA 兩端進出。'},
@@ -1993,9 +1987,9 @@ var HEALTH={
   dashboard:{s:'done',issue:'運作中。但與全域監控 KPI 重疊，建議釐清「可操作總覽 vs 唯讀大屏」分工。AI 戰術分析入口為規劃中。'},
   monitor:{s:'merge',issue:'與總控儀表板 KPI 重疊。建議整合為儀表板的「簡報/唯讀大屏模式」，或明確分工。即時影像與連線狀態目前為模擬。'},
   rtsync:{s:'done',issue:'核心運作正常。現場唯一指揮橋樑，4 tab 完整。'},
-  reg:{s:'merge',issue:'與報名資料總表、志工管理共用 Master_Profiles，職責邊界模糊。建議半拆為「志工資料域」群組。'},
-  sheet_reg:{s:'todo',issue:'GAS 後端已建但需設定 /exec 網址；且 GAS URL 目前硬編碼待改（P1）。與 reg/vms 可整合。'},
-  vms:{s:'merge',issue:'人員資料與任務指派。與 reg/sheet_reg 共用名冊資料，建議整合為志工資料域。'},
+  reg:{s:'live',issue:'志工人力中心（報名報到+名冊總表+管理指派）整合完成。GAS 已建待設定 /exec URL 啟用 Sheets 同步。'},
+
+
   lineoa:{s:'risk',issue:'模擬器完整（報到/3-tap叫料/餐食表單/關懷）但真實 LINE Webhook 後端 0%。個資經此入口，role 前端可竄改（P1 資安）。'},
   drive:{s:'todo',issue:'前端分類邏輯完成，Google Drive API 串接待設定。'},
   sorting:{s:'done',issue:'物資整理站運作正常。'},
@@ -2013,7 +2007,6 @@ var HEALTH={
 var HEALTH_LBL={done:'完成',todo:'待補',risk:'風險',merge:'可整合'};
 // 整合群組灰框（健檢視角顯示，標記建議不動結構）
 var MERGE_FRAMES=[
-  {lbl:'建議整合：志工資料域',nodes:['reg','sheet_reg','vms']},
   {lbl:'建議整合：監控併簡報模式',nodes:['monitor','dashboard']}
 ];
 // 健檢走查旁白
@@ -2025,9 +2018,9 @@ VIEWS.health={
       text:'健檢視角：綠=完成、黃=待補、紅=資安風險、灰=建議整合。點任一節點看該模組的健檢結論。以下逐項走查。'},
     {step:'資安風險',on:['backend','sysadmin','lineoa'],warn:['backend','sysadmin','lineoa'],
       text:'🔴 三個資安紅點：後端（個資明文存 localStorage/Sheets 未加密，P1 最高優先）、系統管理層（role 前端可竄改、提權可偽造）、Line OA（真實 Webhook 0%、個資入口）。'},
-    {step:'待補功能',on:['sheet_reg','drive','story','emic'],
+    {step:'待補功能',on:['drive','story','emic'],
       text:'🟡 待補：報名總表（GAS /exec 待設定、URL 硬編碼）、照片分類（Drive API 未接）、故事線（缺跨場次比較）、政府 EMIC（未串接）。'},
-    {step:'可整合',on:['reg','sheet_reg','vms','monitor','dashboard'],
+    {step:'可整合',on:['reg','monitor','dashboard'],
       text:'⬜ 建議整合：報到/報名總表/志工管理共用名冊→併「志工資料域」；全域監控與儀表板 KPI 重疊→併簡報模式。此為建議標記，不動現有結構。'},
     {step:'新增建議',on:['volunteer','fieldgroup','lineoa'],
       text:'🟢 新增建議：任務地圖（P3，志工/現場最需要「我要去哪」）；志工選單依角色裁剪（一般志工不需關懷/提權）；Firebase 多人共編演進。'}
@@ -2037,7 +2030,7 @@ VIEWS.health={
 var statusTag={live:'\uD83D\uDFE2 已開通',partial:'\uD83D\uDFE1 部分 / 待設定',planned:'\uD83D\uDD34 未開通 / 規劃中'};
 var nodeById={};NODES.forEach(function(n){nodeById[n.id]=n;});
 var DEFAULT_POS={};NODES.forEach(function(n){DEFAULT_POS[n.id]={x:n.x,y:n.y};});
-var STORE_KEY='drms_arch_layout_v2';
+var STORE_KEY='drms_arch_layout_v3';
 document.getElementById('arch-ver').textContent='v4.0 · Preview';
 var stage=document.getElementById('arch-stage');
 var svg=document.getElementById('arch-edges');
@@ -2287,8 +2280,7 @@ var ARCH_DOC={
     {id:'admin',name:'後台維運',layer:'L1',status:'live',note:'系統設定、Gmail/Line OA 串接、版本備份還原、戰時各災型預設模組設定、開發待辦'},
     {id:'rtsync',name:'即時調度中台',layer:'L2',status:'live',note:'現場唯一指揮橋樑。4 tab：派任務/看進度(含物資出貨)/結案(含日誌+照片+故事線)/緊急(警報+SOS+點名)'},
     {id:'reg',name:'志工報名與報到',layer:'L2',status:'live',note:'今日報到+明日報名雙軌並行。報到後加入 Line OA 收任務'},
-    {id:'sheet_reg',name:'報名資料總表',layer:'L2',status:'partial',note:'Google Sheets 對接，慈誠委員+社區志工。GAS 後端已建，需設定 /exec 網址'},
-    {id:'vms',name:'志工管理與報告',layer:'L2',status:'live',note:'人員資料、任務指派'},
+    {id:name:'報名資料總表',layer:'L2',status:'partial',note:'Google Sheets 對接，慈誠委員+社區志工。GAS 後端已建，需設定 /exec 網址'}
     {id:'line_oa',name:'Line OA 模擬',layer:'L2',status:'partial',note:'雙手機模擬器已內嵌(base64)。真實 LINE Webhook 後端未接，目前為模擬展示'},
     {id:'drive',name:'照片回報與分類',layer:'L2',status:'partial',note:'Line OA 回傳→Google Drive→自動分類。前端流程完成，後端串接待設定'},
     {id:'sorting',name:'物資整理站',layer:'L3',status:'live',note:'收件→拆箱分類→報廢/覆核→重包裝→入庫'},
@@ -2348,18 +2340,18 @@ var ARCH_DOC={
   // ── 架構圖：節點(x,y 為 0-100 百分比座標) ──
   graphNodes:[
     {id:'user',name:'幹部/志工',x:8,y:30,status:'live',kind:'actor',desc:'系統使用者。依角色(總控/IT/幹部/物流)有不同權限與可見模組。'},
-    {id:'lineoa',name:'Line OA',x:8,y:68,status:'partial',kind:'channel',desc:'前線回報入口（模擬器已內嵌）。真實 Webhook 後端未接。報到後加入此頻道收任務/通知/點名。'},
-    {id:'dashboard',name:'總控儀表板',x:30,y:14,status:'live',kind:'core',desc:'KPI、情境模擬器(10災型)、可編輯版面、AI戰術分析入口。平時/戰時雙模式起點。'},
-    {id:'rtsync',name:'即時調度中台',x:30,y:38,status:'live',kind:'core',desc:'現場唯一指揮橋樑。4 tab：派任務/看進度/結案/緊急。所有派工、警報、SOS、出貨在此。'},
-    {id:'reg',name:'報名報到',x:30,y:62,status:'live',kind:'core',desc:'今日報到+明日報名雙軌並行。報到後導引加入 Line OA。'},
-    {id:'monitor',name:'全域監控',x:30,y:86,status:'live',kind:'core',desc:'高層決策視圖：情資彙整、前線需求、即時影像、連線狀態。唯讀不涉操作。'},
-    {id:'warehouse',name:'物資倉儲',x:54,y:24,status:'live',kind:'limb',desc:'對內：三級分類造冊、入庫、大車調度。對外出貨在即時調度中台。'},
+    {id:'lineoa',name:'Line OA',x:82,y:22,status:'partial',kind:'channel',desc:'前線回報入口（模擬器已內嵌）。真實 Webhook 後端未接。報到後加入此頻道收任務/通知/點名。'},
+    {id:'dashboard',name:'總控儀表板',x:35,y:22,status:'live',kind:'core',desc:'KPI、情境模擬器(10災型)、可編輯版面、AI戰術分析入口。平時/戰時雙模式起點。'},
+    {id:'rtsync',name:'即時調度中台',x:50,y:44,status:'live',kind:'core',desc:'現場唯一指揮橋樑。4 tab：派任務/看進度/結案/緊急。所有派工、警報、SOS、出貨在此。'},
+    {id:'reg',name:'報名報到',x:12,y:62,status:'live',kind:'core',desc:'今日報到+明日報名雙軌並行。報到後導引加入 Line OA。'},
+    {id:'monitor',name:'全域監控',x:58,y:22,status:'live',kind:'core',desc:'高層決策視圖：情資彙整、前線需求、即時影像、連線狀態。唯讀不涉操作。'},
+    {id:'warehouse',name:'物資倉儲',x:52,y:62,status:'live',kind:'limb',desc:'對內：三級分類造冊、入庫、大車調度。對外出貨在即時調度中台。'},
     {id:'shelter',name:'安置/個案/關懷',x:54,y:50,status:'live',kind:'limb',desc:'L3 現場執行群：安置收容、個案管理、關懷紀錄、資產調度、物資整理站。'},
     {id:'sheets',name:'GAS + Sheets',x:78,y:38,status:'partial',kind:'backend',desc:'後端：報名(Master_Profiles+Event_Logs+Form_Config+Question_Bank)、個案。已建需設定 /exec 網址。'},
     {id:'storage',name:'localStorage',x:54,y:76,status:'live',kind:'backend',desc:'本機資料(drms_data)、版本備份(backup_1/2)、應變場次(session)、遙測。離線可用。'},
-    {id:'story',name:'故事線結案',x:78,y:64,status:'live',kind:'core',desc:'結案時讀 audit log 串時間軸敘事，含 session場次/錯誤聚合/UX卡頓。匯出 JSON 當演練劇本。'},
+    {id:'story',name:'故事線結案',x:66,y:78,status:'live',kind:'core',desc:'結案時讀 audit log 串時間軸敘事，含 session場次/錯誤聚合/UX卡頓。匯出 JSON 當演練劇本。'},
     {id:'firebase',name:'Firebase RTDB',x:78,y:14,status:'planned',kind:'future',desc:'多人共編。介面已預留可無痛切換，需架基金會伺服器後啟用。'},
-    {id:'emic',name:'政府 EMIC',x:78,y:88,status:'planned',kind:'future',desc:'消防署災害應變系統。未來 API 資料交換，尚未規劃。'},
+    {id:'emic',name:'政府 EMIC',x:80,y:88,status:'planned',kind:'future',desc:'消防署災害應變系統。未來 API 資料交換，尚未規劃。'},
     {id:'gas_webhook',name:'GAS Webhook',x:63,y:14,status:'partial',kind:'backend',desc:'Line OA Webhook 接收端 + Messaging API 推播。doPost 處理 follow/message 事件，doGet 供 DRMS 查詢。需部署並設定 /exec 網址。'},
     {id:'drive_api',name:'Google Drive',x:92,y:50,status:'planned',kind:'future',desc:'照片上傳儲存（drive 模組），結案報告 PDF/JSON 匯出。需 OAuth2 授權流程或 Service Account。'},
     {id:'line_webhook',name:'Line Webhook',x:8,y:50,status:'planned',kind:'channel',desc:'志工從 Line 傳「報到/完成/求助」→ GAS 解析 → 更新 Sheets → DRMS 輪詢抓取。真實 Webhook 尚未啟用。'}
