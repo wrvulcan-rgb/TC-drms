@@ -1172,7 +1172,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 
     <div class="tab-panel" id="t-gmail">
       <div class="g2">
-        <div class="card"><div class="card-title">各組 Gmail 帳號</div><div id="gmail-rows"></div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-primary" onclick="toast('✅ 設定已儲存')">💾 儲存</button><button class="btn btn-blue" onclick="toast('📤 測試信件已發送')">📤 測試</button></div></div>
+        <div class="card"><div class="card-title">各組 Gmail 帳號</div><div id="gmail-rows"></div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-primary" onclick="saveGmailSettings()">💾 儲存</button><button class="btn btn-blue" onclick="testGmailSettings()">📤 測試</button></div></div>
         <div class="card"><div class="card-title">Workspace 狀態</div><div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">Google Drive API</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">已授權</span></div><div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">Gmail API</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">已授權</span></div><div class="conn-row"><div class="conn-dot warn"></div><span style="flex:1;font-size:12px;font-weight:500">Google Sheets</span><span style="font-size:10px;font-family:monospace;color:var(--amber)">需重新授權</span></div></div>
       </div>
     </div>
@@ -1244,8 +1244,8 @@ textarea.iep-inp{resize:vertical;min-height:56px}
         <div class="ver-row"><span class="ver-num">v3.0.0</span><span style="flex:1;font-size:12px;font-weight:500">白底重設計 + 儀表板自訂</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">06-04 22:00</span></div>
         <div class="ver-row"><span class="ver-num">v2.1.3</span><span style="flex:1;font-size:12px;font-weight:500">Scenario Simulator</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">06-04 14:20</span></div>
         <div style="display:flex;gap:8px;margin-top:14px">
-          <button class="btn btn-amber" onclick="toast('⚠ 確認回滾至 v3.0.0')" style="flex:1;justify-content:center">⟲ Rollback</button>
-          <button class="btn btn-ghost" onclick="toast('✓ 已備份至 Google Drive')" style="flex:1;justify-content:center">📤 備份</button>
+          <button class="btn btn-amber" onclick="restoreVersion('1')" style="flex:1;justify-content:center">⟲ Rollback（還原前一版）</button>
+          <button class="btn btn-ghost" onclick="exportBackupFile()" style="flex:1;justify-content:center">📤 備份匯出 JSON</button>
         </div>
       </div>
     </div>
@@ -5728,6 +5728,25 @@ function updateFooter(){
 }
 
 // ── GMAIL / LINE ──
+function saveGmailSettings(){
+  var inputs=document.querySelectorAll('.group-email');
+  var map={};
+  inputs.forEach(function(inp){if(inp.dataset.id) map[inp.dataset.id]=inp.value;});
+  if(!DATA.registry) DATA.registry={};
+  DATA.registry.gmailEmails=map;
+  saveData();
+  toast('✅ Gmail 設定已儲存（'+Object.keys(map).length+' 組）');
+  logSys('ok','【Admin】Gmail 帳號設定已儲存');
+}
+function testGmailSettings(){
+  if(!checkGASReady('Gmail 測試信件')) return;
+  var map=(DATA.registry&&DATA.registry.gmailEmails)||{};
+  var cnt=Object.values(map).filter(function(e){return e;}).length;
+  if(!cnt){toast('⚠ 尚未設定任何 Gmail 帳號，請先儲存');return;}
+  gasPost({action:'testEmail',gmailEmails:map},function(){});
+  toast('📤 測試信件已發送至 '+cnt+' 個帳號（見 GAS 執行紀錄）');
+  logSys('info','【Admin】Gmail 測試信件已送出，目標 '+cnt+' 帳號');
+}
 function renderGmailRows(){
   const wrap=document.getElementById('gmail-rows');
   if(!wrap) return;
@@ -8522,8 +8541,50 @@ function renderCoordPartner(){
     });
     html+='</div></div>';
   }
-  html+='<button class="btn btn-blue" style="margin-top:6px" onclick="toast(\'＋ 登錄外部單位資源（演練模擬）\')">＋ 登錄外部單位</button></div>';
+  html+='<button class="btn btn-blue" style="margin-top:6px" onclick="registerExtUnit()">＋ 登錄外部單位</button></div>';
   return html;
+}
+function registerExtUnit(){
+  var mod=document.createElement('div');
+  mod.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+  mod.innerHTML='<div style="background:var(--bg);border-radius:12px;padding:24px 28px;max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.4)">'
+    +'<div style="font-size:16px;font-weight:700;margin-bottom:16px">🏢 登錄外部單位資源</div>'
+    +'<div style="display:grid;gap:10px">'
+    +'<div><div class="iep-lbl" style="margin-top:0">單位名稱</div><input id="eu-name" class="inp" placeholder="例：嘉義縣消防局第一大隊" style="font-size:13px"></div>'
+    +'<div><div class="iep-lbl">單位類型</div><select id="eu-type" class="inp" style="font-size:13px"><option>政府</option><option>NGO</option><option>企業</option><option>宮廟</option><option>學校</option></select></div>'
+    +'<div><div class="iep-lbl">聯絡電話</div><input id="eu-contact" class="inp" placeholder="05-xxx-xxxx" style="font-size:13px"></div>'
+    +'<div><div class="iep-lbl">可提供資源 1（類別:品項:數量）</div><input id="eu-res1" class="inp" placeholder="例：人力:搜救隊:20人" style="font-size:13px"></div>'
+    +'<div><div class="iep-lbl">可提供資源 2（可留空）</div><input id="eu-res2" class="inp" placeholder="例：物資:帳篷:30頂" style="font-size:13px"></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:18px">'
+    +'<button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitExtUnit(this)">✅ 確認登錄</button>'
+    +'<button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="this.closest(\'div[style*=fixed]\').remove()">取消</button>'
+    +'</div></div>';
+  document.body.appendChild(mod);
+  setTimeout(function(){var el=document.getElementById('eu-name');if(el)el.focus();},50);
+}
+function submitExtUnit(btn){
+  var name=(document.getElementById('eu-name')||{}).value||'';
+  var type=(document.getElementById('eu-type')||{}).value||'政府';
+  var contact=(document.getElementById('eu-contact')||{}).value||'—';
+  var r1=(document.getElementById('eu-res1')||{}).value||'';
+  var r2=(document.getElementById('eu-res2')||{}).value||'';
+  if(!name.trim()){toast('⚠ 請填寫單位名稱');return;}
+  var offers=[];
+  [r1,r2].forEach(function(r){
+    if(!r.trim()) return;
+    var p=r.split(':');
+    offers.push({cat:p[0]||'其他',item:p[1]||r,qty:p[2]||'待確認',status:'待確認'});
+  });
+  if(!offers.length) offers=[{cat:'其他',item:'待確認',qty:'—',status:'待確認'}];
+  var uid='P'+String(Date.now()).slice(-4);
+  DATA.coord.partners.push({id:uid,name:name.trim(),type:type,contact:contact.trim(),offers:offers});
+  rtAudit('外部單位登錄','單位：'+name.trim()+'（'+type+'），聯絡：'+contact.trim());
+  saveData();
+  logSys('ok','【跨單位協調】已登錄外部單位：'+name+'（'+type+'）');
+  toast('🏢 已登錄外部單位：'+name.trim());
+  btn.closest('div[style*=fixed]').remove();
+  renderCoord();
 }
 function renderCoordZone(){
   var d=DATA.coord, sColor={'已認領':'badge-green','未認領':'badge-amber','重複':'badge-red'};
@@ -8651,8 +8712,71 @@ function renderCaseMgt(){
       +'<td>'+(it.status==='已完成'?'<span style="font-size:9px;color:var(--text4)">✓</span>':'<button class="btn btn-blue btn-xs" onclick="advanceCase('+i+')">'+(it.status==='待訪視'?'▶ 開始訪視':'✓ 完成訪視')+'</button>')+'</td></tr>';
   }
   html+='</tbody></table>'
-    +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
+    +'<button class="btn btn-blue" style="margin-top:12px" onclick="showRoutePlan()">🗺 動線規劃面板</button></div>';
   el.innerHTML=html;
+}
+function showRoutePlan(){
+  var items=(DATA.case_mgt&&DATA.case_mgt.items)||[];
+  var groups={};
+  items.forEach(function(it,idx){
+    var tw=(it.address||'').substring(0,3)||'其他';
+    if(!groups[tw]) groups[tw]=[];
+    groups[tw].push({idx:idx,it:it});
+  });
+  var stStyle={'待訪視':'color:var(--amber);font-weight:700','訪視中':'color:var(--blue);font-weight:700','已完成':'color:var(--green)'};
+  var html='<div style="font-size:16px;font-weight:700;margin-bottom:4px">🗺 今日訪視動線規劃</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:16px">依行政區聚合，優先排列待訪視案件，減少往返距離</div>';
+  var seq=1;
+  var keys=Object.keys(groups).sort(function(a,b){
+    var pa=groups[a].filter(function(x){return x.it.status!=='已完成';}).length;
+    var pb=groups[b].filter(function(x){return x.it.status!=='已完成';}).length;
+    return pb-pa;
+  });
+  if(!keys.length){html+='<div style="font-size:12px;color:var(--text4);text-align:center;padding:20px">尚無個案資料</div>';}
+  keys.forEach(function(tw){
+    var grp=groups[tw];
+    var pending=grp.filter(function(x){return x.it.status!=='已完成';}).length;
+    html+='<div style="margin-bottom:14px">'
+      +'<div style="font-size:12px;font-weight:700;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:6px;display:flex;justify-content:space-between">'
+      +'<span>📍 '+esc(tw)+'</span><span style="font-size:10px;color:'+(pending?'var(--amber)':'var(--text4)')+'">'+pending+' 件待訪</span></div>';
+    var sorted=grp.slice().sort(function(a,b){
+      var o={'待訪視':0,'訪視中':1,'已完成':2};
+      return (o[a.it.status]||0)-(o[b.it.status]||0);
+    });
+    sorted.forEach(function(g){
+      var it=g.it, done=(it.status==='已完成');
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:4px;background:var(--bg)'+(done?';opacity:.6':'')+';">'
+        +(done?'<span style="width:20px;text-align:center;font-size:12px">✓</span>'
+               :'<span style="width:20px;text-align:center;font-size:13px;font-weight:800;color:var(--text3)">'+seq+'</span>')
+        +'<div style="flex:1"><div style="font-size:12px;font-weight:600">'+esc(it.caseId)+' '+esc(it.name)+'</div>'
+        +'<div style="font-size:10px;color:var(--text4)">'+esc(it.address||'')+'</div></div>'
+        +'<span style="font-size:11px;'+(stStyle[it.status]||'')+'">'+esc(it.status)+'</span></div>';
+      if(!done) seq++;
+    });
+    html+='</div>';
+  });
+  var mod=document.createElement('div');
+  mod.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+  mod.innerHTML='<div style="background:var(--bg);border-radius:12px;padding:24px 28px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.4)">'
+    +html
+    +'<div style="display:flex;gap:8px;margin-top:12px">'
+    +'<button class="btn btn-primary btn-xs" style="flex:1;justify-content:center" onclick="addCaseItem(this)">＋ 新增個案</button>'
+    +'<button class="btn btn-ghost btn-xs" style="flex:1;justify-content:center" onclick="this.closest(\'div[style*=fixed]\').remove()">關閉</button>'
+    +'</div></div>';
+  document.body.appendChild(mod);
+}
+function addCaseItem(btn){
+  var caseId='C'+String(Date.now()).slice(-3);
+  var name=prompt('個案姓名（留空取消）','');
+  if(name===null||!name.trim()) return;
+  var address=prompt('地址','竹崎鄉');
+  if(address===null) return;
+  DATA.case_mgt.items.push({caseId:caseId,name:name.trim(),address:address.trim()||'待填',status:'待訪視',route:'動線'+String.fromCharCode(65+DATA.case_mgt.items.length%4)});
+  saveData(); renderCaseMgt();
+  logSys('ok','【個案】新增個案 '+caseId+'：'+name.trim());
+  toast('✅ 新增個案 '+caseId);
+  btn.closest('div[style*=fixed]').remove();
+  setTimeout(showRoutePlan,100);
 }
 function advanceCase(i){
   var it=DATA.case_mgt.items[i];
@@ -8735,8 +8859,67 @@ function renderWarehouse(){
       +'<td><span class="badge '+(stColor[t.status]||'badge-blue')+'">'+t.status+'</span></td></tr>';
   }
   html+='</tbody></table>'
-    +'<button class="btn btn-amber" style="margin-top:12px" onclick="toast(\'🚛 大車調度請求已送出（演練模擬）\')">＋ 申請大車調度</button></div>';
+    +'<button class="btn btn-amber" style="margin-top:12px" onclick="requestTruckDispatch()">＋ 申請大車調度</button></div>';
   el.innerHTML=html;
+}
+function requestTruckDispatch(){
+  var mod=document.createElement('div');
+  mod.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+  mod.innerHTML='<div style="background:var(--bg);border-radius:12px;padding:24px 28px;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.4)">'
+    +'<div style="font-size:16px;font-weight:700;margin-bottom:16px">🚛 申請大車調度</div>'
+    +'<div style="display:grid;gap:10px">'
+    +'<div><div class="iep-lbl" style="margin-top:0">物資品項</div><input id="td-item" class="inp" placeholder="例：📦 賑濟包" style="font-size:13px"></div>'
+    +'<div><div class="iep-lbl">數量</div><input id="td-qty" class="inp" placeholder="例：×200 份" style="font-size:13px"></div>'
+    +'<div><div class="iep-lbl">需求地點</div><input id="td-site" class="inp" list="relief-location-list" placeholder="例：竹崎鄉緞繻村" style="font-size:13px"></div>'
+    +'<div><div class="iep-lbl">緊急程度</div><select id="td-due" class="inp" style="font-size:13px">'
+    +'<option value="1 小時內">🚨 1 小時內</option>'
+    +'<option value="今日內">⚠ 今日內</option>'
+    +'<option value="明日前" selected>明日前</option>'
+    +'</select></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:18px">'
+    +'<button class="btn btn-amber" style="flex:1;justify-content:center" onclick="submitTruckDispatch(this)">🚛 送出調度申請</button>'
+    +'<button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="this.closest(\'div[style*=fixed]\').remove()">取消</button>'
+    +'</div></div>';
+  document.body.appendChild(mod);
+  setTimeout(function(){var el=document.getElementById('td-item');if(el)el.focus();},50);
+}
+function submitTruckDispatch(btn){
+  var item=(document.getElementById('td-item')||{}).value||'';
+  var qty=(document.getElementById('td-qty')||{}).value||'×1';
+  var site=(document.getElementById('td-site')||{}).value||'';
+  var due=(document.getElementById('td-due')||{}).value||'明日前';
+  if(!item.trim()){toast('⚠ 請填寫物資品項');return;}
+  if(!site.trim()){toast('⚠ 請填寫需求地點');return;}
+  var uid='REQ-'+String(Date.now()).slice(-4);
+  var prio=due.includes('1 小時')?'P1':due.includes('今日')?'P2':'P3';
+  DATA.warehouse.reqs.unshift({id:uid,item:item.trim(),qty:qty.trim()||'×1',site:site.trim(),due:due,prio:prio,status:'待派案',driver:''});
+  RTDB.ref('tasks').push({title:'【大車調度】'+item.trim()+' '+qty.trim()+' → '+site.trim(),priority:prio,status:'待派工',created:new Date().toLocaleTimeString('zh-TW'),actor:role||'logistics'});
+  rtAudit('大車調度申請','品項：'+item.trim()+' | 地點：'+site.trim()+' | '+due);
+  saveData();
+  logSys('ok','【倉儲】大車調度申請 '+uid+'：'+item.trim()+' → '+site.trim());
+  toast('🚛 調度申請已送出（'+uid+'），加入任務池等待派案');
+  btn.closest('div[style*=fixed]').remove();
+  var el=document.getElementById('ware-dispatch-content');
+  if(el){
+    var d=DATA.warehouse, stColor={'配送中':'badge-blue','待命':'badge-green','回程中':'badge-amber'}, qC={'待派案':'badge-amber','已派案':'badge-blue','配送中':'badge-blue','已送達':'badge-green'};
+    var qhtml='<div class="card"><div class="card-title">📋 調度需求單</div><table class="tbl"><thead><tr><th>單號</th><th>品項</th><th>地點</th><th>時限</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+    d.reqs.forEach(function(rq){
+      qhtml+='<tr><td class="sh-time">'+rq.id+'</td><td style="font-weight:500">'+rq.item+' '+rq.qty+'</td><td style="font-size:11px">'+rq.site+'</td>'
+        +'<td style="font-size:11px;color:'+(rq.due.includes('1 小時')?'var(--red)':'var(--text3)')+'">'+rq.due+'</td>'
+        +'<td><span class="badge '+(qC[rq.status]||'badge-amber')+'">'+rq.status+'</span>'+(rq.driver?'<div style="font-size:9px;color:var(--text4)">'+rq.driver+'</div>':'')+'</td>'
+        +'<td>'+(rq.status==='待派案'?'<button class="btn btn-amber btn-xs" onclick="dispatchReq(\''+rq.id+'\')">🚛 派案</button>':'')+'</td></tr>';
+    });
+    qhtml+='</tbody></table></div>';
+    var trucks='<div class="card"><div class="card-title">📦 '+d.title+'</div>'
+      +'<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r-sm);padding:9px 12px;font-size:11px;color:var(--green);font-weight:500;margin-bottom:12px">✓ '+d.classification+'</div>'
+      +'<table class="tbl"><thead><tr><th>車輛</th><th>駕駛</th><th>物流動線</th><th>狀態</th></tr></thead><tbody>';
+    d.trucks.forEach(function(t){
+      trucks+='<tr><td style="font-weight:600">🚛 '+t.truckId+'</td><td>'+t.driver+'</td><td style="font-size:11px;font-family:monospace">'+t.route+'</td><td><span class="badge '+(stColor[t.status]||'badge-blue')+'">'+t.status+'</span></td></tr>';
+    });
+    trucks+='</tbody></table><button class="btn btn-amber" style="margin-top:12px" onclick="requestTruckDispatch()">＋ 申請大車調度</button></div>';
+    el.innerHTML=qhtml+trucks;
+  }
 }
 function renderShelterMgt(){
   var el=document.getElementById('shelter-mgt-content'); if(!el) return;
