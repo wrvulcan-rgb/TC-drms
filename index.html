@@ -1795,10 +1795,7 @@ var NODES=[
     desc:'高層唯讀決策視圖：情資彙整、前線需求、即時影像、外部連線狀態。不涉操作。'},
   {id:'reg',      nm:'志工人力中心', ico:'\uD83D\uDC65', x:12, y:62, status:'partial', kind:'core',
     script:'報名報到解決的是一個很現實的問題：志工到場了，但幹部不知道誰來了、能派誰。以前靠人工點名或紙本，資料傳遞慢且容易遺漏。這個模組讓志工在 Line OA 自助完成報到，資料自動進入幹部端名冊，再進入調度中台成為可派人力——全程不需要幹部手動輸入。雙軌設計（今日報到 + 明日預約報名）是因為大型災害往往需要提前部署，讓幹部能提前掌握明天的人力庫存。',
-    desc:'志工人力中心：報名報到（今日+明日雙軌）、名冊總表（GAS Sheets 同步待設定）、管理指派（即時搜尋/報到/派工）。三項整合，共用同一份名冊。'}
-  {id:'reg',      nm:'志工管理', ico:'\uD83D\uDC65', x:24, y:62, status:'live', kind:'core',
-    script:'志工管理解決的是調度的基礎問題：你必須先知道有誰、他們能做什麼，才能做出有意義的派工決定。這個模組管理每位志工的技能、聯絡方式、歷史任務紀錄，讓幹部在派工時有依據，而不是靠記憶或直覺。指派結果直接進入調度中台，讓「決定誰去」和「通知他去哪」之間沒有斷點。未來計劃和報到系統整合，讓「人到場」和「人可被派」這兩件事自動連動。',
-    desc:'人員資料、任務指派、報告。指派結果進調度中台。'},
+    desc:'志工人力中心：報名報到（今日+明日雙軌）、名冊總表（GAS Sheets 同步待設定）、管理指派（即時搜尋/報到/派工）。三項整合，共用同一份名冊。'},
   {id:'sysadmin', nm:'系統管理層', ico:'\uD83D\uDEE1\uFE0F', x:24, y:78, status:'live', kind:'admin',
     script:'系統管理層是整個平台的「設定中樞」，讓系統本身可以被配置，而不是寫死在程式裡。每個組織的救災需求不同，不同災型需要開不同的模組——這些都應該能在介面上調整，不需要改程式碼。版本備份還原讓誤操作有後路，Gmail/LINE 串接設定讓通訊管道集中管理。這裡也是目前資安最需要加強的地方：權限矩陣目前在前端執行，意味著懂技術的人可以在 console 繞過，這是 P1 待修項目，計劃移到後端驗證。',
     desc:'功能後台(權限矩陣、模組管理)+後台維運(系統設定、Gmail/Line 串接、版本備份還原、戰時災型預設、開發待辦)。權限控管與設定所在地。'},
@@ -2284,7 +2281,7 @@ var ARCH_DOC={
     {id:'admin',name:'後台維運',layer:'L1',status:'live',note:'系統設定、Gmail/Line OA 串接、版本備份還原、戰時各災型預設模組設定、開發待辦'},
     {id:'rtsync',name:'即時調度中台',layer:'L2',status:'live',note:'現場唯一指揮橋樑。4 tab：派任務/看進度(含物資出貨)/結案(含日誌+照片+故事線)/緊急(警報+SOS+點名)'},
     {id:'reg',name:'志工報名與報到',layer:'L2',status:'live',note:'今日報到+明日報名雙軌並行。報到後加入 Line OA 收任務'},
-    {id:name:'報名資料總表',layer:'L2',status:'partial',note:'Google Sheets 對接，慈誠委員+社區志工。GAS 後端已建，需設定 /exec 網址'}
+    {id:'sheet_reg',name:'報名資料總表',layer:'L2',status:'partial',note:'Google Sheets 對接，慈誠委員+社區志工。GAS 後端已建，需設定 /exec 網址'},
     {id:'line_oa',name:'Line OA 模擬',layer:'L2',status:'partial',note:'雙手機模擬器已內嵌(base64)。真實 LINE Webhook 後端未接，目前為模擬展示'},
     {id:'drive',name:'照片回報與分類',layer:'L2',status:'partial',note:'Line OA 回傳→Google Drive→自動分類。前端流程完成，後端串接待設定'},
     {id:'sorting',name:'物資整理站',layer:'L3',status:'live',note:'收件→拆箱分類→報廢/覆核→重包裝→入庫'},
@@ -3678,11 +3675,12 @@ function rtCloseCase(){
   gasPost({action:'closeCase', closedAt:new Date().toISOString(), role:role, sessionId:s?s.id:null, durationMin:s?s.durationMin:null});
   // auto-generate storyline and refresh UI
   setTimeout(function(){
-    if(RT_TAB==='close') genStoryline();
     toast('🏁 結案完成'+( dur?' · '+dur:'')+' — 故事線已生成，可點「匯出封存」下載');
     logSys('ok','【結案】應變場次已關閉'+( dur?' · '+dur:''));
     renderRTSync();
     renderSessionBadge();
+    // genStoryline after renderRTSync so #storyline-out exists
+    if(RT_TAB==='close') setTimeout(genStoryline, 50);
   }, 200);
 }
 function renderSessionBadge(){
@@ -3709,7 +3707,7 @@ function renderSessionBadge(){
   }
 }
 function rtStartNewSession(){
-  var sc=DATA.config.simScenario||'quake';
+  var sc=(DATA.config||{}).simScenario||'quake';
   var def=(DATA.scenarios||[]).find(function(s){return s.id===sc;})||{label:'自訂', id:sc};
   var lvl=prompt('請輸入應變等級（如：第一級 / 第二級 / 演練），留空略過','演練');
   if(lvl===null) return; // cancelled
