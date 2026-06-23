@@ -1049,20 +1049,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 
   <!-- 子分頁：志工管理與指派 -->
   <div id="vh-manage" class="vh-panel" style="display:none">
-    <div class="card">
-      <div style="display:flex;gap:8px;margin-bottom:14px">
-        <input class="inp" placeholder="🔍 搜尋志工姓名" style="max-width:180px">
-        <select class="inp" style="max-width:130px"><option>全部組別</option><option>醫護組</option><option>後勤組</option></select>
-      </div>
-      <table class="tbl">
-        <thead><tr><th>#</th><th>姓名</th><th>組別</th><th>地點</th><th>時數</th><th>狀態</th></tr></thead>
-        <tbody>
-          <tr><td style="color:var(--text4);font-family:monospace">001</td><td style="font-weight:500">林○○</td><td>醫護組</td><td>竹崎收容所</td><td>16h</td><td><span class="badge badge-green">服勤中</span></td></tr>
-          <tr><td style="color:var(--text4);font-family:monospace">002</td><td style="font-weight:500">陳○○</td><td>後勤組</td><td>梅山國小</td><td>12h</td><td><span class="badge badge-green">服勤中</span></td></tr>
-          <tr><td style="color:var(--text4);font-family:monospace">003</td><td style="font-weight:500">張○○</td><td>重機具</td><td>竹崎鄉</td><td>8h</td><td><span class="badge badge-amber">待命</span></td></tr>
-        </tbody>
-      </table>
-    </div>
+    <div id="vh-manage-content"></div>
   </div>
 </div>
 
@@ -1270,12 +1257,12 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 
 
 <div class="page" id="page-case_mgt">
-  <div class="pg-hdr"><div><div class="pg-title">🗂️ 個案管理系統</div><div class="pg-sub">個案訪視紀錄 · 動線規劃</div></div></div>
+  <div class="pg-hdr"><div><div class="pg-title">🗂️ 個案管理系統</div><div class="pg-sub">個案訪視紀錄 · 動線規劃 <span class="badge badge-blue" style="font-size:9px;vertical-align:middle">A型 · 資料搜集</span></div></div></div>
   <div id="case-mgt-content"></div>
 </div>
 
 <div class="page" id="page-care_rec">
-  <div class="pg-hdr"><div><div class="pg-title">💚 關懷行動紀錄</div><div class="pg-sub">訪視 · 線上 · 定點 · 法訊</div></div></div>
+  <div class="pg-hdr"><div><div class="pg-title">💚 關懷行動紀錄</div><div class="pg-sub">訪視 · 線上 · 定點 · 法訊 <span class="badge badge-purple" style="font-size:9px;vertical-align:middle">B型 · 被派執行</span></div></div></div>
   <div id="care-rec-content"></div>
 </div>
 
@@ -1285,7 +1272,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 </div>
 
 <div class="page" id="page-shelter_mgt">
-  <div class="pg-hdr"><div><div class="pg-title">🏕️ 安置收容管理</div><div class="pg-sub">災民造冊 · 慰問金 · 清掃修繕</div></div></div>
+  <div class="pg-hdr"><div><div class="pg-title">🏕️ 安置收容管理</div><div class="pg-sub">災民造冊 · 慰問金 · 清掃修繕 <span class="badge badge-blue" style="font-size:9px;vertical-align:middle">A型 · 資料搜集</span></div></div></div>
   <div id="shelter-mgt-content"></div>
 </div>
 
@@ -1432,7 +1419,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 
 
 <div class="page" id="page-sorting">
-  <div class="pg-hdr"><div><div class="pg-title">🧰 物資整理站</div><div class="pg-sub">收件 → 拆箱分類 → 報廢/覆核 → 重包裝 → 入庫</div></div></div>
+  <div class="pg-hdr"><div><div class="pg-title">🧰 物資整理站</div><div class="pg-sub">收件 → 拆箱分類 → 報廢/覆核 → 重包裝 → 入庫 <span class="badge badge-purple" style="font-size:9px;vertical-align:middle">B型 · 被派執行</span></div></div></div>
   <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap" id="sort-tabs">
     <button class="btn btn-blue" id="stab-board" onclick="setSortTab('board')">📊 作業看板</button>
     <button class="btn btn-ghost" id="stab-intake" onclick="setSortTab('intake')">📥 收件登記</button>
@@ -1444,7 +1431,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 </div>
 
 <div class="page" id="page-assets">
-  <div class="pg-hdr"><div><div class="pg-title">🛏 慈濟資產調度</div><div class="pg-sub">可重複物資 · 調用 → 運送 → 歸還循環追蹤</div></div></div>
+  <div class="pg-hdr"><div><div class="pg-title">🛏 慈濟資產調度</div><div class="pg-sub">可重複物資 · 調用 → 運送 → 歸還循環追蹤 <span class="badge badge-blue" style="font-size:9px;vertical-align:middle">A型 · 資料搜集</span></div></div></div>
   <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
     <button class="btn btn-blue" id="atab-overview" onclick="setAssetTab('overview')">📋 資產總覽</button>
     <button class="btn btn-ghost" id="atab-loan" onclick="setAssetTab('loan')">📤 前線調用</button>
@@ -2485,6 +2472,35 @@ function loaLog(msg){
   if(el.innerHTML.includes('等待操作')) el.innerHTML='';
   el.innerHTML='<div style="font-size:9px;color:#94A3B8;font-family:monospace"><span style="color:#475569">'+t+'</span> <span style="color:#4ADE80">✓</span> '+msg+'</div>'+el.innerHTML;
 }
+// GAS 後端同步橋接（設定 innerGasUrl 後生效，未設定則靜默略過）
+function gasPost(payload, cb){
+  var u=DATA.registry.innerGasUrl;
+  if(!u){ if(cb) cb(null,'no_url'); return; }
+  fetch(u,{method:'POST',mode:'no-cors',body:JSON.stringify(payload),headers:{'Content-Type':'application/json'}})
+    .then(function(){if(cb)cb({ok:true},null);})
+    .catch(function(e){logSys('warn','GAS POST 失敗：'+e.message);if(cb)cb(null,e.message);});
+}
+function loaSendTask(vid, taskTitle, location){
+  var v=rtGet('volunteers/'+vid)||{};
+  gasPost({action:'pushMessage',lineUid:v.lineUid||vid,message:'【新任務】'+taskTitle+(location?'\n地點：'+location:'')},function(r,err){
+    if(!err) loaLog('任務推播 → '+(v.name||vid)+'（'+taskTitle+'）');
+    else if(err==='no_url') logSys('info','loaSendTask 跳過（GAS URL 未設定）');
+  });
+}
+function checkIn(vid){
+  var d=DATA.registry;
+  var vol=d.volunteers.find(function(v){return v.id===vid;})||d.innerMembers.find(function(m){return m.code===vid;});
+  if(!vol){ toast('找不到志工 '+vid); return; }
+  vol.checkin=true; vol.checkinTime=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  try{ RTDB.ref('volunteers/'+vid).update({status:'待命',checkinTime:vol.checkinTime}); }catch(e){}
+  gasPost({action:'checkin',vid:vid,name:vol.name||vol.code,time:vol.checkinTime},function(r,err){
+    if(!err) loaLog('報到確認 → '+(vol.name||vol.code));
+    else if(err==='no_url') logSys('info','checkIn '+vid+'（離線模式）');
+  });
+  toast('✅ '+(vol.name||vol.code)+' 報到完成'); saveData();
+  if(typeof renderVolManage==='function') renderVolManage();
+  if(typeof renderSheetReg==='function') renderSheetReg();
+}
 function openLineOAPanel(){
   var p=document.getElementById('line-oa-panel');
   if(p) p.style.display='flex';
@@ -2837,6 +2853,7 @@ function rtWizAssign(vid){
     rtAudit('任務派發',id+' '+RT_WIZ.tplLabel+' → '+vid+' '+v.name);
     logSys('ok','【派工精靈】'+RT_WIZ.tplLabel+' → '+v.name);
     toast('✅ 已派給 '+v.name);
+    loaSendTask(vid, RT_WIZ.tplLabel, RT_WIZ.location||'');
   } else {
     rtAudit('任務建立',id+' '+RT_WIZ.tplLabel+'（待派工）');
     logSys('ok','【派工精靈】'+RT_WIZ.tplLabel+'（先放著待派）');
@@ -2859,6 +2876,7 @@ function rtDoAssign(k,vid){
   rtAudit('任務派發',k+' '+t.title+' → '+vid+' '+v.name);
   logSys('ok','【即時任務】'+k+' 派工給 '+vid);
   toast('✅ 已派給 '+v.name);
+  loaSendTask(vid, t.title, '');
   RT_ASSIGN_FOR=null; renderRTSync();
 }
 // 共用：列出「現在有空」的志工卡，onclickTpl 內以 VK 當作志工 id 佔位
@@ -4098,7 +4116,13 @@ function renderSheetReg(){
   var canSee=(role==='admin'||role==='it');
   var innerChk=d.innerMembers.filter(function(m){return m.checkin;}).length;
   var outerChk=d.volunteers.filter(function(v){return v.checkin;}).length;
-  var html=makeStatGrid([
+  var html='';
+  if(!d.gasUrl){
+    html+='<div style="padding:10px 14px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);margin-bottom:12px;font-size:12px;display:flex;align-items:center;gap:10px">'
+      +'<span style="font-size:15px">⚠️</span><div style="flex:1"><strong>Sheets 同步未啟用</strong>：至「系統管理 → 系統元件」填入 Google Apps Script 部署 URL 才能啟用即時同步。</div>'
+      +'<button class="btn btn-amber btn-xs" onclick="showPage(\'admin\')">→ 前往設定</button></div>';
+  }
+  html+=makeStatGrid([
     {lbl:'總報名',val:d.stats.total,sub:'Google 表單',color:'blue'},
     {lbl:'慈誠委員',val:d.stats.innerTotal,sub:'已報到 '+innerChk+'人',color:'purple'},
     {lbl:'社區志工',val:d.stats.outerTotal,sub:'已報到 '+outerChk+'人',color:'green'},
@@ -4154,6 +4178,72 @@ function renderSheetReg(){
   el.innerHTML=html;
 }
 function setSheetTab(tab){ DATA.registry._sheetTab=tab; renderSheetReg(); }
+function renderVolManage(){
+  var el=document.getElementById('vh-manage-content'); if(!el) return;
+  var d=DATA.registry;
+  var q=(document.getElementById('vm-search')||{value:''}).value.trim().toLowerCase();
+  var gf=(document.getElementById('vm-group')||{value:'全部組別'}).value;
+  var sf=(document.getElementById('vm-status')||{value:'全部狀態'}).value;
+  var all=[];
+  d.innerMembers.forEach(function(m){ all.push({id:m.code,name:m.name,group:m.group,type:'慈誠',status:m.checkin?'待命':'未報到',checkin:m.checkin,checkinTime:m.checkinTime||''}); });
+  d.volunteers.forEach(function(v){ all.push({id:v.id||v.name,name:v.name,group:v.group||'社區志工',type:'社區',status:v.checkin?'待命':'未報到',checkin:v.checkin,checkinTime:v.checkinTime||''}); });
+  var rtVols=rtGet('volunteers')||{};
+  all.forEach(function(a){ var rv=rtVols[a.id]; if(rv){ if(rv.status) a.status=rv.status; a.task=rv.task||''; a.fatigue=rv.fatigue; } });
+  var groups=['全部組別'].concat(all.map(function(a){return a.group;}).filter(function(g,i,arr){return arr.indexOf(g)===i;}));
+  var filtered=all.filter(function(a){
+    if(q && a.name.toLowerCase().indexOf(q)<0) return false;
+    if(gf!=='全部組別' && a.group!==gf) return false;
+    if(sf==='待命中' && a.status!=='待命') return false;
+    if(sf==='任務中' && a.status!=='任務中') return false;
+    if(sf==='未報到' && a.status!=='未報到') return false;
+    return true;
+  });
+  var sColor={待命:'badge-green',任務中:'badge-purple',未報到:'badge-amber',疲勞:'badge-red'};
+  var html='<div class="card">'
+    +'<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">'
+    +'<input class="inp" id="vm-search" placeholder="🔍 姓名" style="max-width:140px" oninput="renderVolManage()" value="'+q+'">'
+    +'<select class="inp" id="vm-group" style="max-width:120px" onchange="renderVolManage()">'
+    +groups.map(function(g){return '<option'+(g===gf?' selected':'')+'>'+g+'</option>';}).join('')+'</select>'
+    +'<select class="inp" id="vm-status" style="max-width:100px" onchange="renderVolManage()">'
+    +['全部狀態','待命中','任務中','未報到'].map(function(s){return '<option'+(s===sf?' selected':'')+'>'+s+'</option>';}).join('')+'</select>'
+    +'<span style="font-size:11px;color:var(--text4);margin-left:auto">'+filtered.length+'/'+all.length+' 人</span>'
+    +'</div>'
+    +'<table class="tbl"><thead><tr><th>#</th><th>姓名</th><th>組別</th><th>類型</th><th>報到時間</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  filtered.forEach(function(a,i){
+    var st=a.fatigue?'疲勞':a.status;
+    html+='<tr><td style="font-family:monospace;color:var(--text4)">'+(i+1)+'</td>'
+      +'<td style="font-weight:600">'+a.name+'</td>'
+      +'<td><span class="badge badge-blue" style="font-size:9px">'+a.group+'</span></td>'
+      +'<td style="font-size:11px;color:var(--text4)">'+a.type+'</td>'
+      +'<td style="font-size:10px;font-family:monospace">'+(a.checkinTime||'—')+'</td>'
+      +'<td><span class="badge '+(sColor[st]||'badge-amber')+'">'+st+'</span>'+(a.task?'<div style="font-size:9px;color:var(--text4)">→'+a.task+'</div>':'')+'</td>'
+      +'<td>';
+    if(!a.checkin){
+      html+='<button class="btn btn-green btn-xs" onclick="checkIn(\''+a.id+'\')">✓ 報到</button>';
+    } else if(a.status==='待命'&&!a.fatigue){
+      html+='<button class="btn btn-blue btn-xs" onclick="vmAssignTask(\''+a.id+'\',\''+a.name+'\')">⚡ 派任務</button>';
+    } else if(a.status==='任務中'){
+      html+='<button class="btn btn-ghost btn-xs" onclick="vmEndTask(\''+a.id+'\')">✓ 完成</button>';
+    }
+    html+='</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+function vmAssignTask(vid,vname){
+  var title=prompt('派任務給 '+vname+'（輸入任務名稱）：'); if(!title) return;
+  var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var taskId=RTDB.ref('tasks').push({title:title,priority:'P2',status:'進行中',assignee:vid,lockedBy:'',created:time});
+  RTDB.ref('volunteers/'+vid).update({task:taskId,status:'任務中',workStart:String(Date.now())});
+  loaSendTask(vid,title,''); rtAudit('管理指派',taskId+' '+title+' → '+vid+' '+vname);
+  toast('✅ 已派給 '+vname); renderVolManage();
+}
+function vmEndTask(vid){
+  var rv=rtGet('volunteers/'+vid)||{};
+  if(rv.task) RTDB.ref('tasks/'+rv.task).update({status:'已完成',assignee:''});
+  RTDB.ref('volunteers/'+vid).update({task:'',status:'待命'});
+  toast('✅ 任務完成'); renderVolManage();
+}
 function renderMonitor(){
   // 高層 KPI
   var kpi=document.getElementById('monitor-kpi');
@@ -4444,23 +4534,13 @@ DATA.rebuild = {
 };
 // ── IT 待辦需求預設資料（從 UI 測試審計結果初始化）──
 DATA.devTasks = [
-  // ── GAS 後端整合（需 Line OA 帳號 + GAS 部署）──
-  {id:'dt-arch-02', pri:'hi', mod:'line_oa',   title:'[Line OA] 實作真實 Webhook：GAS doPost 接收 Line events → 解析 message/follow → 寫 Sheets Event_Logs', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt-arch-03', pri:'hi', mod:'line_oa',   title:'[Line OA] 推播方向：DRMS 操作（派任務/SOS/點名）→ loaSendTask() fetch GAS → Line Messaging API pushMessage', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt-arch-04', pri:'hi', mod:'vol_hub',   title:'[報到] checkIn(vid) 實作完整：RTDB update + loaPush 報到確認 + GAS Event_Logs 寫入', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt-arch-05', pri:'md', mod:'rtsync',    title:'[派工] rtWizAssign 派任後自動觸發 loaSendTask(vid, taskTitle, location) 推播給志工 Line', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt-arch-06', pri:'md', mod:'warehouse', title:'[倉儲] 物資出庫後觸發 GAS doPost 寫 Sheets Warehouse 表（目前只存 localStorage）', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt-arch-07', pri:'md', mod:'case_mgt',  title:'[個案] 新建/更新個案觸發 GAS doPost 寫 Sheets Cases 表', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt-arch-08', pri:'md', mod:'admin',     title:'[GAS Token] GAS doPost 加 sessionToken 驗證，防前端繞過（P1 安全補強）', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt-arch-09', pri:'md', mod:'vol_hub',   title:'[報名] innerGasUrl QR 產生邏輯連通：掃 QR → Line 加入 → GAS follow handler → Master_Profiles', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt-arch-10', pri:'lo', mod:'drive',     title:'[Drive] 照片上傳後觸發 GAS → 存 Drive photos/ 資料夾 → 回傳 fileId 顯示縮圖', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt-arch-11', pri:'lo', mod:'rtsync',    title:'[結案] rtCloseCase() 完成後自動生成 JSON 劇本 → fetch GAS → 上傳 Drive exports/', assignee:'', done:false, created:'2026-06-22'},
-  // ── 功能補完（前端）──
-  {id:'dt5',  pri:'md', mod:'vol_hub',   title:'志工人力中心-名冊總表 / 照片回報：GAS /exec 網址未設定，需在「系統管理→系統元件」填入 Google Apps Script 部署 URL 才能啟用同步', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt9',  pri:'lo', mod:'vol_hub',   title:'志工人力中心-管理指派子頁：目前為靜態框架，詳細搜尋/篩選/任務指派功能待補', assignee:'', done:false, created:'2026-06-22'},
-  // ── 系統設計議題（需先定規格）──
-  {id:'dt-b03', pri:'md', mod:'全系統',    title:'[L3 資料流] L3 模組（安置/個案/關懷/物資整理/資產）釐清兩種角色：(A) 搜集者→上傳資料供 L2 調度用；(B) 被派者→等 L2 派任務再執行。各模組需標記屬 A/B，UI 對應不同入口與表單', assignee:'', done:false, created:'2026-06-23'},
-  {id:'dt-b04', pri:'hi', mod:'全系統',    title:'[Data I/O 路線] 緊急模式下 input/output 精簡化：緊急時 input 只收「誰/在哪/要什麼」三欄，output 只推「任務卡 → 志工 Line」；平時才做完整欄位。需為每個模組定義 normal/emergency 雙模式表單', assignee:'', done:false, created:'2026-06-23'},
+  // ── 需外部 GAS 部署才能完成 ──
+  {id:'dt-arch-02', pri:'hi', mod:'line_oa',   title:'[Line OA] 真實 Webhook：在 GAS 部署 doPost → 接收 Line follow/message 事件 → 寫 Sheets Event_Logs，並在 Line OA 後台填入 /exec webhook URL', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-08', pri:'md', mod:'admin',     title:'[GAS Token] GAS doPost 加 sessionToken 驗證，防前端繞過（P1 安全補強）— 需於 GAS 端加驗證邏輯', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-09', pri:'md', mod:'vol_hub',   title:'[報名 QR] 完整流程：掃 QR → Line 加入 → GAS follow handler 寫 Master_Profiles → DRMS 輪詢更新名冊 — 需 GAS follow handler', assignee:'', done:false, created:'2026-06-22'},
+  // ── 需 Google Drive API ──
+  {id:'dt-arch-10', pri:'lo', mod:'drive',     title:'[Drive] 照片上傳：驗證 GAS 授權 → 存 Drive photos/ → 回傳 fileId 顯示縮圖 — 需 OAuth2/Service Account', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-arch-11', pri:'lo', mod:'rtsync',    title:'[結案] rtCloseCase() 生成 JSON 劇本 → fetch GAS → 上傳 Drive exports/ — 需 Drive API 整合', assignee:'', done:false, created:'2026-06-22'},
 ];
 
 // ══════════════════════════════════════════════════════
@@ -8134,6 +8214,7 @@ function renderVolHub(){
   });
   if(VH_TAB==='checkin'){ renderRegistry(); renderRegFlow(); renderRegStats(); loadFormPreview(); }
   else if(VH_TAB==='roster'){ renderSheetReg(); }
+  else if(VH_TAB==='manage'){ renderVolManage(); }
 }
 function setVolHubTab(t){ VH_TAB=t; renderVolHub(); }
 
@@ -8229,22 +8310,34 @@ function renderReliefMap(){
   return html;
 }
 function renderReliefForm(){
-  return '<div class="card"><div class="card-title">📱 民眾求助填報表單（公開頁預覽）</div>'
-    +'<div style="font-size:11px;color:var(--text4);margin-bottom:14px">受災民眾掃 QR / 點 Line 連結即可填報，免登入。送出後自動進入「求助收件匣」。下方為手機端畫面預覽，按「送出」可模擬收到一筆通報。</div>'
+  var isWar=(state==='war');
+  var modeNote=isWar
+    ?'<div style="padding:8px 12px;background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r-sm);margin-bottom:12px;font-size:11px;color:var(--red);font-weight:600">🚨 緊急模式 — 精簡三欄（誰／在哪／要什麼），求助後立即進任務池</div>'
+    :'<div style="font-size:11px;color:var(--text4);margin-bottom:14px">受災民眾掃 QR / 點 Line 連結即可填報，免登入。送出後自動進入「求助收件匣」。</div>';
+  var formBody=isWar
+    ?('<div style="font-size:12px;font-weight:700;margin-bottom:8px">您現在需要哪種協助？</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
+      +'<button class="btn btn-red btn-xs" style="justify-content:center">🚨 受困搶救</button><button class="btn btn-purple btn-xs" style="justify-content:center">🏥 緊急醫療</button>'
+      +'<button class="btn btn-blue btn-xs" style="justify-content:center">🏕️ 需要安置</button><button class="btn btn-amber btn-xs" style="justify-content:center">📦 物資需求</button></div>'
+      +'<div class="iep-lbl" style="margin-top:0;font-weight:700">📍 您在哪裡？</div><input class="inp" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:13px;font-weight:600">'
+      +'<div class="iep-lbl" style="font-weight:700">🆘 需要什麼？</div><textarea class="inp" id="rfsim-need" placeholder="簡述狀況 + 人數" style="min-height:54px;font-size:13px"></textarea>'
+      +'<button class="btn btn-red" style="width:100%;justify-content:center;margin-top:12px;font-size:14px;padding:12px" onclick="reliefSimSubmit()">🆘 立即送出</button>')
+    :('<div style="font-size:12px;font-weight:700;margin-bottom:8px">您現在需要哪種協助？</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
+      +'<button class="btn btn-red btn-xs" style="justify-content:center">🚨 受困搶救</button><button class="btn btn-purple btn-xs" style="justify-content:center">🏥 緊急醫療</button>'
+      +'<button class="btn btn-blue btn-xs" style="justify-content:center">🏕️ 需要安置</button><button class="btn btn-amber btn-xs" style="justify-content:center">📦 物資需求</button></div>'
+      +'<div class="iep-lbl" style="margin-top:0">您的位置（可自動定位）</div><input class="inp" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:12px">'
+      +'<div class="iep-lbl">受困 / 需協助人數</div><input class="inp" placeholder="例：2" style="font-size:12px">'
+      +'<div class="iep-lbl">狀況描述</div><textarea class="inp" placeholder="簡述現場狀況" style="min-height:54px;font-size:12px"></textarea>'
+      +'<div class="iep-lbl">聯絡電話</div><input class="inp" placeholder="09xx-xxx-xxx" style="font-size:12px">'
+      +'<button class="btn btn-red" style="width:100%;justify-content:center;margin-top:12px" onclick="reliefSimSubmit()">🆘 送出求助</button>'
+      +'<div style="font-size:9px;color:var(--text4);text-align:center;margin-top:8px">送出即同意慈濟基金會為救災目的使用您的資料</div>');
+  return '<div class="card"><div class="card-title">📱 民眾求助填報表單（公開頁預覽）'
+    +(isWar?'<span class="badge badge-red" style="margin-left:8px">緊急模式</span>':'')+'</div>'
+    +modeNote
     +'<div class="phone-frame" style="max-width:340px;margin:0 auto">'
-    +'<div class="phone-bar"><span>🆘</span><span>慈濟災害求助通報</span><span style="margin-left:auto;color:var(--red);font-size:10px;font-weight:600">緊急</span></div>'
-    +'<div class="phone-body" style="padding:16px">'
-    +'<div style="font-size:12px;font-weight:700;margin-bottom:8px">您現在需要哪種協助？</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
-    +'<button class="btn btn-red btn-xs" style="justify-content:center">🚨 受困搶救</button><button class="btn btn-purple btn-xs" style="justify-content:center">🏥 緊急醫療</button>'
-    +'<button class="btn btn-blue btn-xs" style="justify-content:center">🏕️ 需要安置</button><button class="btn btn-amber btn-xs" style="justify-content:center">📦 物資需求</button></div>'
-    +'<div class="iep-lbl" style="margin-top:0">您的位置（可自動定位）</div><input class="inp" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:12px">'
-    +'<div class="iep-lbl">受困 / 需協助人數</div><input class="inp" placeholder="例：2" style="font-size:12px">'
-    +'<div class="iep-lbl">狀況描述</div><textarea class="inp" placeholder="簡述現場狀況" style="min-height:54px;font-size:12px"></textarea>'
-    +'<div class="iep-lbl">聯絡電話</div><input class="inp" placeholder="09xx-xxx-xxx" style="font-size:12px">'
-    +'<button class="btn btn-red" style="width:100%;justify-content:center;margin-top:12px" onclick="reliefSimSubmit()">🆘 送出求助</button>'
-    +'<div style="font-size:9px;color:var(--text4);text-align:center;margin-top:8px">送出即同意慈濟基金會為救災目的使用您的資料</div>'
-    +'</div></div></div>';
+    +'<div class="phone-bar"><span>🆘</span><span>慈濟災害求助通報</span><span style="margin-left:auto;color:var(--red);font-size:10px;font-weight:600">'+(isWar?'緊急':'一般')+'</span></div>'
+    +'<div class="phone-body" style="padding:16px">'+formBody+'</div></div></div>';
 }
 function reliefSimSubmit(){
   var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
@@ -8447,6 +8540,7 @@ function advanceCase(i){
     DATA.care_rec.stats.visit++;
     logSys('ok','【個案】'+it.caseId+' 訪視完成 → 自動寫入關懷行動紀錄，訪視統計 +1');
     toast('✓ '+it.caseId+' 完成，已同步關懷紀錄');
+    gasPost({action:'addCase',caseId:it.caseId,name:it.name,address:it.address,status:it.status,time:new Date().toLocaleTimeString('zh-TW')});
   }
   renderCaseMgt();saveData();
 }
@@ -8584,6 +8678,7 @@ function dispatchReq(rid){
     desc:'派案台自動建立：'+rq.id+' '+rq.item+rq.qty+'，'+rq.due+'送達'+rq.site});
   renderTasks();recalcSupplyStat();saveData();
   renderWarehouse();renderNav();renderAlerts();
+  gasPost({action:'warehouseOut',id:rid,item:rq.item,qty:rq.qty,site:rq.site,driver:rq.driver,time:new Date().toLocaleTimeString('zh-TW')});
   logSys('ok','【派案】'+rid+' '+rq.item+rq.qty+' → '+rq.site+'，指派 '+rq.driver+'，配送任務卡已建立');
   toast('🚛 '+rid+' 已派案，司機 Line 已收到配送單');
   setTimeout(function(){
