@@ -2697,8 +2697,12 @@ function loaDispatch(i){
 }
 // ── 即時調度中台：渲染與監聽 ──
 function triggerSOS(who,detail){
-  RTDB.ref('sos').set({active:true,who:who||'前線志工',detail:detail||'緊急求救',time:new Date().toLocaleTimeString('zh-TW')});
+  var t=new Date().toLocaleTimeString('zh-TW');
+  RTDB.ref('sos').set({active:true,who:who||'前線志工',detail:detail||'緊急求救',time:t});
+  // 同時推入持久看板佇列
+  RTDB.ref('sosQueue').push({who:who||'前線志工',detail:detail||'緊急求救',time:t,resolved:false});
   rtAudit('SOS求救',(who||'前線')+'：'+(detail||'緊急求救'));
+  renderRTSync();
 }
 function showSOSOverlay(data){
   var ov=document.getElementById('sos-overlay'); if(!ov) return;
@@ -2708,10 +2712,42 @@ function showSOSOverlay(data){
   try{ playSOSBeep(); }catch(e){}
 }
 function dismissSOS(){
+  // 關閉全螢幕覆蓋，但不清除看板佇列
   var ov=document.getElementById('sos-overlay'); if(ov) ov.style.display='none';
   RTDB.ref('sos').set({active:false});
-  rtAudit('SOS解除','總控已知悉並派遣救援');
-  logSys('ok','【SOS】已知悉，派遣救援');
+  rtAudit('SOS覆蓋關閉','全螢幕警報已知悉，看板仍追蹤直到逐筆解除');
+  logSys('ok','【SOS】已知悉，請到調度台逐筆解除');
+  renderRTSync();
+}
+function resolveSOSItem(k){
+  RTDB.ref('sosQueue/'+k).update({resolved:true,resolvedAt:new Date().toLocaleTimeString('zh-TW'),resolvedBy:role||'admin'});
+  rtAudit('SOS解除','已解除：'+k);
+  logSys('ok','【SOS】項目 '+k+' 已解除（操作者：'+role+'）');
+  renderRTSync();
+}
+function renderSOSBanner(){
+  var q=rtGet('sosQueue')||{};
+  var active=Object.keys(q).filter(function(k){return q[k]&&!q[k].resolved;});
+  if(!active.length) return '';
+  var html='<div style="background:var(--red-bg);border:2px solid var(--red-border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:12px">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+    +'<span class="dot" style="background:var(--red);animation:blink 1.2s infinite;flex-shrink:0"></span>'
+    +'<span style="font-size:13px;font-weight:800;color:var(--red)">🆘 SOS 活躍：'+active.length+' 筆未解除</span>'
+    +'<span style="font-size:10px;color:var(--text4);margin-left:auto">處理後點「已解除」才會從看板移除</span></div>'
+    +'<div style="display:grid;gap:6px">';
+  active.forEach(function(k){
+    var s=q[k];
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg);border:1px solid var(--red-border);border-radius:var(--r-sm)">'
+      +'<div style="flex:1">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--red)">'+esc(s.who||'前線')+'</div>'
+      +'<div style="font-size:11px;color:var(--text3)">'+esc(s.detail||'')+'</div>'
+      +'<div style="font-size:10px;color:var(--text4);font-family:monospace">'+esc(s.time||'')+'</div></div>'
+      +'<button class="btn btn-green btn-xs" onclick="resolveSOSItem(\''+k+'\')">✓ 已解除</button>'
+      +'<button class="btn btn-ghost btn-xs" onclick="rtWizOpen()" title="立即派工">⚡ 派工</button>'
+      +'</div>';
+  });
+  html+='</div></div>';
+  return html;
 }
 function playSOSBeep(){
   try{
@@ -2790,10 +2826,13 @@ function bindRTListeners(){
 function rtGet(node){ var v=null; RTDB.ref(node).once(function(d){v=d||{};}); return v||{}; }
 function renderRTSync(){
   var el=document.getElementById('rtsync-content'); if(!el) return;
-  if(RT_TAB==='tasks')     el.innerHTML=renderRTTasks();
-  else if(RT_TAB==='report')    el.innerHTML=renderRTReport();
-  else if(RT_TAB==='close')     el.innerHTML=renderRTClose();
-  else if(RT_TAB==='emergency') el.innerHTML=renderRTEmergency();
+  var banner=renderSOSBanner();
+  var inner='';
+  if(RT_TAB==='tasks')     inner=renderRTTasks();
+  else if(RT_TAB==='report')    inner=renderRTReport();
+  else if(RT_TAB==='close')     inner=renderRTClose();
+  else if(RT_TAB==='emergency') inner=renderRTEmergency();
+  el.innerHTML=banner+inner;
 }
 function resetRTDB(){
   RTDB.reset(JSON.parse(JSON.stringify(RTDB_SEED)));
@@ -2876,14 +2915,14 @@ function rtWizAssign(vid){
   // 若任務來自民眾求助，回頭把該求助標記為已轉派，避免重複處理
   if(RT_WIZ.reliefId && DATA.relief_req && DATA.relief_req.requests){
     var rr=DATA.relief_req.requests.filter(function(x){return x.id===RT_WIZ.reliefId;})[0];
-    if(rr){ rr.status='已轉派'; rr.taskRef='已建任務'; try{saveData();}catch(e){} try{ if(activePage==='relief_req') renderReliefReq(); }catch(e){} }
+    if(rr){ rr.status='已轉派'; rr.taskRef=id; try{saveData();}catch(e){} try{ if(activePage==='relief_req') renderReliefReq(); }catch(e){} }
   }
   RT_WIZ.open=false; renderRTSync();
 }
 function rtPickAssign(k){ RT_ASSIGN_FOR=(RT_ASSIGN_FOR===k?null:k); renderRTSync(); }
 function rtDoAssign(k,vid){
   var v=rtGet('volunteers/'+vid);
-  if(v.fatigue){ toast('⚠ '+v.name+' 疲勞中，無法派工'); return; }
+  if(v.fatigue){ showFatigueReplacement(vid,k); return; }
   var t=rtGet('tasks/'+k);
   RTDB.ref('tasks/'+k).update({assignee:vid,status:'進行中'});
   RTDB.ref('volunteers/'+vid).update({task:k,status:'任務中',workStart:String(Date.now())});
@@ -2892,6 +2931,54 @@ function rtDoAssign(k,vid){
   toast('✅ 已派給 '+v.name);
   loaSendTask(vid, t.title, '');
   RT_ASSIGN_FOR=null; renderRTSync();
+}
+function showFatigueReplacement(vid,tk){
+  var vols=rtGet('volunteers');
+  var fatigued=vols[vid]||{};
+  var fatSkills=(fatigued.skills||[]);
+  // 找同技能 or 全部待命且未疲勞的人
+  var avail=Object.keys(vols).filter(function(vk){
+    var v=vols[vk];
+    return vk!==vid && !v.fatigue && (v.status==='待命'||v.status==='已報到');
+  });
+  var preferred=avail.filter(function(vk){
+    var sk=vols[vk].skills||[];
+    return fatSkills.some(function(s){return sk.indexOf(s)>-1;});
+  });
+  var mod=document.createElement('div');
+  mod.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var listHtml='';
+  (preferred.length?preferred:avail).forEach(function(vk){
+    var v=vols[vk];
+    var skl=(v.skills||[]).join('/');
+    var match=preferred.indexOf(vk)>-1;
+    listHtml+='<div style="display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:8px;background:var(--bg2);border:1px solid '+(match?'var(--green-border)':'var(--border)')+';border-radius:var(--r-sm)">'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+esc(v.name)+(match?'<span class="badge badge-green" style="margin-left:6px;font-size:9px">技能符合</span>':'')+'</div>'
+      +'<div style="font-size:10px;color:var(--text4)">'+(skl||'一般')+' · '+esc(v.status)+'</div></div>'
+      +'<button class="btn btn-blue btn-xs" onclick="rtDoAssignReplacement(\''+tk+'\',\''+vk+'\',this)">派這個人</button>'
+      +'</div>';
+  });
+  if(!listHtml) listHtml='<div style="font-size:12px;color:var(--text4);padding:12px 0;text-align:center">目前無可用替手，請等待其他志工回報待命</div>';
+  mod.innerHTML='<div style="background:var(--bg);border-radius:12px;padding:24px 28px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.4)">'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:4px">🔄 找替手</div>'
+    +'<div style="font-size:11px;color:var(--amber);margin-bottom:14px;padding:8px 10px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm)">'
+    +'⚠ '+esc(fatigued.name||vid)+' 疲勞中（連續任務超過 6 小時），無法接新任務。以下為可替代人員：</div>'
+    +listHtml
+    +'<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="this.closest(\'div[style*=fixed]\').remove()">稍後再派</button>'
+    +'</div>';
+  document.body.appendChild(mod);
+}
+function rtDoAssignReplacement(tk,vid,btn){
+  var v=rtGet('volunteers/'+vid);
+  var t=rtGet('tasks/'+tk);
+  RTDB.ref('tasks/'+tk).update({assignee:vid,status:'進行中'});
+  RTDB.ref('volunteers/'+vid).update({task:tk,status:'任務中',workStart:String(Date.now())});
+  rtAudit('任務派發（替手）',tk+' '+t.title+' → '+vid+' '+v.name);
+  logSys('ok','【替手派工】'+tk+' 派給替手 '+v.name);
+  toast('✅ 已派給替手 '+v.name);
+  loaSendTask(vid, t.title, '');
+  btn.closest('div[style*=fixed]').remove();
+  renderRTSync();
 }
 // 共用：列出「現在有空」的志工卡，onclickTpl 內以 VK 當作志工 id 佔位
 function rtPersonCards(onclickTpl,big){
@@ -2963,11 +3050,30 @@ function rtWizHtml(){
     html+='<div style="font-size:'+f1+';font-weight:600;margin-bottom:4px">③「'+RT_WIZ.tplLabel+'」派給誰？</div>';
     var prl={P1:'🔴 現在就要',P2:'🟡 今天',P3:'🟢 不急'}[RT_WIZ.prio]||'';
     html+='<div style="font-size:11px;color:var(--text4);margin-bottom:12px">只列現在有空的人'+(prl?' · 優先級 '+prl:'')+'</div>';
+    // 倉庫快覽：派工前知道現在有什麼料
+    html+=renderWizWarehouseSnippet();
     html+=rtPersonCards("rtWizAssign('VK')",big);
     html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:4px'+(big?';font-size:15px;padding:12px':'')+'" onclick="rtWizAssign(\'\')">先放著，等一下再派</button>';
     html+='<button class="btn btn-ghost btn-xs" style="margin-top:10px" onclick="rtWizBack(2)">← 返回</button>';
   }
   html+='</div>';
+  return html;
+}
+function renderWizWarehouseSnippet(){
+  if(!DATA.field||!DATA.field.supplies) return '';
+  var items=DATA.field.supplies.slice(0,4);
+  var pending=(DATA.warehouse&&DATA.warehouse.reqs)?DATA.warehouse.reqs.filter(function(r){return r.status==='待派案';}).length:0;
+  var html='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px">📦 倉庫現況快覽'+(pending?'<span class="badge badge-amber" style="margin-left:8px;font-size:9px">'+pending+' 件待派案</span>':'')+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">';
+  items.forEach(function(s){
+    var pct=s.need>0?Math.round(s.stock/s.need*100):100;
+    var col=pct>=80?'var(--green)':pct>=40?'var(--amber)':'var(--red)';
+    html+='<div style="font-size:10px;display:flex;align-items:center;gap:6px">'
+      +'<span style="flex:1;color:var(--text3)">'+esc(s.item)+'</span>'
+      +'<span style="font-weight:700;color:'+col+';font-family:monospace">'+s.stock+s.unit+'</span></div>';
+  });
+  html+='</div></div>';
   return html;
 }
 var RT_VIEW=(function(){try{return localStorage.getItem('drms_rt_view')||'board';}catch(e){return 'board';}})();
@@ -3229,10 +3335,30 @@ function rtReport(k,result){
   var vols=rtGet('volunteers');
   var who=t.assignee&&vols[t.assignee]?vols[t.assignee].name:'前線';
   var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  if(result==='已完成'){ RTDB.ref('tasks/'+k).update({status:'已完成',lockedBy:''}); }
+  if(result==='已完成'){
+    RTDB.ref('tasks/'+k).update({status:'已完成',lockedBy:''});
+    // 釋放志工回待命
+    if(t.assignee){
+      RTDB.ref('volunteers/'+t.assignee).update({task:'',status:'待命'});
+    }
+    // 推入完成動態 feed（派工台看板用）
+    RTDB.ref('completionFeed').push({taskId:k,title:t.title,who:who,time:time});
+    // 若任務來自民眾求助，同步更新原求助單
+    if(t.title&&t.title.indexOf('民眾求助')>-1){
+      var m=t.title.match(/民眾求助\s+([\w-]+)/);
+      if(m&&DATA.relief_req){
+        var rr=DATA.relief_req.requests.find(function(x){return x.id===m[1];});
+        if(rr&&rr.status!=='已結案'){ rr.status='已結案'; rr.taskRef=k; try{saveData();}catch(e){} }
+      }
+    }
+    logSys('ok','✅ 任務完成：'+who+' 完成「'+t.title+'」，志工釋回待命');
+    toast('✅ 任務完成：'+who+' — 已釋回待命');
+  } else {
+    logSys('info','【回報】'+who+' · '+t.title+' → '+result);
+    toast('💬 回報已同步：'+result);
+  }
   RTDB.ref('reportLog').push({time:time,msg:'📲 '+who+' 回報「'+t.title+'」→ '+result});
-  logSys('ok','【LINE回報】'+who+' · '+t.title+' → '+result);
-  toast('💬 回報已同步：'+result);
+  renderRTSync();
 }
 // ── 模組四：結案稽核 ──
 function renderRTAudit(){
@@ -3354,6 +3480,26 @@ function setAssetTab(t){
     if(b) b.className=(x===t)?'btn btn-blue':'btn btn-ghost';
   });
   renderAssets();
+}
+function checkOverdueAssets(){
+  if(!DATA.assets||!DATA.assets.loans) return;
+  var today=new Date();
+  var overdue=DATA.assets.loans.filter(function(l){
+    if(l.status==='已歸還') return false;
+    if(l.status==='逾期未還') return true;
+    if(l.due){
+      var d=new Date(l.due); if(isNaN(d.getTime())) return false;
+      return d<today;
+    }
+    return false;
+  });
+  if(!overdue.length) return;
+  overdue.forEach(function(l){
+    logSys('err','⚠ 器材逾期未還：'+l.name+' ×'+l.qty+' 借給「'+l.borrower+'」('+l.out+' 出)，應還日 '+l.due+'，狀態：'+l.status);
+  });
+  if(overdue.length>1){
+    logSys('err','⚠ 共 '+overdue.length+' 件器材逾期未還！請前往「器材管理→借出紀錄」催還。');
+  }
 }
 function renderAssets(){
   var el=document.getElementById('assets-content'); if(!el) return;
@@ -5498,7 +5644,8 @@ var RTDB_SEED={
     'EQ-004':{name:'照明燈組',type:'照明',status:'維修',holder:'',highValue:false}
   },
   auditLog:{},
-  sos:{active:false}
+  sos:{active:false},
+  sosQueue:{}
 };
 (function(){ var existing=null; try{ existing=JSON.parse(localStorage.getItem('drms_rtdb')||'null'); }catch(e){} if(!existing||!existing.sos||!existing.auditLog){ RTDB.reset?null:null; localStorage.setItem('drms_rtdb',JSON.stringify(RTDB_SEED)); } })();
 RTDB.seed(RTDB_SEED);
@@ -8396,7 +8543,9 @@ function renderReliefInbox(){
       +'<td style="font-size:11px">'+r.location+'</td>'
       +'<td style="text-align:center;font-weight:600">'+r.people+'</td>'
       +'<td style="font-size:11px;max-width:180px">'+r.desc+'</td>'
-      +'<td><span class="badge '+(sColor[r.status]||'badge-amber')+'">'+r.status+'</span></td>'
+      +'<td><span class="badge '+(sColor[r.status]||'badge-amber')+'">'+r.status+'</span>'
+      +(r.taskRef&&r.taskRef!=='已建任務'?'<div style="font-size:9px;color:var(--blue);font-family:monospace;cursor:pointer;text-decoration:underline" onclick="showPage(\'rtsync\');setRTTab(\'tasks\')" title="前往任務">→ '+esc(r.taskRef)+'</div>':'')
+      +'</td>'
       +'</tr>';
   }
   html+='</tbody></table>'
@@ -8407,8 +8556,8 @@ function reliefToDispatch(i){
   var r=DATA.relief_req.requests[i];
   var prio={'搶救':'P1','醫療':'P1','收容':'P2','物資':'P3'}[r.type]||'P2';
   var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  try{ if(typeof RTDB!=='undefined'&&RTDB.ref){ RTDB.ref('tasks').push({title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assignee:'',lockedBy:'',created:tm}); } }catch(e){}
-  r.status='已轉派'; r.taskRef='已建任務';
+  var newTaskId=''; try{ if(typeof RTDB!=='undefined'&&RTDB.ref){ newTaskId=RTDB.ref('tasks').push({title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assignee:'',lockedBy:'',created:tm}); } }catch(e){}
+  r.status='已轉派'; r.taskRef=newTaskId||'已建任務';
   logSys('warn','【民眾求助】'+r.id+' 已轉即時調度中台任務池（'+prio+'）'+r.location);
   toast('⚡ '+r.id+' 已轉調度中台（'+prio+'）');
   renderReliefReq(); saveData();
@@ -8709,7 +8858,8 @@ function renderCaseMgt(){
       +'<td style="font-size:11px">'+it.address+'</td>'
       +'<td><span class="badge badge-purple">'+it.route+'</span></td>'
       +'<td><span class="badge '+(stColor[it.status]||'badge-blue')+'">'+it.status+'</span></td>'
-      +'<td>'+(it.status==='已完成'?'<span style="font-size:9px;color:var(--text4)">✓</span>':'<button class="btn btn-blue btn-xs" onclick="advanceCase('+i+')">'+(it.status==='待訪視'?'▶ 開始訪視':'✓ 完成訪視')+'</button>')+'</td></tr>';
+      +'<td style="white-space:nowrap">'+(it.status==='已完成'?'<span style="font-size:9px;color:var(--text4)">✓</span>':'<button class="btn btn-blue btn-xs" onclick="advanceCase('+i+')">'+(it.status==='待訪視'?'▶ 訪視':'✓ 完成')+'</button>')
+      +' <button class="btn btn-ghost btn-xs" onclick="showCaseProfile('+i+')" title="個案全景">📋</button></td></tr>';
   }
   html+='</tbody></table>'
     +'<button class="btn btn-blue" style="margin-top:12px" onclick="showRoutePlan()">🗺 動線規劃面板</button></div>';
@@ -8777,6 +8927,62 @@ function addCaseItem(btn){
   toast('✅ 新增個案 '+caseId);
   btn.closest('div[style*=fixed]').remove();
   setTimeout(showRoutePlan,100);
+}
+function showCaseProfile(i){
+  var it=DATA.case_mgt.items[i]; if(!it) return;
+  // 關懷紀錄：target 欄位包含姓名 or 地址前6字
+  var careMatch=(DATA.care_rec&&DATA.care_rec.logs)?DATA.care_rec.logs.filter(function(l){
+    return (l.target&&(l.target.indexOf(it.name)>-1||l.target.indexOf((it.address||'').substring(0,4))>-1));
+  }):[];
+  // 重建追蹤：name or addr 包含姓名
+  var rebuildMatch=(DATA.rebuild&&DATA.rebuild.households)?DATA.rebuild.households.filter(function(h){
+    return (h.name&&h.name.indexOf(it.name.replace('本個案',''))>-1)||(h.addr&&h.addr.indexOf((it.address||'').substring(0,4))>-1);
+  }):[];
+  var stColor={'待訪視':'var(--amber)','訪視中':'var(--blue)','已完成':'var(--green)'};
+  var html='<div style="font-size:16px;font-weight:700;margin-bottom:4px">📋 個案全景</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:14px">'+esc(it.caseId)+' · '+esc(it.name)+'</div>'
+    // 基本資訊
+    +'<div style="padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:12px">'
+    +'<div style="font-size:12px;font-weight:700;margin-bottom:8px">🗂 個案管理</div>'
+    +'<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px">'
+    +'<span style="color:var(--text4)">地址</span><span>'+esc(it.address||'—')+'</span>'
+    +'<span style="color:var(--text4)">動線</span><span>'+esc(it.route||'—')+'</span>'
+    +'<span style="color:var(--text4)">狀態</span><span style="font-weight:700;color:'+( stColor[it.status]||'')+'">'+esc(it.status)+'</span>'
+    +'</div></div>'
+    // 關懷紀錄
+    +'<div style="padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:12px">'
+    +'<div style="font-size:12px;font-weight:700;margin-bottom:8px">💚 關懷行動紀錄 <span style="font-size:10px;font-weight:400;color:var(--text4)">('+careMatch.length+' 筆)</span></div>';
+  if(careMatch.length){
+    careMatch.forEach(function(l){
+      html+='<div style="padding:8px;margin-bottom:6px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px">'
+        +'<span class="badge badge-purple" style="font-size:9px;margin-right:6px">'+esc(l.type)+'</span>'
+        +esc(l.summary)+' <span style="color:var(--text4)">— '+esc(l.recorder)+'</span></div>';
+    });
+  } else {
+    html+='<div style="font-size:11px;color:var(--text4)">尚無關懷紀錄</div>';
+  }
+  html+='</div>'
+    // 重建追蹤
+    +'<div style="padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:12px">'
+    +'<div style="font-size:12px;font-weight:700;margin-bottom:8px">🏗 重建追蹤 <span style="font-size:10px;font-weight:400;color:var(--text4)">('+rebuildMatch.length+' 筆)</span></div>';
+  if(rebuildMatch.length){
+    rebuildMatch.forEach(function(h){
+      var pColor=h.pct>=70?'var(--green)':h.pct>=30?'var(--amber)':'var(--red)';
+      html+='<div style="padding:8px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:600">'+esc(h.name)+'</span><span class="badge badge-blue" style="font-size:9px">'+esc(h.phase)+'</span></div>'
+        +'<div style="height:4px;background:var(--border3);border-radius:2px"><div style="height:4px;border-radius:2px;background:'+pColor+';width:'+h.pct+'%"></div></div>'
+        +'<div style="font-size:10px;color:var(--text4);margin-top:4px">進度 '+h.pct+'% · 最近訪視：'+esc(h.lastVisit||'—')+(h.psych?' · 心理：'+esc(h.psych):'')+'</div></div>';
+    });
+  } else {
+    html+='<div style="font-size:11px;color:var(--text4)">尚無重建追蹤資料</div>';
+  }
+  html+='</div>';
+  var mod=document.createElement('div');
+  mod.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+  mod.innerHTML='<div style="background:var(--bg);border-radius:12px;padding:24px 28px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.4)">'
+    +html
+    +'<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:4px" onclick="this.closest(\'div[style*=fixed]\').remove()">關閉</button></div>';
+  document.body.appendChild(mod);
 }
 function advanceCase(i){
   var it=DATA.case_mgt.items[i];
@@ -9078,6 +9284,7 @@ renderGmailRows();
 renderLineCards();
 updateFooter();
 logSys('ok','DRMS v4 系統初始化完成。所有模組正常運行。');
+checkOverdueAssets();
 startRegPolling();
 bindSOSListener();
 setInterval(rtCheckFatigue,60000);
