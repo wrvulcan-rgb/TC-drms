@@ -687,7 +687,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
         <div class="sim-header">
           <span style="font-size:12px;font-weight:700;color:var(--text)">🎯 災型與實戰變化球模擬器</span>
           <span class="sim-tag">Scenario Simulator</span>
-          <span style="margin-left:auto;font-size:11px;color:var(--text4);font-family:monospace" id="sim-active-lbl">當前：地震</span>
+          <span style="margin-left:auto;display:flex;align-items:center;gap:6px"><span id="sim-active-badge" style="display:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid var(--amber-border);background:var(--amber-bg);color:var(--amber)"></span><span style="font-size:11px;color:var(--text4);font-family:monospace" id="sim-active-lbl">當前：地震</span></span>
         </div>
         <div class="sim-btns">
           <button class="sim-btn quake" onclick="setScenario('quake')"><span class="sico">🏚️</span><div><div>地震</div><span class="ssub">Quake</span></div></button>
@@ -1100,6 +1100,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
       <div class="conn-row"><div class="conn-dot warn"></div><span style="flex:1;font-size:12px;font-weight:500">現場消防員傳輸</span><span style="font-size:10px;font-family:monospace;color:var(--amber)">延遲 320ms</span></div>
       <div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">Line OA 推播</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">正常</span></div>
       <div style="font-size:10px;color:var(--text4);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">⚠ 緊急操作（警報/SOS/點名）已移至「即時調度中台 → 緊急」，由現場指揮層發起</div>
+      <button class="btn btn-red" style="margin-top:8px;width:100%;justify-content:center;font-size:11px" onclick="showPage('rtsync');setRTTab('emergency')">🚨 → 前往即時調度中台 · 緊急 tab</button>
     </div>
   </div>
 </div>
@@ -2465,11 +2466,10 @@ function showArchNode(id){
   if(!n) n=extra[id];
   if(!n) return;
   var lbl={live:'🟢 已開通',partial:'🟡 部分/待設定',planned:'🔴 未開通/規劃中'}[n.status];
-  var box=document.getElementById('arch-node-detail');
+  var box=document.getElementById('arch-detail');
   if(box){
-    box.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+n.name+' <span style="font-size:11px;font-weight:400;color:var(--text4)">· '+lbl+'</span></div>'
+    box.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:6px">'+n.name+' <span style="font-size:11px;font-weight:400;color:var(--text4)">· '+lbl+'</span></div>'
       +'<div style="font-size:12px;color:var(--text2);line-height:1.7">'+(n.desc||'')+'</div>';
-    box.style.display='block';
     box.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
 }
@@ -2940,6 +2940,18 @@ function rtWizHtml(){
 }
 var RT_VIEW=(function(){try{return localStorage.getItem('drms_rt_view')||'board';}catch(e){return 'board';}})();
 function setRTView(v){ RT_VIEW=v; try{localStorage.setItem('drms_rt_view',v);}catch(e){} renderRTSync(); }
+// 樂觀鎖 TTL：超過 5 分鐘自動釋放
+function rtCheckStaleLocks(tasks){
+  var TTL=5*60*1000;
+  var now=Date.now();
+  Object.keys(tasks).forEach(function(k){
+    var t=tasks[k];
+    if(t.lockedBy && t.lockedAt && (now-t.lockedAt)>TTL){
+      RTDB.ref('tasks/'+k).update({lockedBy:'',lockedAt:0});
+      logSys('warn','【鎖定到期】任務 '+k+' 鎖定超過 5 分鐘，自動釋放（原鎖定：'+t.lockedBy+'）');
+    }
+  });
+}
 // 共用：依任務狀態 + 簡易/進階模式產生操作按鈕；回傳 {btns, expand}
 function rtCardCtrls(k,t,big){
   var locked=!!t.lockedBy, btns='', expand='';
@@ -2967,6 +2979,7 @@ function rtCardCtrls(k,t,big){
 }
 function renderRTTasks(){
   var tasks=rtGet('tasks'), vols=rtGet('volunteers');
+  rtCheckStaleLocks(tasks);
   var ids=Object.keys(tasks).sort(function(a,b){ if(tasks[a].forced&&!tasks[b].forced) return -1; if(!tasks[a].forced&&tasks[b].forced) return 1; return (tasks[a].priority||'P9').localeCompare(tasks[b].priority||'P9'); });
   var big=RT_SIMPLE;
   var html='';
@@ -3033,7 +3046,7 @@ function renderRTTasks(){
       html+='<div style="display:flex;align-items:center;gap:10px;padding:'+(big?'14px':'10px')+';margin-bottom:8px;background:var(--bg2);border:1px solid '+(locked?'var(--amber-border)':'var(--border)')+';border-radius:var(--r-sm);flex-wrap:wrap">'
         +'<span style="font-weight:700;font-family:monospace;color:'+(pc[t.priority]||'var(--text3)')+';font-size:'+(big?'14px':'12px')+'">'+t.priority+'</span>'
         +'<div style="flex:1;min-width:120px"><div style="font-size:'+f1+';font-weight:600">'+t.title+'</div>'
-        +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)">'+k+' · '+t.created+(asgName?' · 指派：'+asgName:'')+(locked?' · 🔒 鎖定：'+t.lockedBy:'')+'</div></div>'
+        +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)">'+k+' · '+t.created+(asgName?' · 指派：'+asgName:'')+(locked?' · 🔒 '+t.lockedBy+(t.lockedAt?' ('+Math.round((Date.now()-t.lockedAt)/60000)+'分前鎖)':''):'')+'</div></div>'
         +'<span class="badge badge-'+(t.status==='進行中'?'blue':t.status==='已完成'?'green':'amber')+'">'+t.status+'</span>'
         +c.btns
         +(c.expand?'<div style="flex-basis:100%">'+c.expand+'</div>':'')
@@ -3092,7 +3105,7 @@ function rtAssignTask(k){
   toast('✅ 已派工給 '+v.name);
 }
 function rtLockTask(k){
-  RTDB.ref('tasks/'+k).update({lockedBy:role||'admin'});
+  RTDB.ref('tasks/'+k).update({lockedBy:role||'admin',lockedAt:Date.now()});
   logSys('info','【即時任務】'+k+' 已鎖定（'+(role||'admin')+'）');
   toast('🔒 任務已鎖定');
 }
@@ -4431,19 +4444,7 @@ DATA.rebuild = {
 };
 // ── IT 待辦需求預設資料（從 UI 測試審計結果初始化）──
 DATA.devTasks = [
-  {id:'dt1',  pri:'hi', mod:'dashboard', title:'儀表板 SOS 按鈕消失：需加「→ 前往緊急 tab」快捷鈕，呼叫 showPage(\'rtsync\') + setRTTab(\'emergency\')', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt2',  pri:'lo', mod:'全系統',    title:'[已釐清] 故事線：經查全系統已無殘留 showPage(\'story\') 呼叫；結案故事線由「即時調度中台→結案」tab 與架構心智圖 story 節點承載，暫不另開獨立分頁', assignee:'', done:true, created:'2026-06-22'},
-  {id:'dt0',  pri:'md', mod:'全系統',    title:'[架構盤整 2026-06-22] 已合併 reg+sheet_reg+vms→志工人力中心、功能後台+後台維運→系統管理；新增 民眾求助通報 / 跨單位資源協調 / 災後重建與陪伴 三節點。分頁 18→17（功能頁含三新節點）。心智圖同步更新', assignee:'', done:true, created:'2026-06-22'},
-  {id:'dt3',  pri:'md', mod:'arch7',     title:'心智圖：點擊節點後沒有 detail panel 出現（#node-detail selector 不存在，需確認實際 id）', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt4',  pri:'md', mod:'arch7',     title:'心智圖：codegen 區塊（#codegen）不存在，確認代碼產生功能是否已實作或補上 id', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt5',  pri:'md', mod:'vol_hub', title:'志工人力中心-名冊總表 / 照片回報：GAS /exec 網址未設定，需在「系統管理→系統元件」填入 Google Apps Script 部署 URL 才能啟用同步', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt6',  pri:'md', mod:'admin',     title:'admin 後台：Line OA 設定卡片疑似未渲染（renderLineCards() 未被正確呼叫或資料結構缺失）', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt7',  pri:'lo', mod:'dashboard', title:'情境選擇後無 badge 視覺回饋（.scenario-badge class 不存在），點了地震等按鈕後畫面沒有明顯當前狀態標示', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt8',  pri:'lo', mod:'intake',    title:'intake.html：「產生提交碼」按鈕綁定確認，確保 importCode() 成功後的 flash("匯入成功 ✓") 有正確觸發', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt9',  pri:'lo', mod:'vol_hub',   title:'志工人力中心-管理指派子頁：目前為靜態框架，詳細搜尋/篩選/任務指派功能待補', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt10', pri:'lo', mod:'assets',    title:'assets / sorting：部份 tab 動作按鈕點擊無反應，逐一確認哪些功能仍是佔位符', assignee:'', done:false, created:'2026-06-22'},
-  // ── 架構規劃 2026-06-22：Line OA Webhook 全流程整合 ──
-  {id:'dt-arch-01', pri:'hi', mod:'arch_doc',  title:'[架構] 心智圖新增 gas_webhook/line_webhook/drive_api 三節點及對應邊，反映真實 Line OA Webhook 完整架構（已執行 2026-06-22）', assignee:'', done:true,  created:'2026-06-22'},
+  // ── GAS 後端整合（需 Line OA 帳號 + GAS 部署）──
   {id:'dt-arch-02', pri:'hi', mod:'line_oa',   title:'[Line OA] 實作真實 Webhook：GAS doPost 接收 Line events → 解析 message/follow → 寫 Sheets Event_Logs', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt-arch-03', pri:'hi', mod:'line_oa',   title:'[Line OA] 推播方向：DRMS 操作（派任務/SOS/點名）→ loaSendTask() fetch GAS → Line Messaging API pushMessage', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt-arch-04', pri:'hi', mod:'vol_hub',   title:'[報到] checkIn(vid) 實作完整：RTDB update + loaPush 報到確認 + GAS Event_Logs 寫入', assignee:'', done:false, created:'2026-06-22'},
@@ -4454,9 +4455,10 @@ DATA.devTasks = [
   {id:'dt-arch-09', pri:'md', mod:'vol_hub',   title:'[報名] innerGasUrl QR 產生邏輯連通：掃 QR → Line 加入 → GAS follow handler → Master_Profiles', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt-arch-10', pri:'lo', mod:'drive',     title:'[Drive] 照片上傳後觸發 GAS → 存 Drive photos/ 資料夾 → 回傳 fileId 顯示縮圖', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt-arch-11', pri:'lo', mod:'rtsync',    title:'[結案] rtCloseCase() 完成後自動生成 JSON 劇本 → fetch GAS → 上傳 Drive exports/', assignee:'', done:false, created:'2026-06-22'},
-  // ── 系統設計議題 2026-06-23 ──
-  {id:'dt-b01', pri:'hi', mod:'admin',     title:'[備份] 版本快照改為「每次存檔即記一筆」：drms_backup 改用 ring-buffer（最多保留 10 版），每版含時間戳，同一天三次存檔就有三份，不再覆蓋前兩版', assignee:'', done:false, created:'2026-06-23'},
-  {id:'dt-b02', pri:'hi', mod:'rtsync',    title:'[多人派工] 即時調度中台支援多位 L2 同時操作：任務卡加樂觀鎖（lockedBy + lockedAt），同一任務同時只能一人操作；RTDB BroadcastChannel 跨 tab 同步已備，下一步接 Firebase 實現跨裝置', assignee:'', done:false, created:'2026-06-23'},
+  // ── 功能補完（前端）──
+  {id:'dt5',  pri:'md', mod:'vol_hub',   title:'志工人力中心-名冊總表 / 照片回報：GAS /exec 網址未設定，需在「系統管理→系統元件」填入 Google Apps Script 部署 URL 才能啟用同步', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt9',  pri:'lo', mod:'vol_hub',   title:'志工人力中心-管理指派子頁：目前為靜態框架，詳細搜尋/篩選/任務指派功能待補', assignee:'', done:false, created:'2026-06-22'},
+  // ── 系統設計議題（需先定規格）──
   {id:'dt-b03', pri:'md', mod:'全系統',    title:'[L3 資料流] L3 模組（安置/個案/關懷/物資整理/資產）釐清兩種角色：(A) 搜集者→上傳資料供 L2 調度用；(B) 被派者→等 L2 派任務再執行。各模組需標記屬 A/B，UI 對應不同入口與表單', assignee:'', done:false, created:'2026-06-23'},
   {id:'dt-b04', pri:'hi', mod:'全系統',    title:'[Data I/O 路線] 緊急模式下 input/output 精簡化：緊急時 input 只收「誰/在哪/要什麼」三欄，output 只推「任務卡 → 志工 Line」；平時才做完整欄位。需為每個模組定義 normal/emergency 雙模式表單', assignee:'', done:false, created:'2026-06-23'},
 ];
@@ -5184,6 +5186,8 @@ function setScenario(id){
     if(lbl) lbl.textContent='當前：未選定';
     var ds=document.getElementById('dash-sub');
     if(ds) ds.textContent='即時災情總覽';
+    var badge=document.getElementById('sim-active-badge');
+    if(badge) badge.style.display='none';
     return;
   }
   currentScenario=id;
@@ -5197,6 +5201,8 @@ function setScenario(id){
   if(!sc) return;
   document.getElementById('sim-active-lbl').textContent='當前：'+sc.name;
   document.getElementById('dash-sub').textContent='即時災情 · '+sc.sub;
+  var badge=document.getElementById('sim-active-badge');
+  if(badge){badge.textContent=sc.name;badge.style.display='inline-block';}
   if(id==='war_s'){applyWarSub(currentWarSub);return;}
   applyScenarioStats(sc.stats);
   renderBugs(sc.bugs);
@@ -7487,6 +7493,28 @@ function saveSimEdit(){
 }
 
 
+// ── Ring-buffer：每次存檔記一筆，最多保留 10 版 ──
+var RING_KEY='drms_ring';var RING_MAX=10;
+function ringPush(entry){
+  var ring;try{ring=JSON.parse(localStorage.getItem(RING_KEY)||'[]');}catch(e){ring=[];}
+  ring.unshift(entry);
+  if(ring.length>RING_MAX) ring=ring.slice(0,RING_MAX);
+  try{localStorage.setItem(RING_KEY,JSON.stringify(ring));}catch(e){}
+}
+function ringRead(){try{return JSON.parse(localStorage.getItem(RING_KEY)||'[]');}catch(e){return[];}}
+function restoreFromRing(idx){
+  var ring=ringRead(); var bk=ring[idx];
+  if(!bk||!bk.data){toast('此備份點無資料');return;}
+  if(!confirm('確認還原至 v'+bk.ver+'（'+bk.time+'）？\n目前狀態會自動備份後再還原。')) return;
+  var cur=localStorage.getItem('drms_data');
+  if(cur) ringPush({ver:localStorage.getItem('drms_version')||'0',time:localStorage.getItem('drms_version_time')||'',data:cur});
+  localStorage.setItem('drms_data',bk.data);
+  var nv=parseInt(localStorage.getItem('drms_version')||'0',10)+1;
+  localStorage.setItem('drms_version',String(nv));
+  localStorage.setItem('drms_version_time',new Date().toLocaleString('zh-TW')+'（還原自 v'+bk.ver+'）');
+  toast('↺ 已還原至 v'+bk.ver+'，重新載入中…');
+  setTimeout(function(){location.reload();},800);
+}
 // ── PERSIST DATA to localStorage ──
 var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','case_mgt','care_rec','shelter_mgt','registry','devTasks','relief_req','coord','rebuild'];
 function saveData(){
@@ -7507,8 +7535,11 @@ function saveData(){
     // 遞增版本流水號
     var ver = parseInt(localStorage.getItem('drms_version')||'0',10) + 1;
     localStorage.setItem('drms_version', String(ver));
-    localStorage.setItem('drms_version_time', new Date().toLocaleString('zh-TW'));
+    var nowStr=new Date().toLocaleString('zh-TW');
+    localStorage.setItem('drms_version_time', nowStr);
     localStorage.setItem('drms_data', JSON.stringify(payload));
+    // Ring-buffer：每次存檔記一筆
+    if(prev) ringPush({ver:prevVer,time:prevTime,data:prev});
     snapshotBySlot(payload);
   }catch(e){
     logSys('err','localStorage 寫入失敗（容量/隱私模式），資料僅存於記憶體');
@@ -7725,6 +7756,24 @@ function renderVersionPanel(){
     html+='</div>';
     if(bk) html+='<button class="btn btn-ghost btn-xs" onclick="restoreSlot(\''+k[0]+'\')">↺ 還原此時段</button>';
     html+='</div>';
+  }
+  html+='</div></div>';
+  // Ring-buffer 自動存檔紀錄（每次存檔即記一筆，最多 10 版）
+  var ring=ringRead();
+  html+='<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">';
+  html+='<div style="font-size:12px;font-weight:700;margin-bottom:8px">🔁 自動存檔紀錄 <span style="font-size:10px;color:var(--text4);font-weight:400">每次儲存即記一筆，最多保留 '+RING_MAX+' 版</span></div>';
+  html+='<div style="display:grid;gap:6px">';
+  if(ring.length){
+    for(var ri=0;ri<ring.length;ri++){
+      var rk=ring[ri];
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg2)">';
+      html+='<div style="flex:1"><div style="font-size:11px;font-weight:600"><span style="font-family:monospace;color:var(--text3)">v'+rk.ver+'</span>'+(ri===0?' <span style="font-size:9px;color:var(--blue)">最新</span>':'')+'</div>';
+      html+='<div style="font-size:10px;color:var(--text4)">'+rk.time+'</div></div>';
+      html+='<button class="btn btn-ghost btn-xs" onclick="restoreFromRing('+ri+')">↺ 還原</button>';
+      html+='</div>';
+    }
+  } else {
+    html+='<div style="font-size:11px;color:var(--text4);padding:8px 0">尚無自動存檔紀錄。下次儲存後將自動記錄。</div>';
   }
   html+='</div></div>';
   // 手動備份 / 還原（環形三槽，最多保留過去三版）
