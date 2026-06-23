@@ -601,6 +601,106 @@ textarea.iep-inp{resize:vertical;min-height:56px}
   background:var(--bg2);
 }
 
+/* ══ 手機模式 (MOBILE MODE) ══ */
+body.mobile-mode .hdr,
+body.mobile-mode .nav,
+body.mobile-mode .main,
+body.mobile-mode #line-oa-panel { display:none!important; }
+body.mobile-mode #mobile-root { display:flex!important; }
+#mobile-root {
+  display:none;
+  flex-direction:column;
+  min-height:100vh;
+  background:#0f172a;
+  color:#e2e8f0;
+  font-family:'Noto Sans TC','Inter',sans-serif;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+.m-screen { display:none; flex-direction:column; flex:1; overflow:hidden; min-height:100vh; }
+.m-screen.act { display:flex; }
+.m-topbar {
+  background:#1e293b;
+  padding:12px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid #334155;
+  flex-shrink:0;
+}
+.m-topbar-title { font-size:16px; font-weight:700; color:#f1f5f9; }
+.m-topbar-sub { font-size:11px; color:#94a3b8; margin-top:1px; }
+.m-body { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; }
+.m-card { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:14px; }
+.m-card-title { font-size:11px; font-weight:700; color:#64748b; margin-bottom:10px; text-transform:uppercase; letter-spacing:.06em; }
+.m-btn {
+  display:block; width:100%;
+  padding:14px 16px; border:none; border-radius:10px;
+  font-size:15px; font-weight:700; color:#fff; cursor:pointer;
+  text-align:left; margin-bottom:8px; background:#1d4ed8;
+  transition:background .15s; min-height:52px; font-family:inherit;
+}
+.m-btn:last-child { margin-bottom:0; }
+.m-btn:active { filter:brightness(.82); }
+.m-btn.green  { background:#065f46; }
+.m-btn.red    { background:#7f1d1d; }
+.m-btn.orange { background:#78350f; }
+.m-btn.gray   { background:#1e293b; border:1px solid #475569; color:#94a3b8; }
+.m-btn.sos-big {
+  background:#dc2626; font-size:20px; text-align:center;
+  padding:20px; border-radius:14px; margin:0;
+  animation:mSosPulse 2s infinite;
+}
+@keyframes mSosPulse {
+  0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)}
+  50%{box-shadow:0 0 0 14px rgba(220,38,38,0)}
+}
+.m-badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
+.m-badge.green  { background:#064e3b; color:#6ee7b7; }
+.m-badge.red    { background:#7f1d1d; color:#fca5a5; }
+.m-badge.blue   { background:#1e3a5f; color:#93c5fd; }
+.m-badge.orange { background:#78350f; color:#fcd34d; }
+.m-badge.gray   { background:#1e293b; color:#94a3b8; border:1px solid #334155; }
+.m-input {
+  width:100%; background:#0f172a; border:1px solid #475569;
+  border-radius:8px; color:#e2e8f0; padding:10px 12px;
+  font-size:14px; box-sizing:border-box; font-family:inherit; margin-bottom:8px;
+}
+.m-input:focus { outline:none; border-color:#3b82f6; }
+.m-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 0; border-bottom:1px solid #0f172a;
+}
+.m-row:last-child { border-bottom:none; }
+.m-row-name { font-size:14px; font-weight:600; color:#e2e8f0; }
+.m-row-sub  { font-size:12px; color:#64748b; margin-top:2px; }
+.m-sos-bar {
+  background:#7f1d1d; border-top:2px solid #dc2626;
+  padding:10px 16px; display:flex; align-items:center; gap:10px; flex-shrink:0;
+}
+.m-sos-bar button {
+  background:#dc2626; color:#fff; border:none; border-radius:8px;
+  padding:8px 14px; font-size:13px; font-weight:700; cursor:pointer; margin-left:auto;
+}
+.m-role-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.m-role-card {
+  background:#1e293b; border:2px solid #334155; border-radius:14px;
+  padding:16px 12px; text-align:center; cursor:pointer;
+  transition:border-color .15s, background .15s;
+}
+.m-role-card:active { background:#0f172a; border-color:#3b82f6; }
+.m-role-icon { font-size:32px; margin-bottom:8px; }
+.m-role-name { font-size:14px; font-weight:700; color:#f1f5f9; }
+.m-role-desc { font-size:11px; color:#64748b; margin-top:4px; }
+.m-tab-bar { display:flex; background:#0f172a; border-top:1px solid #334155; flex-shrink:0; }
+.m-tab { flex:1; padding:10px 4px; text-align:center; font-size:10px; color:#64748b; cursor:pointer; border:none; background:none; font-family:inherit; }
+.m-tab.act { color:#3b82f6; }
+.m-tab .m-tab-icon { font-size:18px; display:block; }
+.m-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.m-stat-box { background:#0f172a; border-radius:10px; padding:12px; text-align:center; }
+.m-stat-num { font-size:26px; font-weight:800; }
+.m-stat-lbl { font-size:11px; color:#64748b; margin-top:4px; }
+
 </style>
 </head>
 <body>
@@ -9908,6 +10008,646 @@ document.addEventListener('click',function(e){
     }
   });
 })();
+// ═══════════════════════════════════════════════════════
+// 手機模式 (MOBILE MODE)
+// ═══════════════════════════════════════════════════════
+var IS_MOBILE = (window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
+var M_ROLE = '';
+var M_LEADER_TAB = 'task';
+var M_ADMIN_TAB  = 'case';
+var M_CMD_TAB    = 'overview';
+var M_SOS_POLL   = null;
+
+function mInitMobile(){
+  document.body.classList.add('mobile-mode');
+  mShowScreen('role');
+  M_SOS_POLL = setInterval(function(){
+    var sos = rtGet('sos') || {};
+    var bar = document.getElementById('m-member-sos');
+    if(bar) bar.style.display = (sos && sos.active) ? 'flex' : 'none';
+  }, 3000);
+}
+
+function mShowScreen(name){
+  document.querySelectorAll('.m-screen').forEach(function(s){ s.classList.remove('act'); });
+  var el = document.getElementById('m-screen-' + name);
+  if(el){ el.classList.add('act'); mRenderScreen(name); }
+}
+
+function mSelectRole(role){
+  M_ROLE = role;
+  mShowScreen(role);
+}
+
+function mRenderScreen(name){
+  if     (name==='member')    mRenderMember();
+  else if(name==='leader')  { M_LEADER_TAB='task'; mRenderLeader(); }
+  else if(name==='driver')    mRenderDriver();
+  else if(name==='admin')   { M_ADMIN_TAB='case';  mRenderAdmin(); }
+  else if(name==='public')    mRenderPublic();
+  else if(name==='commander'){ M_CMD_TAB='overview'; mRenderCommander(); }
+}
+
+// ── 組員畫面 ──────────────────────────────────────────
+function mRenderMember(){
+  var vols  = rtGet('volunteers') || {};
+  var tasks = rtGet('tasks') || {};
+  var myVid = (DATA.registry && DATA.registry.myVid) || '';
+  var myTasks = Object.entries(tasks).filter(function(kv){
+    return kv[1].assignee===myVid && kv[1].status!=='已完成';
+  });
+  var me = vols[myVid] || {};
+  var status = me.status || '待命';
+  var html = '';
+  html += '<div class="m-card">';
+  html += '<div class="m-card-title">我的狀態</div>';
+  html += '<div class="m-row"><div><div class="m-row-name">'+(me.name||myVid||'未設定')+'</div>';
+  html += '<div class="m-row-sub">'+(me.group||'未分組')+'</div></div>';
+  html += '<span class="m-badge '+(status==='執行中'?'blue':status==='待命'?'green':'gray')+'">'+status+'</span></div>';
+  html += '<div style="display:flex;gap:8px;margin-top:12px">';
+  html += '<button class="m-btn green" style="margin:0;flex:1;text-align:center;padding:12px" onclick="mCheckin()">✅ 報到</button>';
+  html += '<button class="m-btn gray"  style="margin:0;flex:1;text-align:center;padding:12px" onclick="mLeaveRequest()">🚶 請假</button>';
+  html += '</div></div>';
+  if(myTasks.length===0){
+    html += '<div class="m-card"><div style="text-align:center;padding:20px;color:#64748b">暫無指派任務</div></div>';
+  } else {
+    myTasks.forEach(function(kv){
+      var k=kv[0], t=kv[1];
+      html += '<div class="m-card">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+      html += '<div style="font-size:14px;font-weight:700;color:#f1f5f9">'+(t.title||'任務')+'</div>';
+      html += '<span class="m-badge '+(t.priority==='P0'?'red':t.priority==='P1'?'blue':'gray')+'">'+(t.priority||'P2')+'</span>';
+      html += '</div>';
+      if(t.location) html += '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">📍 '+t.location+'</div>';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+      html += '<button class="m-btn"        style="margin:0;text-align:center;padding:10px;font-size:13px" onclick="mMemberAction(\''+k+'\',\'出發\')">🚀 出發</button>';
+      html += '<button class="m-btn green"  style="margin:0;text-align:center;padding:10px;font-size:13px" onclick="mMemberAction(\''+k+'\',\'到達\')">📍 到達</button>';
+      html += '<button class="m-btn orange" style="margin:0;text-align:center;padding:10px;font-size:13px" onclick="mMemberAction(\''+k+'\',\'完成\')">✅ 完成</button>';
+      html += '<button class="m-btn red"    style="margin:0;text-align:center;padding:10px;font-size:13px" onclick="mMemberAction(\''+k+'\',\'需支援\')">⚠️ 需支援</button>';
+      html += '</div></div>';
+    });
+  }
+  var body = document.getElementById('m-member-body');
+  if(body) body.innerHTML = html;
+  var sub = document.getElementById('m-member-sub');
+  if(sub) sub.textContent = myTasks.length ? myTasks.length+'個進行中任務' : '待命中';
+}
+
+function mCheckin(){
+  var myVid = (DATA.registry && DATA.registry.myVid) || ('M-'+Date.now().toString(36).toUpperCase());
+  RTDB.ref('volunteers/'+myVid).update({status:'待命', checkinTime: new Date().toLocaleTimeString('zh-TW')});
+  loaLog('📱 [手機報到] '+myVid+' 已報到');
+  toast('✅ 報到成功');
+  mRenderMember();
+}
+function mLeaveRequest(){
+  toast('📝 請假申請已送出，組長將收到通知');
+  loaLog('📱 [請假] 組員申請請假');
+}
+function mMemberAction(taskId, action){
+  if(action==='完成'){
+    rtReport(taskId,'已完成');
+  } else if(action==='需支援'){
+    var t2 = (rtGet('tasks')||{})[taskId]||{};
+    triggerSOS('組員','任務【'+(t2.title||taskId)+'】需要支援');
+  } else {
+    RTDB.ref('tasks/'+taskId).update({status:'執行中'});
+    loaLog('📱 [組員回報] 任務 '+taskId+' — '+action);
+    toast('📡 狀態已回報：'+action);
+  }
+  mRenderMember();
+}
+function mSOSAck(){ toast('✅ 已確認收到緊急警報'); loaLog('📱 [SOS確認] 組員確認收到警報'); }
+function mSendSOS(){ triggerSOS('手機用戶','手機緊急求援'); toast('🆘 緊急警報已發出！'); }
+
+// ── 組長畫面 ──────────────────────────────────────────
+function mLeaderTab(tab){
+  M_LEADER_TAB=tab;
+  ['task','team','supply'].forEach(function(t){
+    var el=document.getElementById('m-ltab-'+t);
+    if(el) el.classList.toggle('act', t===tab);
+  });
+  mRenderLeader();
+}
+function mRenderLeader(){
+  var tasks = rtGet('tasks')||{};
+  var vols  = rtGet('volunteers')||{};
+  var html  = '';
+  if(M_LEADER_TAB==='task'){
+    var pending = Object.entries(tasks).filter(function(kv){ return kv[1].status!=='已完成'; });
+    if(pending.length===0){
+      html = '<div class="m-card"><div style="text-align:center;padding:20px;color:#64748b">暫無待辦任務</div></div>';
+    } else {
+      pending.slice(0,8).forEach(function(kv){
+        var k=kv[0], t=kv[1];
+        html += '<div class="m-card">';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+        html += '<div style="font-size:14px;font-weight:700;color:#f1f5f9">'+(t.title||k)+'</div>';
+        html += '<span class="m-badge '+(t.priority==='P0'?'red':t.priority==='P1'?'blue':'gray')+'">'+(t.priority||'P2')+'</span>';
+        html += '</div>';
+        if(t.assignee){
+          var v=vols[t.assignee]||{};
+          html += '<div style="font-size:12px;color:#94a3b8;margin-bottom:8px">指派：'+(v.name||t.assignee)+' <span class="m-badge '+(t.status==='執行中'?'blue':'gray')+'">'+(t.status||'待命')+'</span></div>';
+        } else {
+          html += '<div style="font-size:12px;color:#f59e0b;margin-bottom:8px">⚠️ 未指派</div>';
+        }
+        html += '<div style="display:flex;gap:6px">';
+        html += '<button class="m-btn"       style="margin:0;flex:1;text-align:center;padding:10px;font-size:13px" onclick="mLeaderAssign(\''+k+'\')">指派</button>';
+        html += '<button class="m-btn green" style="margin:0;flex:1;text-align:center;padding:10px;font-size:13px" onclick="mLeaderComplete(\''+k+'\')">完成</button>';
+        html += '</div></div>';
+      });
+    }
+  } else if(M_LEADER_TAB==='team'){
+    var volList = Object.entries(vols);
+    if(volList.length===0){
+      html = '<div class="m-card"><div style="text-align:center;padding:20px;color:#64748b">暫無組員資料</div></div>';
+    } else {
+      html += '<div class="m-card"><div class="m-card-title">組員狀態 ('+volList.length+'人)</div>';
+      volList.forEach(function(kv){
+        var v=kv[1];
+        html += '<div class="m-row"><div><div class="m-row-name">'+(v.name||kv[0])+'</div>';
+        html += '<div class="m-row-sub">'+(v.group||'未分組')+'</div></div>';
+        html += '<span class="m-badge '+(v.status==='執行中'?'blue':v.status==='待命'?'green':'gray')+'">'+(v.status||'未知')+'</span></div>';
+      });
+      html += '</div>';
+      html += '<button class="m-btn" style="text-align:center" onclick="mLeaderRollcall()">📢 全員點名</button>';
+    }
+  } else {
+    var reqs = (DATA.warehouse && DATA.warehouse.reqs) || [];
+    html += '<div class="m-card"><div class="m-card-title">物資申請 ('+reqs.length+'件)</div>';
+    if(reqs.length===0){
+      html += '<div style="text-align:center;padding:20px;color:#64748b">暫無申請</div>';
+    } else {
+      reqs.slice(-5).reverse().forEach(function(r){
+        html += '<div class="m-row"><div><div class="m-row-name">'+(r.item||r.type||'物資')+'</div>';
+        html += '<div class="m-row-sub">'+(r.qty||1)+' 件 · '+(r.time||'')+'</div></div>';
+        html += '<span class="m-badge '+(r.status==='已完成'?'green':'blue')+'">'+(r.status||'待辦')+'</span></div>';
+      });
+    }
+    html += '</div>';
+    html += '<button class="m-btn" style="text-align:center" onclick="mLeaderRequestSupply()">📦 申請物資</button>';
+  }
+  var body = document.getElementById('m-leader-body');
+  if(body) body.innerHTML = html;
+}
+function mLeaderAssign(taskId){
+  var vols = rtGet('volunteers')||{};
+  var available = Object.entries(vols).filter(function(kv){ return kv[1].status==='待命'; });
+  if(available.length===0){ toast('⚠️ 無待命組員'); return; }
+  var vid=available[0][0];
+  rtDoAssign(taskId, vid);
+  toast('✅ 已指派給 '+(available[0][1].name||vid));
+  mRenderLeader();
+}
+function mLeaderComplete(taskId){ rtReport(taskId,'已完成'); mRenderLeader(); }
+function mLeaderRollcall(){ loaGroupRollcall(); toast('📢 點名訊息已推播'); }
+function mLeaderRequestSupply(){
+  var item = prompt('請輸入物資名稱：');
+  if(!item) return;
+  if(!DATA.warehouse) DATA.warehouse={reqs:[]};
+  if(!DATA.warehouse.reqs) DATA.warehouse.reqs=[];
+  DATA.warehouse.reqs.push({item:item, qty:1, time:new Date().toLocaleTimeString('zh-TW'), status:'待辦'});
+  saveData();
+  toast('📦 物資申請已送出：'+item);
+  mRenderLeader();
+}
+
+// ── 司機/物資 ─────────────────────────────────────────
+function mRenderDriver(){
+  var tasks = rtGet('tasks')||{};
+  var supplyTasks = Object.entries(tasks).filter(function(kv){ return kv[1].title && kv[1].title.indexOf('叫料')>-1; });
+  var items = (DATA.warehouse && DATA.warehouse.items)||[];
+  var html  = '';
+  html += '<div class="m-card"><div class="m-card-title">配送任務</div>';
+  if(supplyTasks.length===0){
+    html += '<div style="text-align:center;padding:20px;color:#64748b">暫無配送任務</div>';
+  } else {
+    supplyTasks.forEach(function(kv){
+      var k=kv[0], t=kv[1];
+      html += '<div class="m-row"><div><div class="m-row-name">'+(t.title||k)+'</div>';
+      html += '<div class="m-row-sub">'+(t.location||'待確認')+'</div></div>';
+      html += '<button class="m-btn green" style="width:auto;margin:0;padding:8px 12px;font-size:12px;min-height:0" onclick="mDriverComplete(\''+k+'\')">完成</button></div>';
+    });
+  }
+  html += '</div>';
+  html += '<div class="m-card"><div class="m-card-title">快速操作</div>';
+  html += '<button class="m-btn"        style="text-align:center" onclick="mDriverCheckin()">✅ 司機報到</button>';
+  html += '<button class="m-btn orange" style="text-align:center" onclick="mDriverFuel()">⛽ 回報油量</button>';
+  html += '</div>';
+  html += '<div class="m-card"><div class="m-card-title">庫存快覽</div>';
+  if(items.length===0){
+    html += '<div style="text-align:center;padding:12px;color:#64748b">無庫存資料</div>';
+  } else {
+    items.slice(0,5).forEach(function(it){
+      html += '<div class="m-row"><div class="m-row-name">'+(it.name||it.type||'物資')+'</div>';
+      html += '<span class="m-badge '+(it.qty>10?'green':it.qty>0?'blue':'red')+'">'+(it.qty||0)+' 件</span></div>';
+    });
+  }
+  html += '</div>';
+  var body=document.getElementById('m-driver-body'); if(body) body.innerHTML=html;
+  var sub =document.getElementById('m-driver-sub');  if(sub)  sub.textContent=supplyTasks.length?supplyTasks.length+'件配送任務':'待命';
+}
+function mDriverComplete(taskId){ rtReport(taskId,'已完成'); toast('✅ 配送完成已回報'); mRenderDriver(); }
+function mDriverCheckin(){ toast('✅ 司機報到成功'); loaLog('📱 [司機報到] 已報到'); }
+function mDriverFuel(){
+  var level=prompt('油量（%）：');
+  if(!level) return;
+  loaLog('📱 [司機回報] 油量 '+level+'%');
+  toast('⛽ 油量回報：'+level+'%');
+}
+
+// ── 行政/訪查 ─────────────────────────────────────────
+function mAdminTab(tab){
+  M_ADMIN_TAB=tab;
+  ['case','care','checkin'].forEach(function(t){
+    var el=document.getElementById('m-atab-'+t);
+    if(el) el.classList.toggle('act', t===tab);
+  });
+  mRenderAdmin();
+}
+function mRenderAdmin(){
+  var html='';
+  if(M_ADMIN_TAB==='case'){
+    var cases = DATA.cases||[];
+    html += '<div class="m-card"><div class="m-card-title">個案列表 ('+cases.length+')</div>';
+    if(cases.length===0){
+      html += '<div style="text-align:center;padding:20px;color:#64748b">暫無個案</div>';
+    } else {
+      cases.slice(-6).reverse().forEach(function(c,i){
+        html += '<div class="m-row"><div><div class="m-row-name">'+(c.name||c.id||'個案'+i)+'</div>';
+        html += '<div class="m-row-sub">'+(c.address||c.contact||'')+'</div></div>';
+        html += '<span class="m-badge '+(c.priority==='高'?'red':c.priority==='中'?'blue':'green')+'">'+(c.priority||'一般')+'</span></div>';
+      });
+    }
+    html += '</div>';
+    html += '<button class="m-btn" style="text-align:center" onclick="mAdminNewCase()">➕ 新建個案</button>';
+  } else if(M_ADMIN_TAB==='care'){
+    var recs = (DATA.care_rec && DATA.care_rec.records)||[];
+    html += '<div class="m-card"><div class="m-card-title">關懷紀錄 ('+recs.length+')</div>';
+    if(recs.length===0){
+      html += '<div style="text-align:center;padding:20px;color:#64748b">暫無紀錄</div>';
+    } else {
+      recs.slice(-5).reverse().forEach(function(r){
+        html += '<div class="m-row"><div><div class="m-row-name">'+(r.name||r.caseId||'訪視')+'</div>';
+        html += '<div class="m-row-sub">'+(r.date||r.time||'')+(r.type?' · '+r.type:'')+'</div></div>';
+        html += '<span class="m-badge green">已記錄</span></div>';
+      });
+    }
+    html += '</div>';
+    html += '<button class="m-btn" style="text-align:center" onclick="mAdminNewCare()">💙 新增關懷紀錄</button>';
+  } else {
+    var membs = (DATA.registry && DATA.registry.innerMembers)||[];
+    var checkedIn = membs.filter(function(m){ return m.checkin; }).length;
+    html += '<div class="m-card"><div class="m-card-title">今日報到 '+checkedIn+' / '+membs.length+'</div>';
+    membs.slice(0,12).forEach(function(m){
+      html += '<div class="m-row"><div><div class="m-row-name">'+(m.name||m.id||'志工')+'</div>';
+      html += '<div class="m-row-sub">'+(m.group||'')+'</div></div>';
+      if(m.checkin){
+        html += '<span class="m-badge green">已到</span>';
+      } else {
+        html += '<button class="m-btn gray" style="width:auto;margin:0;padding:6px 10px;font-size:12px;min-height:0" onclick="mAdminCheckin(\''+m.id+'\')">報到</button>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  var body=document.getElementById('m-admin-body'); if(body) body.innerHTML=html;
+}
+function mAdminNewCase(){
+  var name=prompt('個案姓名：'); if(!name) return;
+  if(!DATA.cases) DATA.cases=[];
+  DATA.cases.push({id:'C-'+Date.now().toString(36).toUpperCase(), name:name, priority:'中', status:'開案', createdAt:new Date().toLocaleString('zh-TW')});
+  saveData(); toast('✅ 個案已建立：'+name); mRenderAdmin();
+}
+function mAdminNewCare(){
+  var name=prompt('訪視對象（姓名/ID）：'); if(!name) return;
+  if(!DATA.care_rec) DATA.care_rec={records:[]};
+  if(!DATA.care_rec.records) DATA.care_rec.records=[];
+  DATA.care_rec.records.push({name:name, date:new Date().toLocaleDateString('zh-TW'), type:'一般訪視', note:'手機記錄'});
+  saveData(); toast('💙 關懷紀錄已新增'); mRenderAdmin();
+}
+function mAdminCheckin(id){
+  var membs=(DATA.registry && DATA.registry.innerMembers)||[];
+  var m=membs.find(function(x){ return x.id===id; });
+  if(m){ m.checkin=true; m.checkinTime=new Date().toLocaleTimeString('zh-TW'); saveData(); }
+  loaLog('📱 [行政報到] '+id+' 已報到');
+  toast('✅ 已手動報到：'+id);
+  mRenderAdmin();
+}
+
+// ── 民眾求助 ──────────────────────────────────────────
+function mRenderPublic(){
+  var html='';
+  html += '<div class="m-card"><div class="m-card-title">填寫求助需求</div>';
+  html += '<input  class="m-input" id="m-pub-name"  placeholder="您的姓名 *" />';
+  html += '<input  class="m-input" id="m-pub-phone" placeholder="聯絡電話 *" type="tel" />';
+  html += '<input  class="m-input" id="m-pub-addr"  placeholder="受災地址 *" />';
+  html += '<textarea class="m-input" id="m-pub-desc" placeholder="需求說明（受困/受傷/物資需求等）" rows="3" style="resize:none"></textarea>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">';
+  ['受困','醫療','物資','清理','精神','其他'].forEach(function(t){
+    html += '<button class="m-btn gray" style="margin:0;text-align:center;padding:8px;font-size:12px;min-height:0" onclick="mPubQuick(\''+t+'\')">'+t+'</button>';
+  });
+  html += '</div>';
+  html += '<button class="m-btn red" style="text-align:center" onclick="mPubSubmit()">🆘 送出求助</button>';
+  html += '</div>';
+  html += '<div class="m-card"><div class="m-card-title">緊急聯絡</div>';
+  html += '<div class="m-row"><div class="m-row-name">119 消防救援</div><a href="tel:119" style="text-decoration:none"><button class="m-btn red" style="width:auto;margin:0;padding:8px 14px;font-size:13px;min-height:0">撥打</button></a></div>';
+  html += '<div class="m-row"><div class="m-row-name">110 警察報案</div><a href="tel:110" style="text-decoration:none"><button class="m-btn red" style="width:auto;margin:0;padding:8px 14px;font-size:13px;min-height:0">撥打</button></a></div>';
+  html += '</div>';
+  var body=document.getElementById('m-public-body'); if(body) body.innerHTML=html;
+}
+function mPubQuick(type){
+  var desc=document.getElementById('m-pub-desc');
+  if(desc) desc.value=(desc.value ? desc.value+'、' : '')+type;
+}
+function mPubSubmit(){
+  var name  =(document.getElementById('m-pub-name') ||{}).value||'';
+  var phone =(document.getElementById('m-pub-phone')||{}).value||'';
+  var addr  =(document.getElementById('m-pub-addr') ||{}).value||'';
+  var desc  =(document.getElementById('m-pub-desc') ||{}).value||'';
+  if(!name||!phone||!addr){ toast('⚠️ 請填寫姓名、電話及地址'); return; }
+  if(!DATA.relief_req) DATA.relief_req={requests:[]};
+  if(!DATA.relief_req.requests) DATA.relief_req.requests=[];
+  var req={id:'REQ-'+Date.now().toString(36).toUpperCase(), name:name, phone:phone, address:addr, desc:desc, status:'待處理', time:new Date().toLocaleString('zh-TW')};
+  DATA.relief_req.requests.push(req); saveData();
+  loaLog('📱 [民眾求助] '+name+' ('+addr+') 已送出求助');
+  toast('✅ 求助已送出，請保持電話暢通');
+  ['m-pub-name','m-pub-phone','m-pub-addr','m-pub-desc'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+}
+
+// ── 緊急指揮 ──────────────────────────────────────────
+function mCmdTab(tab){
+  M_CMD_TAB=tab;
+  ['overview','dispatch','sos'].forEach(function(t){
+    var el=document.getElementById('m-ctab-'+t);
+    if(el) el.classList.toggle('act', t===tab);
+  });
+  mRenderCommander();
+}
+function mRenderCommander(){
+  var tasks   = rtGet('tasks')||{};
+  var vols    = rtGet('volunteers')||{};
+  var taskArr = Object.entries(tasks);
+  var volArr  = Object.entries(vols);
+  var html    = '';
+  if(M_CMD_TAB==='overview'){
+    var done    = taskArr.filter(function(kv){ return kv[1].status==='已完成'; }).length;
+    var active  = taskArr.filter(function(kv){ return kv[1].status==='執行中'; }).length;
+    var waiting = taskArr.length - done - active;
+    var ready   = volArr.filter(function(kv){ return kv[1].status==='待命'; }).length;
+    html += '<div class="m-card"><div class="m-card-title">任務總覽</div>';
+    html += '<div class="m-stat-grid">';
+    [['📋 任務',taskArr.length,'blue'],['✅ 完成',done,'green'],['🔄 進行中',active,'blue'],['⏳ 待派',waiting,'gray']].forEach(function(item){
+      html += '<div class="m-stat-box"><div class="m-stat-num" style="color:'+(item[2]==='green'?'#6ee7b7':item[2]==='blue'?'#93c5fd':'#94a3b8')+'">' + item[1] + '</div>';
+      html += '<div class="m-stat-lbl">'+item[0]+'</div></div>';
+    });
+    html += '</div>';
+    html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #334155">';
+    html += '<div class="m-row"><div class="m-row-name">待命志工</div><span class="m-badge green">'+ready+' 人</span></div>';
+    html += '<div class="m-row"><div class="m-row-name">志工總數</div><span class="m-badge blue">'+volArr.length+' 人</span></div>';
+    html += '</div></div>';
+    html += '<div class="m-card"><div class="m-card-title">最新任務</div>';
+    if(taskArr.length===0){
+      html += '<div style="text-align:center;padding:16px;color:#64748b">暫無任務</div>';
+    } else {
+      taskArr.slice(-5).reverse().forEach(function(kv){
+        var t=kv[1];
+        html += '<div class="m-row"><div><div class="m-row-name">'+(t.title||kv[0])+'</div>';
+        html += '<div class="m-row-sub">'+(t.assignee||'未指派')+'</div></div>';
+        html += '<span class="m-badge '+(t.status==='已完成'?'green':t.status==='執行中'?'blue':'gray')+'">'+(t.status||'待命')+'</span></div>';
+      });
+    }
+    html += '</div>';
+  } else if(M_CMD_TAB==='dispatch'){
+    var unassigned = taskArr.filter(function(kv){ return !kv[1].assignee && kv[1].status!=='已完成'; });
+    html += '<div class="m-card"><div class="m-card-title">待指派任務 ('+unassigned.length+')</div>';
+    if(unassigned.length===0){
+      html += '<div style="text-align:center;padding:20px;color:#64748b">全部已指派</div>';
+    } else {
+      unassigned.slice(0,6).forEach(function(kv){
+        var k=kv[0], t=kv[1];
+        html += '<div class="m-row"><div><div class="m-row-name">'+(t.title||k)+'</div>';
+        html += '<div class="m-row-sub">'+(t.priority||'P2')+'</div></div>';
+        html += '<button class="m-btn" style="width:auto;margin:0;padding:8px 12px;font-size:12px;min-height:0" onclick="mCmdAutoAssign(\''+k+'\')">指派</button></div>';
+      });
+    }
+    html += '</div>';
+    html += '<div class="m-card"><div class="m-card-title">發布新任務</div>';
+    html += '<input  class="m-input" id="m-cmd-task-title" placeholder="任務名稱" />';
+    html += '<input  class="m-input" id="m-cmd-task-loc"   placeholder="地點（選填）" />';
+    html += '<button class="m-btn" style="text-align:center" onclick="mCmdNewTask()">📋 發布任務</button>';
+    html += '</div>';
+  } else {
+    var sos = rtGet('sos')||{};
+    if(sos.active){
+      html += '<div class="m-card" style="border-color:#dc2626">';
+      html += '<div style="color:#fca5a5;font-weight:700;font-size:15px;margin-bottom:8px">🚨 緊急警報啟動中</div>';
+      html += '<div style="color:#94a3b8;font-size:13px;margin-bottom:12px">'+(sos.detail||'')+'</div>';
+      html += '<button class="m-btn green" style="text-align:center" onclick="mCmdClearSOS()">✅ 解除警報</button>';
+      html += '</div>';
+    }
+    html += '<div class="m-card"><div class="m-card-title">緊急操作</div>';
+    html += '<button class="m-btn red"    style="text-align:center" onclick="mCmdSOS()">🆘 發出全員緊急警報</button>';
+    html += '<button class="m-btn orange" style="text-align:center" onclick="mCmdRollcall()">📢 全員緊急點名</button>';
+    html += '<button class="m-btn"        style="text-align:center" onclick="mCmdEvacuate()">🚨 下達疏散指令</button>';
+    html += '</div>';
+    var auditLog = rtGet('auditLog')||{};
+    var sosLogs  = Object.values(auditLog).filter(function(l){ return l.action && l.action.indexOf('SOS')>-1; });
+    if(sosLogs.length>0){
+      html += '<div class="m-card"><div class="m-card-title">SOS 紀錄</div>';
+      sosLogs.slice(-5).reverse().forEach(function(l){
+        html += '<div class="m-row"><div><div class="m-row-name">'+(l.action||'SOS')+'</div>';
+        html += '<div class="m-row-sub">'+(l.time||'')+'</div></div></div>';
+      });
+      html += '</div>';
+    }
+  }
+  var body=document.getElementById('m-cmd-body'); if(body) body.innerHTML=html;
+  var sos2=rtGet('sos')||{};
+  var sub=document.getElementById('m-cmd-sub');
+  if(sub) sub.textContent=sos2.active?'⚠️ 緊急警報中！':'全域管控 · '+taskArr.length+'個任務';
+}
+function mCmdAutoAssign(taskId){
+  var vols=rtGet('volunteers')||{};
+  var avail=Object.entries(vols).filter(function(kv){ return kv[1].status==='待命'; });
+  if(avail.length===0){ toast('⚠️ 無待命志工'); return; }
+  rtDoAssign(taskId, avail[0][0]);
+  toast('✅ 已指派給 '+(avail[0][1].name||avail[0][0]));
+  mRenderCommander();
+}
+function mCmdNewTask(){
+  var title=(document.getElementById('m-cmd-task-title')||{}).value||'';
+  var loc  =(document.getElementById('m-cmd-task-loc')  ||{}).value||'';
+  if(!title){ toast('⚠️ 請輸入任務名稱'); return; }
+  RTDB.ref('tasks').push({title:title, location:loc, priority:'P2', status:'待派工', createdAt:new Date().toLocaleString('zh-TW')});
+  loaLog('📱 [指揮] 新任務已發布：'+title);
+  toast('📋 任務已發布');
+  var t=document.getElementById('m-cmd-task-title'); if(t) t.value='';
+  var l=document.getElementById('m-cmd-task-loc');   if(l) l.value='';
+  mRenderCommander();
+}
+function mCmdSOS(){
+  if(!confirm('確定要發出全員緊急警報？')) return;
+  triggerSOS('指揮中心','全員緊急動員');
+  toast('🆘 緊急警報已發出！');
+  mRenderCommander();
+}
+function mCmdClearSOS(){ loaClearSOS(); toast('✅ 警報已解除'); mRenderCommander(); }
+function mCmdRollcall(){ loaGroupRollcall(); toast('📢 緊急點名已發出'); }
+function mCmdEvacuate(){
+  RTDB.ref('broadcast').push({type:'evacuate', msg:'⚠️ 請立即疏散！依照指示前往集結點。', time:new Date().toLocaleString('zh-TW')});
+  loaLog('📱 [指揮] 疏散指令已下達');
+  toast('🚨 疏散指令已下達');
+}
+// ────────────────────────────────────────────────────────
+if(IS_MOBILE){ mInitMobile(); }
 </script>
+
+<!-- ══ 手機模式根節點 ══ -->
+<div id="mobile-root">
+
+  <!-- 角色選擇 -->
+  <div class="m-screen act" id="m-screen-role">
+    <div class="m-topbar">
+      <div>
+        <div class="m-topbar-title">🏥 慈濟 DRMS</div>
+        <div class="m-topbar-sub">手機模式 · 請選擇今日角色</div>
+      </div>
+    </div>
+    <div class="m-body">
+      <div class="m-card">
+        <div class="m-card-title">角色選擇</div>
+        <div class="m-role-grid">
+          <div class="m-role-card" onclick="mSelectRole('member')">
+            <div class="m-role-icon">🙋</div>
+            <div class="m-role-name">志工組員</div>
+            <div class="m-role-desc">執行現場任務</div>
+          </div>
+          <div class="m-role-card" onclick="mSelectRole('leader')">
+            <div class="m-role-icon">👨‍✈️</div>
+            <div class="m-role-name">組長</div>
+            <div class="m-role-desc">管理小組任務</div>
+          </div>
+          <div class="m-role-card" onclick="mSelectRole('driver')">
+            <div class="m-role-icon">🚛</div>
+            <div class="m-role-name">司機/物資</div>
+            <div class="m-role-desc">配送與物資管理</div>
+          </div>
+          <div class="m-role-card" onclick="mSelectRole('admin')">
+            <div class="m-role-icon">📋</div>
+            <div class="m-role-name">行政/訪查</div>
+            <div class="m-role-desc">個案與關懷紀錄</div>
+          </div>
+          <div class="m-role-card" onclick="mSelectRole('public')">
+            <div class="m-role-icon">🏚️</div>
+            <div class="m-role-name">民眾求助</div>
+            <div class="m-role-desc">填寫求助需求</div>
+          </div>
+          <div class="m-role-card" onclick="mSelectRole('commander')">
+            <div class="m-role-icon">🎖️</div>
+            <div class="m-role-name">緊急指揮</div>
+            <div class="m-role-desc">調度中心管控</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 志工組員 -->
+  <div class="m-screen" id="m-screen-member">
+    <div class="m-topbar">
+      <div>
+        <div class="m-topbar-title">🙋 志工組員</div>
+        <div class="m-topbar-sub" id="m-member-sub">待命中</div>
+      </div>
+      <button class="m-btn gray" style="width:auto;margin:0;padding:6px 12px;font-size:12px;min-height:0" onclick="mShowScreen('role')">換角色</button>
+    </div>
+    <div class="m-body" id="m-member-body"></div>
+    <div class="m-sos-bar" id="m-member-sos" style="display:none">
+      <span style="font-size:13px;font-weight:700;color:#fca5a5">⚠️ 緊急警報中</span>
+      <button onclick="mSOSAck()">確認收到</button>
+    </div>
+    <button class="m-btn sos-big" style="margin:12px 12px 16px" onclick="mSendSOS()">🆘 緊急求援</button>
+  </div>
+
+  <!-- 組長 -->
+  <div class="m-screen" id="m-screen-leader">
+    <div class="m-topbar">
+      <div>
+        <div class="m-topbar-title">👨‍✈️ 組長</div>
+        <div class="m-topbar-sub" id="m-leader-sub">小組管理</div>
+      </div>
+      <button class="m-btn gray" style="width:auto;margin:0;padding:6px 12px;font-size:12px;min-height:0" onclick="mShowScreen('role')">換角色</button>
+    </div>
+    <div class="m-tab-bar">
+      <button class="m-tab act" id="m-ltab-task"   onclick="mLeaderTab('task')"><span class="m-tab-icon">📋</span>任務</button>
+      <button class="m-tab"     id="m-ltab-team"   onclick="mLeaderTab('team')"><span class="m-tab-icon">👥</span>成員</button>
+      <button class="m-tab"     id="m-ltab-supply" onclick="mLeaderTab('supply')"><span class="m-tab-icon">📦</span>物資</button>
+    </div>
+    <div class="m-body" id="m-leader-body"></div>
+  </div>
+
+  <!-- 司機/物資 -->
+  <div class="m-screen" id="m-screen-driver">
+    <div class="m-topbar">
+      <div>
+        <div class="m-topbar-title">🚛 司機/物資</div>
+        <div class="m-topbar-sub" id="m-driver-sub">待命</div>
+      </div>
+      <button class="m-btn gray" style="width:auto;margin:0;padding:6px 12px;font-size:12px;min-height:0" onclick="mShowScreen('role')">換角色</button>
+    </div>
+    <div class="m-body" id="m-driver-body"></div>
+    <button class="m-btn sos-big" style="margin:12px 12px 16px" onclick="mSendSOS()">🆘 緊急求援</button>
+  </div>
+
+  <!-- 行政/訪查 -->
+  <div class="m-screen" id="m-screen-admin">
+    <div class="m-topbar">
+      <div>
+        <div class="m-topbar-title">📋 行政/訪查</div>
+        <div class="m-topbar-sub" id="m-admin-sub">個案管理</div>
+      </div>
+      <button class="m-btn gray" style="width:auto;margin:0;padding:6px 12px;font-size:12px;min-height:0" onclick="mShowScreen('role')">換角色</button>
+    </div>
+    <div class="m-tab-bar">
+      <button class="m-tab act" id="m-atab-case"    onclick="mAdminTab('case')"><span class="m-tab-icon">👤</span>個案</button>
+      <button class="m-tab"     id="m-atab-care"    onclick="mAdminTab('care')"><span class="m-tab-icon">💙</span>關懷</button>
+      <button class="m-tab"     id="m-atab-checkin" onclick="mAdminTab('checkin')"><span class="m-tab-icon">✅</span>報到</button>
+    </div>
+    <div class="m-body" id="m-admin-body"></div>
+  </div>
+
+  <!-- 民眾求助 -->
+  <div class="m-screen" id="m-screen-public">
+    <div class="m-topbar">
+      <div>
+        <div class="m-topbar-title">🏚️ 民眾求助</div>
+        <div class="m-topbar-sub">填寫求助需求</div>
+      </div>
+      <button class="m-btn gray" style="width:auto;margin:0;padding:6px 12px;font-size:12px;min-height:0" onclick="mShowScreen('role')">返回</button>
+    </div>
+    <div class="m-body" id="m-public-body"></div>
+  </div>
+
+  <!-- 緊急指揮 -->
+  <div class="m-screen" id="m-screen-commander">
+    <div class="m-topbar">
+      <div>
+        <div class="m-topbar-title">🎖️ 緊急指揮</div>
+        <div class="m-topbar-sub" id="m-cmd-sub">全域管控</div>
+      </div>
+      <button class="m-btn gray" style="width:auto;margin:0;padding:6px 12px;font-size:12px;min-height:0" onclick="mShowScreen('role')">換角色</button>
+    </div>
+    <div class="m-tab-bar">
+      <button class="m-tab act" id="m-ctab-overview"  onclick="mCmdTab('overview')"><span class="m-tab-icon">📊</span>總覽</button>
+      <button class="m-tab"     id="m-ctab-dispatch"  onclick="mCmdTab('dispatch')"><span class="m-tab-icon">📡</span>派工</button>
+      <button class="m-tab"     id="m-ctab-sos"       onclick="mCmdTab('sos')"><span class="m-tab-icon">🆘</span>緊急</button>
+    </div>
+    <div class="m-body" id="m-cmd-body"></div>
+  </div>
+
+</div>
 </body>
 </html>
