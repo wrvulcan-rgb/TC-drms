@@ -4454,6 +4454,11 @@ DATA.devTasks = [
   {id:'dt-arch-09', pri:'md', mod:'vol_hub',   title:'[報名] innerGasUrl QR 產生邏輯連通：掃 QR → Line 加入 → GAS follow handler → Master_Profiles', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt-arch-10', pri:'lo', mod:'drive',     title:'[Drive] 照片上傳後觸發 GAS → 存 Drive photos/ 資料夾 → 回傳 fileId 顯示縮圖', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt-arch-11', pri:'lo', mod:'rtsync',    title:'[結案] rtCloseCase() 完成後自動生成 JSON 劇本 → fetch GAS → 上傳 Drive exports/', assignee:'', done:false, created:'2026-06-22'},
+  // ── 系統設計議題 2026-06-23 ──
+  {id:'dt-b01', pri:'hi', mod:'admin',     title:'[備份] 版本快照改為「每次存檔即記一筆」：drms_backup 改用 ring-buffer（最多保留 10 版），每版含時間戳，同一天三次存檔就有三份，不再覆蓋前兩版', assignee:'', done:false, created:'2026-06-23'},
+  {id:'dt-b02', pri:'hi', mod:'rtsync',    title:'[多人派工] 即時調度中台支援多位 L2 同時操作：任務卡加樂觀鎖（lockedBy + lockedAt），同一任務同時只能一人操作；RTDB BroadcastChannel 跨 tab 同步已備，下一步接 Firebase 實現跨裝置', assignee:'', done:false, created:'2026-06-23'},
+  {id:'dt-b03', pri:'md', mod:'全系統',    title:'[L3 資料流] L3 模組（安置/個案/關懷/物資整理/資產）釐清兩種角色：(A) 搜集者→上傳資料供 L2 調度用；(B) 被派者→等 L2 派任務再執行。各模組需標記屬 A/B，UI 對應不同入口與表單', assignee:'', done:false, created:'2026-06-23'},
+  {id:'dt-b04', pri:'hi', mod:'全系統',    title:'[Data I/O 路線] 緊急模式下 input/output 精簡化：緊急時 input 只收「誰/在哪/要什麼」三欄，output 只推「任務卡 → 志工 Line」；平時才做完整欄位。需為每個模組定義 normal/emergency 雙模式表單', assignee:'', done:false, created:'2026-06-23'},
 ];
 
 // ══════════════════════════════════════════════════════
