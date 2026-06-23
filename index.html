@@ -2632,21 +2632,41 @@ function loaPreviewBroadcast(){
   if(!msg){toast('⚠ 請先輸入訊息內容');return;}
   showModal('💬 Flex Message 預覽','推播至志工 Line 的格式：','{\n  type: "bubble",\n  body: "'+msg.substring(0,40)+'"\n}');
 }
+// ── 修正一：GAS 未設定時封鎖假推播 ──
+function checkGASReady(label){
+  var u=DATA.registry.innerGasUrl||DATA.registry.gasUrl;
+  if(!u){
+    var mod=document.createElement('div');
+    mod.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+    mod.innerHTML='<div style="background:var(--bg);border-radius:12px;padding:24px 28px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.4)">'
+      +'<div style="font-size:16px;font-weight:700;margin-bottom:10px">⚠️ 通訊未連接</div>'
+      +'<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px">「<b>'+label+'</b>」目前只是模擬，<b>不會真正發送</b>。<br><br>請先到 <b>系統管理 → API 設定</b> 填入 GAS URL，才能啟用真實 Line 推播。</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<button class="btn btn-primary" style="flex:1;justify-content:center" onclick="this.closest(\'div[style]\').remove();showPage(\'admin\')">前往設定</button>'
+      +'<button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="this.closest(\'div[style]\').remove()">僅模擬（繼續）</button>'
+      +'</div></div>';
+    document.body.appendChild(mod);
+    return false;
+  }
+  return true;
+}
 function loaSendBroadcast(){
   var tgt=document.getElementById('loa-bc-target');
   var msg=document.getElementById('loa-bc-msg');
   var t=tgt?tgt.value:'全部志工';
   var m=msg?(msg.value.trim()):'';
   if(!m){toast('⚠ 請輸入推播內容');return;}
-  loaLog('Broadcast → '+t+'：'+m.substring(0,25)+(m.length>25?'…':''));
-  logSys('ok','【LOA 推播】'+t+'：'+m.substring(0,40));
-  toast('📤 推播已發送至 '+t);
+  checkGASReady('Line 群發推播');
+  loaLog('Broadcast → '+t+'：'+m.substring(0,25)+(m.length>25?'…':'')+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+  logSys(DATA.registry.innerGasUrl?'ok':'warn','【LOA 推播】'+t+'：'+m.substring(0,40)+(DATA.registry.innerGasUrl?'':' ⚠ GAS URL 未設定，未真實發送'));
+  toast(DATA.registry.innerGasUrl?'📤 推播已發送至 '+t:'⚠ 推播模擬完成（未真實發送）');
   if(msg) msg.value='';
 }
 function loaPushCheckinQR(){
-  loaLog('對內+對外報到 QR 已推播 → 142 位志工 Line');
-  logSys('ok','【LOA】報到 QR 推播完成');
-  toast('📲 報到 QR 已推播');
+  checkGASReady('報到 QR 推播');
+  loaLog('對內+對外報到 QR 已推播 → 志工 Line'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+  logSys(DATA.registry.innerGasUrl?'ok':'warn','【LOA】報到 QR 推播'+(DATA.registry.innerGasUrl?'完成':'⚠ 模擬（GAS URL 未設定）'));
+  toast(DATA.registry.innerGasUrl?'📲 報到 QR 已推播':'⚠ QR 推播模擬（未真實發送）');
 }
 function loaFireRollcall(){
   fireRollCall();
@@ -2655,9 +2675,10 @@ function loaFireRollcall(){
 }
 function loaPushTask(i){
   var tk=DATA.tasks.items[i]; if(!tk) return;
-  loaLog('任務 '+tk.id+' Flex 卡已推播 → '+tk.assign+' Line');
-  logSys('ok','【LOA 任務推播】'+tk.id+' → '+tk.assign);
-  toast('📲 '+tk.id+' 推播完成');
+  checkGASReady('任務推播');
+  loaLog('任務 '+tk.id+' Flex 卡已推播 → '+tk.assign+' Line'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+  logSys(DATA.registry.innerGasUrl?'ok':'warn','【LOA 任務推播】'+tk.id+' → '+tk.assign+(DATA.registry.innerGasUrl?'':' ⚠ 模擬'));
+  toast(DATA.registry.innerGasUrl?'📲 '+tk.id+' 推播完成':'⚠ '+tk.id+' 推播模擬（未真實發送）');
 }
 function loaDispatch(i){
   var pend=DATA.warehouse.reqs.filter(function(r){return r.status==='待派案';});
@@ -4842,11 +4863,16 @@ function renderSingleStat(i){
   var el=document.getElementById('w-stat-'+i+'-content');
   if(!el) return;
   var s=DATA.stats[i];
+  // ── 修正四：靜態演練值標記（s.live=true 代表已連接真實資料源）──
+  var liveBadge=s.live
+    ?'<div style="font-size:9px;color:var(--green);font-family:monospace;margin-top:2px">● 即時</div>'
+    :'<div style="font-size:9px;color:var(--text4);font-family:monospace;margin-top:2px">▲ 演練預設值</div>';
   el.innerHTML='<div class="stat-card '+s.color+' w-stat-inner">'
     +'<div class="accent-bar"></div>'
     +'<div class="stat-lbl">'+s.lbl+'</div>'
     +'<div class="stat-val" style="transition:all .3s">'+s.val+'</div>'
     +'<div class="stat-sub">'+s.sub+'</div>'
+    +liveBadge
     +'</div>';
 }
 
@@ -5642,6 +5668,9 @@ function checkAdminGate(){
   }
 }
 function setRole(r){
+  if(state==='war'&&r!==role){
+    if(!confirm('戰時模式中切換角色會改變可見模組，確定嗎？')) return;
+  }
   role=r;
   if(editMode) toggleEditMode();
   if(activePage==='admin'&&r!=='admin') activePage='dashboard';
@@ -7674,6 +7703,14 @@ function restoreFromRing(idx){
 // ── PERSIST DATA to localStorage ──
 var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','case_mgt','care_rec','shelter_mgt','registry','devTasks','relief_req','coord','rebuild'];
 function saveData(){
+  // ── 修正三：localStorage 容量監控 ──
+  try{
+    var usedStr='';
+    for(var k in localStorage){ try{ usedStr+=localStorage[k]||''; }catch(e){} }
+    var usedKB=Math.round(usedStr.length/1024);
+    if(usedKB>4096) logSys('err','⚠ localStorage 使用量 '+usedKB+'KB，已接近上限（~5MB）！建議立即到「系統管理→版本備份」匯出資料。');
+    else if(usedKB>2048) logSys('warn','localStorage 使用量 '+usedKB+'KB（剩餘空間有限），建議定期匯出備份。');
+  }catch(e){}
   var payload = {};
   for(var i=0;i<DATA_KEYS.length;i++) payload[DATA_KEYS[i]] = DATA[DATA_KEYS[i]];
   try{
@@ -8319,25 +8356,29 @@ function renderReliefInbox(){
     +'<div class="stat-card blue" style="padding:14px;position:relative"><div class="accent-bar"></div><div class="stat-lbl">已轉派 / 處理中</div><div class="stat-val">'+sent+'</div><div class="stat-sub">件</div></div>'
     +'<div class="stat-card amber" style="padding:14px;position:relative"><div class="accent-bar"></div><div class="stat-lbl">疑似重複</div><div class="stat-val">'+dup+'</div><div class="stat-sub">件待覆核</div></div>'
     +'</div>';
+  // ── 修正五：操作欄移到第二欄，手機不需橫向捲動 ──
   html+='<div class="card"><div class="card-title">🆘 '+d.title+'（依時間排序）</div>'
-    +'<table class="tbl"><thead><tr><th>單號</th><th>時間</th><th>類型</th><th>通報人</th><th>位置</th><th>人數</th><th>描述</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+    +'<table class="tbl"><thead><tr><th>單號</th><th>操作</th><th>時間</th><th>類型</th><th>通報人</th><th>位置</th><th>人數</th><th>描述</th><th>狀態</th></tr></thead><tbody>';
   for(var i=0;i<d.requests.length;i++){
     var r=d.requests[i];
+    var opCell='';
+    if(r.status==='待處理'){
+      if(r.dup) opCell='<button class="btn btn-ghost btn-xs" onclick="reliefMarkDup('+i+')">✓ 併單</button>';
+      else opCell='<button class="btn btn-red btn-xs" onclick="reliefToDispatch('+i+')">⚡ 轉派</button>';
+    } else if(r.status==='已轉派'||r.status==='處理中'){
+      opCell='<button class="btn btn-green btn-xs" onclick="reliefClose('+i+')">✓ 結案</button>';
+    } else opCell='<span style="font-size:9px;color:var(--text4)">✓</span>';
     html+='<tr'+(r.dup&&r.status==='待處理'?' style="background:var(--amber-bg)"':'')+'>'
-      +'<td class="sh-time">'+r.id+'</td><td class="sh-time">'+r.time+'</td>'
+      +'<td class="sh-time">'+r.id+'</td>'
+      +'<td>'+opCell+'</td>'
+      +'<td class="sh-time">'+r.time+'</td>'
       +'<td><span class="badge '+(tColor[r.type]||'badge-blue')+'">'+r.type+'</span></td>'
       +'<td>'+r.name+'<div style="font-size:9px;color:var(--text4);font-family:monospace">'+r.phone+'</div></td>'
       +'<td style="font-size:11px">'+r.location+'</td>'
       +'<td style="text-align:center;font-weight:600">'+r.people+'</td>'
-      +'<td style="font-size:11px;max-width:210px">'+r.desc+'</td>'
-      +'<td><span class="badge '+(sColor[r.status]||'badge-amber')+'">'+r.status+'</span></td><td>';
-    if(r.status==='待處理'){
-      if(r.dup) html+='<button class="btn btn-ghost btn-xs" onclick="reliefMarkDup('+i+')">✓ 確認併單</button>';
-      else html+='<button class="btn btn-red btn-xs" onclick="reliefToDispatch('+i+')">⚡ 轉調度中台</button>';
-    } else if(r.status==='已轉派'||r.status==='處理中'){
-      html+='<button class="btn btn-green btn-xs" onclick="reliefClose('+i+')">✓ 結案</button>';
-    } else html+='<span style="font-size:9px;color:var(--text4)">✓</span>';
-    html+='</td></tr>';
+      +'<td style="font-size:11px;max-width:180px">'+r.desc+'</td>'
+      +'<td><span class="badge '+(sColor[r.status]||'badge-amber')+'">'+r.status+'</span></td>'
+      +'</tr>';
   }
   html+='</tbody></table>'
     +'<div style="font-size:10px;color:var(--text4);margin-top:10px">💡 「⚡ 轉調度中台」自動於即時調度中台任務池建立任務（搶救/醫療→P1、收容→P2、物資→P3），打通「民眾求助→指揮派工」的斷點。</div></div>';
@@ -8395,22 +8436,31 @@ function renderReliefForm(){
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
       +'<button class="btn btn-red btn-xs" style="justify-content:center">🚨 受困搶救</button><button class="btn btn-purple btn-xs" style="justify-content:center">🏥 緊急醫療</button>'
       +'<button class="btn btn-blue btn-xs" style="justify-content:center">🏕️ 需要安置</button><button class="btn btn-amber btn-xs" style="justify-content:center">📦 物資需求</button></div>'
-      +'<div class="iep-lbl" style="margin-top:0;font-weight:700">📍 您在哪裡？</div><input class="inp" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:13px;font-weight:600">'
+      +'<div class="iep-lbl" style="margin-top:0;font-weight:700">📍 您在哪裡？</div><input class="inp" list="relief-location-list" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:13px;font-weight:600">'
       +'<div class="iep-lbl" style="font-weight:700">🆘 需要什麼？</div><textarea class="inp" id="rfsim-need" placeholder="簡述狀況 + 人數" style="min-height:54px;font-size:13px"></textarea>'
       +'<button class="btn btn-red" style="width:100%;justify-content:center;margin-top:12px;font-size:14px;padding:12px" onclick="reliefSimSubmit()">🆘 立即送出</button>')
     :('<div style="font-size:12px;font-weight:700;margin-bottom:8px">您現在需要哪種協助？</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
       +'<button class="btn btn-red btn-xs" style="justify-content:center">🚨 受困搶救</button><button class="btn btn-purple btn-xs" style="justify-content:center">🏥 緊急醫療</button>'
       +'<button class="btn btn-blue btn-xs" style="justify-content:center">🏕️ 需要安置</button><button class="btn btn-amber btn-xs" style="justify-content:center">📦 物資需求</button></div>'
-      +'<div class="iep-lbl" style="margin-top:0">您的位置（可自動定位）</div><input class="inp" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:12px">'
+      +'<div class="iep-lbl" style="margin-top:0">您的位置（可自動定位）</div><input class="inp" list="relief-location-list" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:12px">'
       +'<div class="iep-lbl">受困 / 需協助人數</div><input class="inp" placeholder="例：2" style="font-size:12px">'
       +'<div class="iep-lbl">狀況描述</div><textarea class="inp" placeholder="簡述現場狀況" style="min-height:54px;font-size:12px"></textarea>'
       +'<div class="iep-lbl">聯絡電話</div><input class="inp" placeholder="09xx-xxx-xxx" style="font-size:12px">'
       +'<button class="btn btn-red" style="width:100%;justify-content:center;margin-top:12px" onclick="reliefSimSubmit()">🆘 送出求助</button>'
       +'<div style="font-size:9px;color:var(--text4);text-align:center;margin-top:8px">送出即同意慈濟基金會為救災目的使用您的資料</div>');
+  var locationDatalist='<datalist id="relief-location-list">'
+    +'<option value="番路鄉公田村"><option value="番路鄉觸口村"><option value="番路鄉隙頂村">'
+    +'<option value="竹崎鄉緞繻村"><option value="竹崎鄉灣橋村"><option value="竹崎鄉桃源村"><option value="竹崎鄉鹿滿村">'
+    +'<option value="梅山鄉太和村"><option value="梅山鄉瑞里村"><option value="梅山鄉瑞峰村"><option value="梅山鄉碧湖村">'
+    +'<option value="阿里山鄉達邦村"><option value="阿里山鄉山美村"><option value="阿里山鄉來吉村"><option value="阿里山鄉豐山村">'
+    +'<option value="大埔鄉大埔村"><option value="水上鄉中洲村"><option value="中埔鄉中埔村">'
+    +'<option value="嘉義市東區"><option value="嘉義市西區">'
+    +'</datalist>';
   return '<div class="card"><div class="card-title">📱 民眾求助填報表單（公開頁預覽）'
     +(isWar?'<span class="badge badge-red" style="margin-left:8px">緊急模式</span>':'')+'</div>'
     +modeNote
+    +locationDatalist
     +'<div class="phone-frame" style="max-width:340px;margin:0 auto">'
     +'<div class="phone-bar"><span>🆘</span><span>慈濟災害求助通報</span><span style="margin-left:auto;color:var(--red);font-size:10px;font-weight:600">'+(isWar?'緊急':'一般')+'</span></div>'
     +'<div class="phone-body" style="padding:16px">'+formBody+'</div></div></div>';
@@ -8740,7 +8790,7 @@ function dispatchReq(rid){
   var itemName=rq.item.replace(/[^\u4e00-\u9fff]/g,'');
   var sup=DATA.field.supplies.find(function(x){return itemName.includes(x.item)||x.item.includes(itemName);});
   if(sup){
-    var n=rq.qty.includes('100')?100:(rq.qty.includes('50')?50:10);
+    var n=parseInt((rq.qty.match(/\d+/)||['0'])[0],10)||0;
     sup.stock=Math.max(sup.stock-n,0);
     sup.status=sup.stock<sup.need*0.3?'red':(sup.stock<sup.need?'amber':'green');
     renderField();
