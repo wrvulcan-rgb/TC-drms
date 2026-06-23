@@ -1396,6 +1396,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
       <div style="flex:1"><div style="font-size:14px;font-weight:700">Line OA 總控</div><div style="font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace">慈濟 DRMS · 官方帳號</div></div>
       <button onclick="closeLineOAPanel()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text4);padding:4px">✕</button>
     </div>
+    <div id="loa-group-bar" style="padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:5px"></div>
     <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
       <button class="loa-tab act-loa" onclick="switchLOATab('push',this)">📤 推播</button>
       <button class="loa-tab" onclick="switchLOATab('checkin',this)">✅ 報到</button>
@@ -2459,6 +2460,9 @@ function renderArchDoc(){
 function toggleArchTodo(i){}
 // ─── Line OA 總控面板 ───
 var LOA_ACTIVE_TAB='push';
+var LOA_GROUP='all';      // 'all' | GROUPS[n].id
+var LOA_MODE='commander'; // 'commander' | 'leader' | 'member'
+var LOA_MEMBER_VID='';    // selected volunteer ID in member mode
 function loaLog(msg){
   var el=document.getElementById('loa-log'); if(!el) return;
   var t=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -2498,6 +2502,7 @@ function openLineOAPanel(){
   var p=document.getElementById('line-oa-panel');
   if(p) p.style.display='flex';
   renderLOATab(LOA_ACTIVE_TAB);
+  renderLOAGroupBar();
   loaLog('Line OA 總控面板已開啟');
 }
 function closeLineOAPanel(){
@@ -2514,12 +2519,23 @@ function renderLOATab(tab){
   var el=document.getElementById('loa-body'); if(!el) return;
   var bar=renderLOASituationBar();
   var body='';
-  if(tab==='push')     body=renderLOAPush();
-  else if(tab==='checkin')  body=renderLOACheckin();
-  else if(tab==='rollcall') body=renderLOARollcall();
-  else if(tab==='task')     body=renderLOATask();
-  else if(tab==='supply')   body=renderLOASupply();
+  if(tab==='push'){
+    if(LOA_MODE==='leader')      body=renderLOAPushLeader();
+    else if(LOA_MODE==='member') body=renderLOAPushMember();
+    else                         body=renderLOAPush();
+  } else if(tab==='checkin'){
+    body=(LOA_MODE==='commander')?renderLOACheckin():renderLOACheckinGroup();
+  } else if(tab==='rollcall'){
+    body=(LOA_MODE==='commander')?renderLOARollcall():renderLOARollcallGroup();
+  } else if(tab==='task'){
+    if(LOA_MODE==='leader')      body=renderLOATaskLeader();
+    else if(LOA_MODE==='member') body=renderLOATaskMember();
+    else                         body=renderLOATask();
+  } else if(tab==='supply'){
+    body=(LOA_MODE==='member')?renderLOASupplyMember():renderLOASupply();
+  }
   el.innerHTML=bar+body;
+  renderLOAGroupBar();
 }
 function renderLOASituationBar(){
   var tasks=rtGet('tasks')||{};
@@ -2791,6 +2807,446 @@ function loaDispatch(i){
   }catch(e){}
   loaLog('派案 '+q.id+' 已執行，司機 Line 已收配送單');
   renderLOATab('supply');
+}
+// ── Line OA 角色分組系統 ────────────────────────────────────────────────────
+function setLOAGroup(gid){ LOA_GROUP=gid; renderLOATab(LOA_ACTIVE_TAB); }
+function setLOAMode(mode){ LOA_MODE=mode; renderLOATab(LOA_ACTIVE_TAB); }
+function setLOAMemberVid(vid){ LOA_MEMBER_VID=vid; renderLOATab(LOA_ACTIVE_TAB); }
+
+// ── helpers ──
+function getGroupVolunteers(){
+  var vols=rtGet('volunteers')||{};
+  if(LOA_GROUP==='all') return Object.keys(vols);
+  var groups=typeof GROUPS!=='undefined'?GROUPS:[];
+  var g=groups.find(function(x){return x.id===LOA_GROUP;});
+  var gName=g?g.name:LOA_GROUP;
+  return Object.keys(vols).filter(function(vid){return vols[vid].group===gName;});
+}
+function getGroupTasks(){
+  var tasks=rtGet('tasks')||{};
+  var vols=rtGet('volunteers')||{};
+  if(LOA_GROUP==='all') return Object.keys(tasks);
+  var groups=typeof GROUPS!=='undefined'?GROUPS:[];
+  var g=groups.find(function(x){return x.id===LOA_GROUP;});
+  var gName=g?g.name:LOA_GROUP;
+  var gVids=Object.keys(vols).filter(function(vid){return vols[vid].group===gName;});
+  return Object.keys(tasks).filter(function(k){
+    var t=tasks[k];
+    return (t.group===gName)||(t.assignee&&gVids.indexOf(t.assignee)>-1);
+  });
+}
+function getGroupDisplayName(){
+  if(LOA_GROUP==='all') return '全部';
+  var groups=typeof GROUPS!=='undefined'?GROUPS:[];
+  var g=groups.find(function(x){return x.id===LOA_GROUP;});
+  return g?(g.icon+' '+g.name):LOA_GROUP;
+}
+
+// ── 群組選擇器橫幅 ──
+function renderLOAGroupBar(){
+  var el=document.getElementById('loa-group-bar'); if(!el) return;
+  var groups=typeof GROUPS!=='undefined'?GROUPS:[];
+  var mC={commander:'btn-primary',leader:'btn-blue',member:'btn-green'};
+  var mL={commander:'⌘ 指揮官',leader:'👥 組長',member:'🙋 組員'};
+  var gSel='<select id="loa-group-sel" class="inp" style="flex:1;font-size:11px;padding:3px 6px;height:26px;min-width:0" onchange="setLOAGroup(this.value)">'
+    +'<option value="all"'+(LOA_GROUP==='all'?' selected':'')+'>📡 全部組別</option>';
+  groups.forEach(function(g){
+    gSel+='<option value="'+g.id+'"'+(LOA_GROUP===g.id?' selected':'')+'>'+g.icon+' '+g.name+'</option>';
+  });
+  gSel+='</select>';
+  var mPills='<div style="display:flex;gap:2px;flex-shrink:0">';
+  ['commander','leader','member'].forEach(function(m){
+    mPills+='<button class="btn '+(LOA_MODE===m?mC[m]:'btn-ghost')+' btn-xs" onclick="setLOAMode(\''+m+'\')" style="font-size:9px;padding:2px 5px;white-space:nowrap">'+mL[m]+'</button>';
+  });
+  mPills+='</div>';
+  var memRow='';
+  if(LOA_MODE==='member'){
+    var vols=rtGet('volunteers')||{};
+    var gVids=getGroupVolunteers();
+    memRow='<div style="display:flex;align-items:center;gap:5px">'
+      +'<span style="font-size:10px;color:var(--text3);flex-shrink:0">我是：</span>'
+      +'<select id="loa-member-sel" class="inp" style="flex:1;font-size:11px;padding:3px 6px;height:26px" onchange="setLOAMemberVid(this.value)">'
+      +'<option value="">── 選擇志工 ──</option>';
+    gVids.forEach(function(vid){
+      var v=vols[vid]; if(!v) return;
+      memRow+='<option value="'+vid+'"'+(LOA_MEMBER_VID===vid?' selected':'')+'>'+esc(v.name)+(v.fatigue?' 😴':'')+(v.task?' 🔵':'')+'</option>';
+    });
+    memRow+='</select></div>';
+  }
+  el.innerHTML='<div style="display:flex;gap:6px;align-items:center">'+gSel+mPills+'</div>'+memRow;
+}
+
+// ── 組長推播 ──
+function renderLOAPushLeader(){
+  var vols=rtGet('volunteers')||{};
+  var gVids=getGroupVolunteers();
+  var gName=getGroupDisplayName();
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:6px">📤 '+esc(gName)+' — 組長廣播</div>'
+    +'<div class="iep-lbl">推播目標</div>'
+    +'<select class="inp" id="loa-bc-target" style="font-size:12px">'
+    +'<option value="all">📢 '+esc(gName)+' 全員（'+gVids.length+'人）</option>';
+  gVids.forEach(function(vid){
+    var v=vols[vid]; if(!v) return;
+    html+='<option value="'+vid+'">'+esc(v.name)+' · '+(v.status||'待命')+'</option>';
+  });
+  html+='</select>'
+    +'<div class="iep-lbl">快速模板</div>'
+    +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">'
+    +'<button class="btn btn-amber btn-xs" onclick="loaLeaderTemplate(\'muster\')">🚩 立即集合</button>'
+    +'<button class="btn btn-blue btn-xs"  onclick="loaLeaderTemplate(\'task\')">🎯 任務通知</button>'
+    +'<button class="btn btn-green btn-xs" onclick="loaLeaderTemplate(\'status\')">📊 回報狀態</button>'
+    +'<button class="btn btn-red btn-xs"   onclick="loaLeaderTemplate(\'sos\')">🆘 緊急支援</button>'
+    +'</div>'
+    +'<div class="iep-lbl">訊息內容</div>'
+    +'<textarea class="inp" id="loa-bc-msg" style="min-height:70px;font-size:12px" placeholder="輸入訊息…"></textarea>'
+    +'<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:8px" onclick="loaGroupBroadcast()">📤 傳給本組</button>'
+    +'<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px">'
+    +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">👥 組員狀態</div>';
+  var sSC={'待命':'var(--green)','任務中':'var(--blue)','待報到':'var(--text4)'};
+  gVids.slice(0,8).forEach(function(vid){
+    var v=vols[vid]; if(!v) return;
+    html+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border3)">'
+      +'<span style="font-size:11px;flex:1">'+esc(v.name)+(v.fatigue?' <span style="font-size:9px;color:var(--amber)">😴</span>':'')+'</span>'
+      +'<span style="font-size:10px;color:'+(sSC[v.status]||'var(--text4)')+';font-weight:600">'+esc(v.status||'待命')+'</span>'
+      +'<button class="btn btn-blue btn-xs" onclick="loaDirectPush(\''+vid+'\')" title="直接推播">📲</button>'
+      +'</div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+// ── 組員回報（推播 tab） ──
+function renderLOAPushMember(){
+  var vid=LOA_MEMBER_VID;
+  var vols=rtGet('volunteers')||{};
+  var tasks=rtGet('tasks')||{};
+  var v=vid?vols[vid]:null;
+  if(!vid||!v) return '<div style="font-size:12px;color:var(--amber);text-align:center;padding:20px 0">請在上方「我是」選擇您的志工帳號</div>';
+  var myTask=v.task?tasks[v.task]:null;
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🙋 '+esc(v.name)+' — 回報中台</div>';
+  if(myTask){
+    html+='<div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm);padding:8px 10px;margin-bottom:10px">'
+      +'<div style="font-size:10px;color:var(--text4);margin-bottom:3px">目前任務 · '+esc(myTask.priority||'')+'</div>'
+      +'<div style="font-size:12px;font-weight:600">'+esc(myTask.title)+'</div>'
+      +'<div style="margin-top:8px;display:flex;gap:5px;flex-wrap:wrap">'
+      +'<button class="btn btn-blue btn-xs" onclick="loaMemberReport(\''+v.task+'\',\'進行中\')">▶ 執行中</button>'
+      +'<button class="btn btn-green btn-xs" onclick="loaMemberReport(\''+v.task+'\',\'已完成\')">✓ 完成</button>'
+      +'<button class="btn btn-amber btn-xs" onclick="loaMemberReport(\''+v.task+'\',\'需支援\')">⚠ 需支援</button>'
+      +'<button class="btn btn-red btn-xs" onclick="loaMemberSOS(\''+v.task+'\')">🆘 SOS</button>'
+      +'</div></div>';
+  } else {
+    html+='<div style="font-size:11px;color:var(--green);padding:8px 0">✓ 目前無指派任務 — 待命中</div>';
+  }
+  html+='<div class="iep-lbl">快速回報給組長</div>'
+    +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaMemberQuickMsg(\'已到達現場，確認任務\')">📍 已到達</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaMemberQuickMsg(\'任務收到，正在執行中\')">✓ 收到</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaMemberQuickMsg(\'需要補充物資支援\')">📦 需物資</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaMemberQuickMsg(\'已完成，正在撤離現場\')">🏁 完成撤離</button>'
+    +'</div>'
+    +'<textarea class="inp" id="loa-member-msg" style="min-height:60px;font-size:12px" placeholder="自訂回報訊息…"></textarea>'
+    +'<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="loaMemberSendMsg()">📲 傳給組長</button>';
+  return html;
+}
+
+// ── 組長/組員 任務管理 ──
+function renderLOATaskLeader(){
+  var tasks=rtGet('tasks')||{};
+  var vols=rtGet('volunteers')||{};
+  var gVids=getGroupVolunteers();
+  var taskIds=getGroupTasks();
+  var gName=getGroupDisplayName();
+  var pC={'P1':'var(--red)','P2':'var(--amber)','P3':'var(--green)'};
+  var sB={'待派工':'badge-amber','進行中':'badge-blue','已完成':'badge-green'};
+  var open=taskIds.filter(function(k){return tasks[k]&&tasks[k].status!=='已完成';});
+  var done=taskIds.filter(function(k){return tasks[k]&&tasks[k].status==='已完成';});
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">'+esc(gName)+' 任務（進行 '+open.length+' / 完成 '+done.length+'）</div>';
+  if(!open.length) html+='<div style="font-size:11px;color:var(--text4);text-align:center;padding:10px 0">本組目前無進行中任務</div>';
+  open.forEach(function(k){
+    var t=tasks[k]; if(!t) return;
+    var asgName=t.assignee&&vols[t.assignee]?vols[t.assignee].name:'待指派';
+    html+='<div style="padding:8px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);border-left:3px solid '+(pC[t.priority]||'var(--border)')+'">'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
+      +'<span style="font-size:10px;font-weight:700;color:'+(pC[t.priority]||'var(--text3)')+';font-family:monospace">'+esc(t.priority||'')+'</span>'
+      +'<span style="flex:1;font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.title)+'</span>'
+      +'<span class="badge '+(sB[t.status]||'badge-amber')+'" style="font-size:9px;flex-shrink:0">'+esc(t.status)+'</span>'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--text4);margin-bottom:6px">指派：'+esc(asgName)+'</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap">'
+      +((!t.assignee||t.status==='待派工')?'<button class="btn btn-blue btn-xs" onclick="loaLeaderPickMember(\''+k+'\')">👤 次派</button>':'')
+      +'<button class="btn btn-ghost btn-xs" onclick="loaPushRtTask(\''+k+'\')">📲 推播</button>'
+      +'<button class="btn btn-green btn-xs" onclick="loaReportToCommand(\''+k+'\')">↑ 回報調度</button>'
+      +'</div></div>';
+  });
+  // Group member availability
+  html+='<div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">'
+    +'<div style="font-size:11px;font-weight:600;margin-bottom:5px">👥 本組狀態</div>';
+  var avail=gVids.filter(function(vid){var v=vols[vid];return v&&v.status!=='待報到';});
+  if(!avail.length) html+='<div style="font-size:11px;color:var(--text4)">本組目前無已報到成員</div>';
+  avail.slice(0,6).forEach(function(vid){
+    var v=vols[vid]; if(!v) return;
+    html+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0">'
+      +'<span style="font-size:10px;color:'+(v.status==='任務中'?'var(--amber)':'var(--green)')+'">●</span>'
+      +'<span style="flex:1;font-size:11px">'+esc(v.name)+(v.fatigue?' 😴':'')+'</span>'
+      +'<span style="font-size:10px;color:var(--text4)">'+esc(v.status||'待命')+'</span>'
+      +'</div>';
+  });
+  html+='</div>';
+  html+='<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'rtsync\');setRTTab(\'tasks\')">↗ 調度中台</button>';
+  return html;
+}
+function renderLOATaskMember(){
+  var vid=LOA_MEMBER_VID;
+  var vols=rtGet('volunteers')||{};
+  var tasks=rtGet('tasks')||{};
+  var v=vid?vols[vid]:null;
+  if(!vid||!v) return '<div style="font-size:12px;color:var(--amber);text-align:center;padding:20px 0">請在上方「我是」選擇您的志工帳號</div>';
+  var pC={'P1':'var(--red)','P2':'var(--amber)','P3':'var(--green)'};
+  var myTasks=Object.keys(tasks).filter(function(k){return tasks[k].assignee===vid&&tasks[k].status!=='已完成';});
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🙋 '+esc(v.name)+' 的任務</div>';
+  if(!myTasks.length){
+    html+='<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r-sm);padding:12px;text-align:center;font-size:11px;color:var(--green);margin-bottom:10px">✓ 目前無進行中任務<br><span style="font-size:10px;color:var(--text4)">狀態：待命中</span></div>';
+  }
+  myTasks.forEach(function(k){
+    var t=tasks[k];
+    html+='<div style="padding:10px;margin-bottom:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);border-left:3px solid '+(pC[t.priority]||'var(--amber)')+'">'
+      +'<div style="font-size:12px;font-weight:600;margin-bottom:3px">'+esc(t.title)+'</div>'
+      +'<div style="font-size:10px;color:var(--text4);margin-bottom:8px">優先：'+esc(t.priority||'')+(t.created?' · 建立：'+t.created:'')+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+      +'<button class="btn btn-blue" style="justify-content:center;font-size:11px" onclick="loaMemberReport(\''+k+'\',\'進行中\')">▶ 執行中</button>'
+      +'<button class="btn btn-green" style="justify-content:center;font-size:11px" onclick="loaMemberReport(\''+k+'\',\'已完成\')">✓ 完成回報</button>'
+      +'<button class="btn btn-amber" style="justify-content:center;font-size:11px" onclick="loaMemberReport(\''+k+'\',\'需支援\')">⚠ 需要支援</button>'
+      +'<button class="btn btn-red" style="justify-content:center;font-size:11px" onclick="loaMemberSOS(\''+k+'\')">🆘 SOS</button>'
+      +'</div></div>';
+  });
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'rtsync\');setRTTab(\'report\')">↗ 完整回報介面</button>';
+  return html;
+}
+
+// ── 本組報到管理 ──
+function renderLOACheckinGroup(){
+  var groups=typeof GROUPS!=='undefined'?GROUPS:[];
+  var gObj=groups.find(function(x){return x.id===LOA_GROUP;});
+  var gName=gObj?gObj.name:LOA_GROUP;
+  var allM=DATA.registry.innerMembers.concat(DATA.registry.volunteers);
+  var grouped=(LOA_GROUP==='all')?allM:allM.filter(function(m){return m.group===gName;});
+  var cin=grouped.filter(function(m){return m.checkin;}).length;
+  var gDisp=getGroupDisplayName();
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'
+    +'<div style="padding:10px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r-sm);text-align:center">'
+    +'<div style="font-size:22px;font-weight:700;color:var(--green)">'+cin+'</div>'
+    +'<div style="font-size:10px;color:var(--text3)">✅ 已報到 / '+grouped.length+'</div></div>'
+    +'<div style="padding:10px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);text-align:center">'
+    +'<div style="font-size:22px;font-weight:700;color:var(--amber)">'+(grouped.length-cin)+'</div>'
+    +'<div style="font-size:10px;color:var(--text3)">⏳ 待報到</div></div></div>';
+  html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px">'+esc(gDisp)+' 待報到名單</div>';
+  var notIn=grouped.filter(function(m){return !m.checkin;});
+  if(!notIn.length){
+    html+='<div style="font-size:11px;color:var(--green);text-align:center;padding:10px 0">✓ 全員已報到</div>';
+  }
+  notIn.slice(0,10).forEach(function(m){
+    var isInner=DATA.registry.innerMembers.indexOf(m)>-1;
+    var idx=isInner?DATA.registry.innerMembers.indexOf(m):DATA.registry.volunteers.indexOf(m);
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border3)">'
+      +'<span class="badge '+(isInner?'badge-blue':'badge-green')+'" style="font-size:9px;flex-shrink:0">'+(isInner?'慈誠':'社區')+'</span>'
+      +'<span style="flex:1;font-size:11px">'+esc(m.name)+'<span style="font-size:9px;color:var(--text4);margin-left:4px">'+esc(m.code||m.id||'')+'</span></span>'
+      +'<button class="btn btn-green btn-xs" onclick="loaManualCheckin(\''+(isInner?'inner':'outer')+'\','+idx+')">✓ 報到</button>'
+      +'</div>';
+  });
+  html+='<div style="display:flex;gap:6px;margin-top:10px">'
+    +'<button class="btn btn-blue" style="flex:1;justify-content:center;font-size:12px" onclick="loaPushCheckinQR()">📲 推播 QR</button>'
+    +'<button class="btn btn-ghost" style="flex:1;justify-content:center;font-size:12px" onclick="closeLineOAPanel();showPage(\'vol_hub\');setVolHubTab(\'checkin\')">↗ 志工管理</button>'
+    +'</div>';
+  return html;
+}
+
+// ── 本組點名 ──
+function renderLOARollcallGroup(){
+  var gName=getGroupDisplayName();
+  var gVids=getGroupVolunteers();
+  var vols=rtGet('volunteers')||{};
+  var total=gVids.length;
+  var safe=gVids.filter(function(vid){var v=vols[vid];return v&&v.rollcallStatus==='safe';}).length;
+  var sos2=gVids.filter(function(vid){var v=vols[vid];return v&&v.rollcallStatus==='sos';}).length;
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">'+esc(gName)+' — 點名狀況</div>';
+  html+=makeFunnelRow([
+    {bg:'var(--bg3)',border:'var(--border)',val:total,lbl:'本組人數',color:''},
+    {bg:'var(--green-bg)',border:'var(--green-border)',val:safe,lbl:'安全',color:'var(--green)'},
+    {bg:'var(--red-bg)',border:'var(--red-border)',val:sos2,lbl:'求救',color:'var(--red)'},
+    {bg:'var(--amber-bg)',border:'var(--amber-border)',val:Math.max(total-safe-sos2,0),lbl:'未回報',color:'var(--amber)'},
+  ]);
+  var unrep=gVids.filter(function(vid){var v=vols[vid];return v&&!v.rollcallStatus;});
+  if(unrep.length) html+='<div style="font-size:10px;color:var(--text3);margin:6px 0">未回報：'+unrep.slice(0,5).map(function(vid){return (vols[vid]||{}).name||vid;}).join('、')+(unrep.length>5?'…':'')+'</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">'
+    +'<button class="btn btn-amber" style="justify-content:center;font-size:12px" onclick="loaGroupRollcall()">📡 本組點名</button>'
+    +'<button class="btn btn-red" style="justify-content:center;font-size:12px" onclick="fireAlert()">🚨 全體警報</button>'
+    +'</div>';
+  return html;
+}
+
+// ── 組員物資需求 ──
+function renderLOASupplyMember(){
+  var gName=getGroupDisplayName();
+  var lowS=(DATA.field&&DATA.field.supplies)?DATA.field.supplies.filter(function(s){return s.status==='red';}):[];
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">📦 '+esc(gName)+' — 物資需求</div>';
+  if(lowS.length) html+='<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r-sm);padding:8px 10px;margin-bottom:10px;font-size:11px">⚠ 低庫存：'+lowS.map(function(s){return s.item;}).join('、')+'</div>';
+  html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速叫料</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">';
+  (DATA.field&&DATA.field.supplies||[]).slice(0,6).forEach(function(s){
+    html+='<button class="btn btn-ghost btn-xs" onclick="loaMemberRequestSupply(\''+esc(s.item)+'\')">'+s.icon+' '+esc(s.item)+'</button>';
+  });
+  html+='</div>'
+    +'<div class="iep-lbl">自訂叫料</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px">'
+    +'<input class="inp" id="loa-supply-item" placeholder="物資品項" style="flex:1;font-size:12px">'
+    +'<input class="inp" id="loa-supply-qty" placeholder="數量" style="width:60px;font-size:12px">'
+    +'</div>'
+    +'<button class="btn btn-amber" style="width:100%;justify-content:center;font-size:12px;margin-bottom:8px" onclick="loaMemberRequestCustomSupply()">📦 送出叫料需求</button>'
+    +'<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px" onclick="closeLineOAPanel();showPage(\'warehouse\')">↗ 物資倉儲</button>';
+  return html;
+}
+
+// ── 組長 Action Functions ──
+function loaLeaderPickMember(taskId){
+  var vols=rtGet('volunteers')||{};
+  var gVids=getGroupVolunteers();
+  var avail=gVids.filter(function(vid){var v=vols[vid];return v&&v.status==='待命'&&!v.fatigue;});
+  var show=avail.length?avail:gVids;
+  var t=rtGet('tasks/'+taskId)||{};
+  var rows='';
+  show.forEach(function(vid){
+    var v=vols[vid]; if(!v) return;
+    rows+='<div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border3)">'
+      +'<span style="flex:1;font-size:12px">'+esc(v.name)+(v.fatigue?' 😴':'')+' <span style="font-size:10px;color:var(--text4)">'+esc(v.status||'待命')+'</span></span>'
+      +'<button class="btn btn-blue btn-xs" onclick="loaSubAssign(\''+taskId+'\',\''+vid+'\');this.closest(\'div[style*=fixed]\').remove()">次派</button>'
+      +'</div>';
+  });
+  if(!rows) rows='<div style="padding:12px;font-size:12px;color:var(--text4)">本組目前無待命成員</div>';
+  var mod=document.createElement('div');
+  mod.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9100;display:flex;align-items:center;justify-content:center;padding:16px';
+  mod.innerHTML='<div style="background:var(--bg);border-radius:12px;max-width:360px;width:100%;max-height:70vh;overflow:hidden;display:flex;flex-direction:column">'
+    +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">👤 次派組員</div>'
+    +'<div style="padding:10px 14px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border)">任務：'+esc(t.title||taskId)+'</div>'
+    +'<div style="overflow-y:auto;flex:1">'+rows+'</div>'
+    +'<div style="padding:10px 14px;border-top:1px solid var(--border)">'
+    +'<button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="this.closest(\'div[style*=fixed]\').remove()">取消</button>'
+    +'</div></div>';
+  document.body.appendChild(mod);
+}
+function loaSubAssign(taskId,memberId){
+  rtDoAssign(taskId,memberId);
+  var v=rtGet('volunteers/'+memberId)||{};
+  loaLog('👥 [組長次派] '+esc(taskId)+' → '+esc(v.name||memberId));
+  renderLOATab(LOA_ACTIVE_TAB);
+}
+function loaReportToCommand(taskId){
+  var t=rtGet('tasks/'+taskId)||{};
+  var gName=getGroupDisplayName();
+  var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  RTDB.ref('reportLog').push({time:time,msg:'👥 '+esc(gName)+' 組長回報：「'+esc(t.title||taskId)+'」→ '+esc(t.status||'更新')});
+  rtAudit('組長回報調度',gName+' '+taskId+' '+esc(t.status||''));
+  loaLog('↑ ['+esc(gName)+'] 任務 '+taskId+' 已回報調度（'+esc(t.status||'')+'）');
+  toast('↑ 回報已送達調度中台');
+}
+function loaGroupBroadcast(){
+  var msg=document.getElementById('loa-bc-msg');
+  var m=msg?msg.value.trim():'';
+  if(!m){toast('⚠ 請輸入訊息內容');return;}
+  var tgt=document.getElementById('loa-bc-target');
+  var t=tgt?tgt.value:'all';
+  var gName=getGroupDisplayName();
+  if(t==='all'){
+    var gVids=getGroupVolunteers();
+    gVids.forEach(function(vid){loaSendTask(vid,m,'');});
+    loaLog('📤 [組長廣播] '+esc(gName)+' '+gVids.length+'位 → '+m.substring(0,30)+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+    toast('📤 已推播給 '+esc(gName)+' '+gVids.length+' 位'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+    rtAudit('組長廣播',gName+' → '+m.substring(0,40));
+  } else {
+    var vn=(rtGet('volunteers/'+t)||{}).name||t;
+    loaSendTask(t,m,'');
+    loaLog('📤 [組長點對點] '+esc(vn)+' → '+m.substring(0,30)+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+    toast('📲 已推播給 '+esc(vn)+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+  }
+  if(msg) msg.value='';
+}
+function loaLeaderTemplate(type){
+  var gName=getGroupDisplayName();
+  var tpls={
+    muster:'📢 【集合通知】'+gName+' 全體請於 10 分鐘內集結到指定位置，等待任務說明',
+    task:'🎯 【任務通知】新任務已指派，請確認收到後立即執行，完成後在 Line 回覆「完成」',
+    status:'📊 【狀態確認】請各組員回報目前狀況：執行中 / 完成 / 需支援',
+    sos:'🆘 【緊急通知】'+gName+' 請立即停下手邊任務協助支援！',
+  };
+  var el=document.getElementById('loa-bc-msg'); if(el) el.value=tpls[type]||'';
+}
+function loaGroupRollcall(){
+  var gVids=getGroupVolunteers();
+  var gName=getGroupDisplayName();
+  gVids.forEach(function(vid){loaSendTask(vid,'📡 【點名】請立即回覆：「安全」或「求救」，謝謝！','');});
+  loaLog('📡 [組長點名] '+esc(gName)+' 點名推播 → '+gVids.length+'位'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+  toast('📡 '+esc(gName)+' 點名已發出'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+  rtAudit('組長點名',gName);
+}
+function loaDirectPush(vid){
+  var v=rtGet('volunteers/'+vid); if(!v) return;
+  loaSendTask(vid,'📩 組長有訊息給您，請回報目前任務狀態','');
+  loaLog('📲 直接推播 → '+esc(v.name)+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+  toast('📲 已推播給 '+esc(v.name)+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+}
+
+// ── 組員 Action Functions ──
+function loaMemberReport(taskId,status){
+  if(status==='已完成'){
+    rtReport(taskId,'已完成');
+  } else {
+    var t=rtGet('tasks/'+taskId)||{};
+    RTDB.ref('tasks/'+taskId).update({status:status});
+    rtAudit('組員回報',taskId+' → '+status);
+    loaLog('🙋 [組員回報] '+esc(t.title||taskId)+' → '+status);
+    toast('📲 回報已送出：'+status);
+  }
+  renderLOATab(LOA_ACTIVE_TAB);
+}
+function loaMemberSOS(taskId){
+  var t=rtGet('tasks/'+taskId)||{};
+  var vid=LOA_MEMBER_VID;
+  var v=vid?rtGet('volunteers/'+vid):null;
+  triggerSOS(v?v.name:'組員','任務 ['+taskId+'] 現場緊急：'+esc(t.title||''));
+}
+function loaMemberQuickMsg(msg){
+  var el=document.getElementById('loa-member-msg'); if(el) el.value=msg;
+}
+function loaMemberSendMsg(){
+  var el=document.getElementById('loa-member-msg');
+  var m=el?el.value.trim():'';
+  if(!m){toast('⚠ 請輸入回報內容');return;}
+  var vid=LOA_MEMBER_VID;
+  var v=vid?rtGet('volunteers/'+vid):null;
+  loaLog('🙋 [組員回報] '+esc(v?v.name:'組員')+' → '+m.substring(0,40));
+  rtAudit('組員回報',m.substring(0,60));
+  toast('📲 訊息已送出'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+  if(el) el.value='';
+}
+function loaMemberRequestSupply(item){
+  var el=document.getElementById('loa-supply-item'); if(el) el.value=item;
+  toast('已填入「'+item+'」— 請填數量後送出');
+}
+function loaMemberRequestCustomSupply(){
+  var iEl=document.getElementById('loa-supply-item');
+  var qEl=document.getElementById('loa-supply-qty');
+  var i=iEl?iEl.value.trim():'';
+  var q=qEl?qEl.value.trim():'';
+  if(!i){toast('⚠ 請填入物資品項');return;}
+  var vid=LOA_MEMBER_VID;
+  var v=vid?rtGet('volunteers/'+vid):null;
+  var gName=getGroupDisplayName();
+  DATA.warehouse.reqs.push({id:'R-'+Date.now(),item:i,qty:q||'?',site:gName+'現場',prio:'P2',due:'即時',status:'待派案',requester:(v?v.name:'組員')});
+  try{saveData();}catch(e){}
+  loaLog('📦 ['+esc(gName)+'] '+esc(v?v.name:'組員')+' 叫料：'+i+' '+q);
+  toast('📦 叫料需求已送出，等待調度派車');
+  rtAudit('組員叫料',i+' '+q+' ('+gName+')');
+  if(iEl) iEl.value=''; if(qEl) qEl.value='';
+  renderLOATab(LOA_ACTIVE_TAB);
 }
 // ── 即時調度中台：渲染與監聽 ──
 function triggerSOS(who,detail){
