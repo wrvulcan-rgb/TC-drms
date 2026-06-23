@@ -715,6 +715,10 @@ textarea.iep-inp{resize:vertical;min-height:56px}
           <button class="btn btn-primary" style="white-space:nowrap;font-size:12px" onclick="runAIAnalysis()">🤖 AI 戰術分析</button>
         </div>
         <div id="ai-feature-results" style="margin-top:8px"></div>
+        <!-- ── 應變場次狀態列 ── -->
+        <div id="session-status-strip" style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px 12px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--bg3);flex-wrap:wrap">
+          <span style="font-size:11px;color:var(--text4)">載入中…</span>
+        </div>
         <div class="bug-panel" id="bug-panel"></div>
       </div>
       <div class="inline-edit-panel" id="iep-w-sim" style="padding:16px">
@@ -3455,14 +3459,39 @@ function renderAssetTransit(){
 function renderRTClose(){
   var audit=renderRTAudit();
   var log=renderRTAuditLog();
-  // 故事線結案報告
+  var closed=rtGet('caseStatus')||{};
+  var sess=SESSION||(function(){try{return JSON.parse(localStorage.getItem('drms_session'));}catch(e){return null;}})();
+  // ── 結案操作區 ──
+  var closeHtml='<div class="card" style="margin-bottom:12px;border:2px solid '+(closed.closed?'var(--green-border)':'var(--border)')+'">';
+  closeHtml+='<div class="card-title" style="justify-content:space-between">';
+  closeHtml+='<span>'+(closed.closed?'✅ 已結案':'🏁 結案作業')+'</span>';
+  if(sess&&sess.startTs&&!sess.endTs){
+    var mins=Math.round((Date.now()-sess.startTs)/60000);
+    closeHtml+='<span class="badge" style="background:var(--green-bg);color:var(--green)">進行中 '+mins+' 分鐘</span>';
+  }
+  closeHtml+='</div>';
+  if(closed.closed){
+    closeHtml+='<div style="font-size:12px;color:var(--green);font-weight:600;margin-bottom:8px">應變場次 '+esc(closed.sessionId||'—')+' 已於 '+esc(closed.closedAt||'')+'結案</div>';
+    closeHtml+='<button class="btn btn-primary" onclick="rtStartNewSession()" style="font-size:12px">▶ 開始新應變場次</button>';
+  } else {
+    closeHtml+='<div style="font-size:11px;color:var(--text4);margin-bottom:12px">確認所有任務已完成、志工已退場、物資已清點後，執行正式結案。</div>';
+    // quick pre-close checklist
+    var tasks=rtGet('tasks')||{};
+    var pending=Object.values(tasks).filter(function(t){return t&&t.status&&t.status!='已完成'&&t.status!='已取消';});
+    if(pending.length){
+      closeHtml+='<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);padding:9px 12px;font-size:11px;color:var(--amber);margin-bottom:10px">⚠ 尚有 '+pending.length+' 項任務未完成，建議先完成或取消後再結案。</div>';
+    }
+    closeHtml+='<button class="emergency-btn" style="background:var(--blue);color:#fff;border-color:var(--blue);padding:12px;font-size:14px;font-weight:700" onclick="rtCloseCase()">🏁 正式結案 · 生成故事線</button>';
+  }
+  closeHtml+='</div>';
+  // ── 故事線結案報告 ──
   var storyHtml='<div class="card" style="margin-bottom:12px">';
   storyHtml+='<div class="card-title" style="justify-content:space-between"><span>📖 故事線結案報告（自動複盤）</span>';
   storyHtml+='<span style="display:flex;gap:6px"><button class="btn btn-blue btn-xs" onclick="genStoryline()">🔄 生成時間軸</button><button class="btn btn-ghost btn-xs" onclick="exportStoryline()">📤 匯出封存</button></span></div>';
   storyHtml+='<div style="font-size:11px;color:var(--text4);margin-bottom:10px">將本次應變期間的操作軌跡自動串成時間軸敘事，可作為下次演練劇本與歷史紀錄。</div>';
-  storyHtml+='<div id="storyline-out" style="font-size:12px;line-height:1.9"><div style="color:var(--text4);text-align:center;padding:16px 0">點「生成時間軸」開始</div></div>';
+  storyHtml+='<div id="storyline-out" style="font-size:12px;line-height:1.9"><div style="color:var(--text4);text-align:center;padding:16px 0">點「生成時間軸」或執行「正式結案」自動生成</div></div>';
   storyHtml+='</div>';
-  return storyHtml+photoCard()+audit+log;
+  return closeHtml+storyHtml+photoCard()+audit+log;
 }
 function photoCard(){
   var h='<div class="card" style="margin-bottom:12px">';
@@ -3637,6 +3666,58 @@ function exportStoryline(){
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
   toast('📤 故事線封存已匯出（可作演練劇本素材）');
+}
+// ── Loop E: 正式結案 ──
+function rtCloseCase(){
+  if(!confirm('確認正式結案？本次應變場次將結束，故事線自動生成。')) return;
+  var s=endSession();
+  var dur=s?('歷時 '+s.durationMin+' 分鐘'):'';
+  RTDB.ref('caseStatus').set({closed:true, closedAt:new Date().toLocaleString('zh-TW'), sessionId:s?s.id:'—'});
+  RTDB.ref('auditLog').push({action:'結案', detail:'應變場次已關閉'+(dur?' · '+dur:''), time:new Date().toLocaleTimeString('zh-TW'), actor:role||'admin'});
+  rtAudit('結案', '應變場次已關閉'+(dur?' · '+dur:''));
+  gasPost({action:'closeCase', closedAt:new Date().toISOString(), role:role, sessionId:s?s.id:null, durationMin:s?s.durationMin:null});
+  // auto-generate storyline and refresh UI
+  setTimeout(function(){
+    if(RT_TAB==='close') genStoryline();
+    toast('🏁 結案完成'+( dur?' · '+dur:'')+' — 故事線已生成，可點「匯出封存」下載');
+    logSys('ok','【結案】應變場次已關閉'+( dur?' · '+dur:''));
+    renderRTSync();
+    renderSessionBadge();
+  }, 200);
+}
+function renderSessionBadge(){
+  // update dashboard session status strip
+  var el=document.getElementById('session-status-strip');
+  if(!el) return;
+  var sess=SESSION||(function(){try{return JSON.parse(localStorage.getItem('drms_session'));}catch(e){return null;}})();
+  var closed=rtGet('caseStatus')||{};
+  if(closed.closed){
+    el.innerHTML='<span style="font-size:11px;color:var(--text4)">上次應變：'+esc(closed.sessionId||'—')+'，'+esc(closed.closedAt||'')+'</span>'
+      +'<button class="btn btn-primary btn-xs" onclick="rtStartNewSession()" style="font-size:11px">▶ 開始新應變場次</button>';
+    el.style.background='var(--bg3)'; el.style.borderColor='var(--border)';
+  } else if(sess&&sess.startTs&&!sess.endTs){
+    var mins=Math.round((Date.now()-sess.startTs)/60000);
+    el.innerHTML='<span class="dot" style="background:var(--green);animation:blink 1.2s infinite"></span>'
+      +'<span style="font-size:11px;font-weight:700;color:var(--green)">應變進行中</span>'
+      +'<span style="font-size:11px;color:var(--text4)">'+esc(sess.scenario)+'　已'+mins+'分鐘</span>'
+      +'<button class="btn btn-ghost btn-xs" onclick="showPage(\'rtsync\');setRTTab(\'close\')" style="font-size:11px;margin-left:auto">🏁 前往結案</button>';
+    el.style.background='var(--green-bg)'; el.style.borderColor='var(--green-border)';
+  } else {
+    el.innerHTML='<span style="font-size:11px;color:var(--text4)">尚未開始應變場次</span>'
+      +'<button class="btn btn-primary btn-xs" onclick="rtStartNewSession()" style="font-size:11px">▶ 開始應變場次</button>';
+    el.style.background='var(--bg3)'; el.style.borderColor='var(--border)';
+  }
+}
+function rtStartNewSession(){
+  var sc=DATA.config.simScenario||'quake';
+  var def=(DATA.scenarios||[]).find(function(s){return s.id===sc;})||{label:'自訂', id:sc};
+  var lvl=prompt('請輸入應變等級（如：第一級 / 第二級 / 演練），留空略過','演練');
+  if(lvl===null) return; // cancelled
+  startSession(def.label||def.id, lvl||'');
+  RTDB.ref('caseStatus').set({closed:false});
+  rtAudit('開始應變', '場次 '+SESSION.id+'，情境：'+SESSION.scenario+(lvl?' · '+lvl:''));
+  toast('📍 應變場次已開始：'+SESSION.scenario+(lvl?' · '+lvl:''));
+  renderSessionBadge();
 }
 function renderRTEmergency(){
   var s=SAFETY.sent, sf=SAFETY.safe, so=SAFETY.sos;
@@ -5508,6 +5589,7 @@ function showPage(id){
       pg.innerHTML='<div class="no-acc"><div class="ic">🔒</div><h2>權限不足</h2><p>您在此模組的全責規範為 P4（無權限）</p></div>';
     }
   }
+  if(id==='dashboard') renderSessionBadge();
   if(id==='vol_hub') renderVolHub();
   if(id==='admin'){
     checkAdminGate();
@@ -6763,6 +6845,8 @@ function wtPickLevel(level){
     var lvLabel={L1:'L1 輕度',L2:'L2 中度',L3:'L3 重度'}[level];
     logSys('ok','戰時啟動：'+def.label+' · '+lvLabel+'，開放 '+cnt+' 個模組');
     startSession(def.label, level);
+    RTDB.ref('caseStatus').set({closed:false});
+    setTimeout(renderSessionBadge, 100);
     toast('⚡ '+def.emoji+' '+def.label+' · '+lvLabel+' 啟動（'+cnt+' 模組）');
     return;
   }
@@ -6836,6 +6920,8 @@ function wtConfirmAndLaunch(){
   var lvlLabel={L1:'L1 輕度',L2:'L2 中度',L3:'L3 重度',manual:'全手動'}[_wtPendingLevel]||'';
   logSys('ok','戰時模組套用：'+def.label+' · '+lvlLabel+'，開放 '+cnt+' 個模組，隱藏 '+toHide.length+' 個');
   startSession(def.label, _wtPendingLevel);
+  RTDB.ref('caseStatus').set({closed:false});
+  setTimeout(renderSessionBadge, 100);
   toast('⚡ 戰時模式啟動：'+def.emoji+' '+def.label+' · '+lvlLabel+'（'+cnt+' 模組）');
 }
 function selectScenario(id){
@@ -8767,6 +8853,7 @@ setInterval(rtCheckFatigue,60000);
 logSys('info','平時模式：總控 P0，IT 志工 P0，其他角色 P1。');
 startSyncTimer();
 loadSession();
+renderSessionBadge();
 // ── 重複點擊偵測（UX 卡頓遙測）──
 document.addEventListener('click',function(e){
   var btn=e.target.closest('button');
