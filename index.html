@@ -2825,13 +2825,59 @@ function viewLineOA(){
   '</div>';
 }
 
-var PV_VIEWS={ lineoa: {title:'Line OA',render:viewLineOA} };
+function pvRenderPage(pageId,fns){
+  return function(){
+    (fns||[]).forEach(function(f){try{f();}catch(e){}});
+    var el=document.getElementById('page-'+pageId);
+    if(!el||el.innerHTML.trim().length<200) return pvPlaceholder(pageId);
+    return '<div style="overflow:hidden;height:560px;border-radius:8px;background:var(--bg);border:1px solid var(--border)">'
+      +'<div style="transform:scale(0.62);transform-origin:top left;width:161.3%;max-height:903px;overflow:hidden;pointer-events:none">'
+      +el.innerHTML+'</div></div>';
+  };
+}
+function pvRenderMulti(pairs){
+  return function(){
+    var out='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:4px">';
+    pairs.forEach(function(p){
+      (p.fns||[]).forEach(function(f){try{f();}catch(e){}});
+      var el=document.getElementById('page-'+p.id);
+      var html=(el&&el.innerHTML.trim().length>200)?el.innerHTML:'';
+      out+='<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--bg)">'
+        +'<div style="padding:8px 10px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text)">'+p.ico+' '+p.nm+'</div>'
+        +(html?'<div style="overflow:hidden;height:200px"><div style="transform:scale(0.38);transform-origin:top left;width:263%;max-height:526px;overflow:hidden;pointer-events:none">'+html+'</div></div>'
+             :'<div style="padding:30px;text-align:center;color:var(--text4);font-size:11px">尚未載入</div>')
+        +'</div>';
+    });
+    return out+'</div>';
+  };
+}
+var PV_VIEWS={
+  lineoa:    {title:'Line OA 模擬',    render:viewLineOA},
+  dashboard: {title:'總控儀表板',       render:pvRenderPage('dashboard',[renderStats,renderAlerts,renderDisaster,renderManpower,renderAI])},
+  rtsync:    {title:'即時協調中台',     render:pvRenderPage('rtsync',[renderRTSync])},
+  reg:       {title:'志工人力中心',     render:pvRenderPage('vol_hub',[renderVolHub])},
+  warehouse: {title:'物資倉儲',         render:pvRenderPage('warehouse',[renderWarehouse])},
+  sorting:   {title:'物資整理站',       render:pvRenderPage('sorting',[renderSorting])},
+  drive:     {title:'照片回報分類',     render:pvRenderPage('drive',[renderDrive])},
+  monitor:   {title:'全域監控',         render:pvRenderPage('monitor',[renderMonitor])},
+  sysadmin:  {title:'系統管理層',       render:pvRenderPage('admin',[renderOrgZones])},
+  relief_req:{title:'民眾求助通報',     render:pvRenderPage('relief_req',[renderReliefReq])},
+  fieldgroup:{title:'L3 現場執行群',    render:pvRenderMulti([
+    {id:'kitchen',    ico:'🍱',nm:'廚房/餐食', fns:[renderKitchen]},
+    {id:'medical_aid',ico:'🏥',nm:'醫療急救', fns:[renderMedicalAid]},
+    {id:'rescue',     ico:'🔍',nm:'搜救勘災', fns:[renderRescue]},
+    {id:'case_mgt',   ico:'📋',nm:'個案管理', fns:[renderCaseMgt]},
+    {id:'care_rec',   ico:'💚',nm:'關懷紀錄', fns:[renderCareRec]},
+    {id:'shelter_mgt',ico:'🏠',nm:'收容所',   fns:[renderShelterMgt]},
+  ])},
+  story:     {title:'故事線結案',       render:pvRenderPage('rtsync',[renderRTClose])},
+};
 
 function pvPlaceholder(name){
   return '<div style="text-align:center;padding:50px 20px;color:var(--text3)">'+
-    '<div style="font-size:34px;margin-bottom:12px">🚧</div>'+
-    '<div style="font-size:14px;font-weight:700;color:var(--text2)">「'+name+'」這格的內部示意製作中</div>'+
-    '<div style="font-size:11px;margin-top:8px;line-height:1.7">目前已完成標竿格：<b>Line OA</b>（雙線架構）<br>確認版型後將逐格補完其餘模組畫面</div></div>';
+    '<div style="font-size:34px;margin-bottom:12px">🔲</div>'+
+    '<div style="font-size:14px;font-weight:700;color:var(--text2)">「'+name+'」為架構節點，無對應操作頁面</div>'+
+    '<div style="font-size:11px;margin-top:8px;line-height:1.7">此節點代表外部系統或人員角色，非 DRMS 內建模組</div></div>';
 }
 function pvShow(id,name){
   var v=PV_VIEWS[id];
