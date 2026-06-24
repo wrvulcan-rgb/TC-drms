@@ -12001,13 +12001,99 @@ var drillMode=false, drillRole=null, drillBackup=null, drillCPs={A:null,B:null};
 var DRILL_STEP=0;
 
 var DRILL_ROLES={
-  staff:    {lbl:'行政幹部',icon:'📋',roleName:'staff'},
-  logistics:{lbl:'物資幹部',icon:'📦',roleName:'logistics'},
-  it:       {lbl:'IT 志工', icon:'🖥', roleName:'it'},
-  admin:    {lbl:'總控演練',icon:'🏛', roleName:'admin'},
+  lifecycle:{lbl:'完整生命週期',icon:'🗺', roleName:'admin'},
+  staff:    {lbl:'行政幹部',    icon:'📋', roleName:'staff'},
+  logistics:{lbl:'物資幹部',    icon:'📦', roleName:'logistics'},
+  it:       {lbl:'IT 志工',     icon:'🖥', roleName:'it'},
+  admin:    {lbl:'總控演練',    icon:'🏛', roleName:'admin'},
 };
 
 var DRILL_FLOWS={
+  lifecycle:[
+    {
+      page:'vol_hub',
+      hint:'步驟 1 — 志工報名。這是志工加入的入口：填寫報名表單後資料進入系統。點左側「人力中心」，查看報名名單與各欄位設計。',
+      inject:function(){
+        DATA.volunteers=DATA.volunteers||{list:[]};
+        if(!DATA.volunteers.list) DATA.volunteers.list=[];
+        if(DATA.volunteers.list.length<3){
+          DATA.volunteers.list=[
+            {id:'V001',name:'陳師兄',group:'未分組',skill:'個案管理',status:'已報名',phone:'0912-001',checkin:false},
+            {id:'V002',name:'林志工',group:'未分組',skill:'搬運駕車',status:'已報名',phone:'0923-002',checkin:false},
+            {id:'V003',name:'黃組長',group:'未分組',skill:'護理急救',status:'已報名',phone:'0934-003',checkin:false},
+            {id:'V004',name:'吳幹部',group:'未分組',skill:'行政協調',status:'已報名',phone:'0945-004',checkin:false},
+            {id:'V005',name:'鄭師姐',group:'未分組',skill:'倉儲管理',status:'已報名',phone:'0956-005',checkin:false},
+          ];
+          saveData();
+        }
+      }
+    },
+    {
+      page:'vol_hub',
+      hint:'步驟 2 — 分組。幹部依技能／需求把報名志工分配到各組（行政/物資/醫護/搜救）。找一位志工，把他的「組別」從「未分組」改成對應組別。',
+      inject:function(){
+        if(DATA.volunteers&&DATA.volunteers.list){
+          DATA.volunteers.list.forEach(function(v,i){
+            var groups=['行政組','物資組','醫護組','物資組','行政組'];
+            v.group=groups[i]||'行政組';
+          });
+          saveData();
+        }
+      }
+    },
+    {
+      page:'vol_hub',
+      hint:'步驟 3 — 報到。災害當天，志工透過 Line OA 傳「報到」或幹部在這裡手動勾選。勾選後狀態從「已報名」更新為「待命」，計入今日出席人數。',
+      inject:function(){
+        if(DATA.volunteers&&DATA.volunteers.list){
+          DATA.volunteers.list[0].checkin=true;
+          DATA.volunteers.list[0].status='待命';
+          DATA.volunteers.list[1].checkin=true;
+          DATA.volunteers.list[1].status='待命';
+          saveData();
+        }
+        RTDB.ref('volunteers').set({
+          'V001':{id:'V001',name:'陳師兄',group:'行政組',status:'待命'},
+          'V002':{id:'V002',name:'林志工',group:'物資組',status:'待命'},
+          'V003':{id:'V003',name:'黃組長',group:'醫護組',status:'出勤中'},
+        });
+      }
+    },
+    {
+      page:'kitchen',
+      hint:'步驟 4 — 用餐申請。報到後志工透過 Line OA「物資需求」申請用餐，廚房組在這裡看到需求並推進備餐流程。找一筆午餐需求，按「▶ 開始備餐」。',
+      inject:function(){
+        DATA.kitchen=DATA.kitchen||{meals:[],cookTasks:[],safetyChecklist:[],deliveries:[]};
+        if(!DATA.kitchen.meals||!DATA.kitchen.meals.length){
+          DATA.kitchen.meals=[
+            {id:'M001',meal:'午餐',time:'12:00',location:'竹崎國小收容所',qty:120,served:0,status:'待備餐'},
+            {id:'M002',meal:'午餐（素食）',time:'12:00',location:'竹崎國小收容所',qty:18,served:0,status:'待備餐'},
+            {id:'M003',meal:'晚餐',time:'18:00',location:'中和里安置點',qty:65,served:0,status:'待備餐'},
+          ];
+          DATA.kitchen.cookTasks=[
+            {id:'CT01',shift:'午班',item:'白飯×138份',assignee:'廚房A組',status:'待命'},
+            {id:'CT02',shift:'午班',item:'素食菜餚×18份',assignee:'廚房B組',status:'待命'},
+          ];
+          saveData();
+        }
+      }
+    },
+    {
+      page:'drive',
+      hint:'步驟 5（最後）— 結案照片。現場志工拍攝的照片上傳到 Google Drive，由幹部在這裡分類標記（現場/物資/人員/任務），形成完整行動紀錄。這是整個生命週期的最終留存。',
+      inject:function(){
+        DATA.drive=DATA.drive||{photos:[]};
+        if(!DATA.drive.photos||!DATA.drive.photos.length){
+          DATA.drive.photos=[
+            {id:'P001',filename:'rescue_site_0924_001.jpg',category:'現場',tag:'搜救區域',uploader:'V003',time:'09:24',url:''},
+            {id:'P002',filename:'warehouse_stock_0930.jpg', category:'物資',tag:'倉儲盤點',uploader:'V005',time:'09:30',url:''},
+            {id:'P003',filename:'meal_delivery_1200.jpg',   category:'任務',tag:'配餐送達',uploader:'V002',time:'12:05',url:''},
+          ];
+          saveData();
+        }
+      }
+    },
+  ],
   staff:[
     {page:'relief_req', hint:'步驟 1 — 民眾求助收件匣。已載入 4 筆求助單，找到 DR001（🔴 P1緊急），按「轉派任務」把它送進協調中台。'},
     {page:'rtsync',     hint:'步驟 2 — 協調中台任務池。剛才轉派的任務已出現。點「確認獨居長者狀況」任務卡，指派一位待命組員執行。'},
@@ -12172,7 +12258,7 @@ function enterDrill(dRole){
   role=dr.roleName;
   var rsel=document.getElementById('role-sel');
   if(rsel) rsel.value=dr.roleName;
-  if(dRole!=='it'){
+  if(dRole!=='it'&&dRole!=='lifecycle'){
     state='war';
     var bp=document.getElementById('btn-p'), bw=document.getElementById('btn-w');
     if(bp) bp.className='sbtn';
@@ -12413,10 +12499,21 @@ function drillLaunchClose(){
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
       <div>
         <div style="font-size:18px;font-weight:800;color:var(--text)">🎯 演練模式</div>
-        <div style="font-size:11px;color:var(--text4);margin-top:2px">選擇角色開始自由探索演練 · 可隨時儲存起點並重跑任意分支</div>
+        <div style="font-size:11px;color:var(--text4);margin-top:2px">選擇流程，底部 HUD 一步一步帶你走完，自動切換頁面與注入資料</div>
       </div>
       <button onclick="drillLaunchClose()" style="border:none;background:var(--bg3);padding:6px 12px;border-radius:8px;cursor:pointer;color:var(--text3);font-size:13px">✕</button>
     </div>
+    <div class="drill-role-card" onclick="enterDrill('lifecycle')" style="border-color:#6366f1;background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(79,70,229,.04))">
+      <div class="drill-role-ico">🗺</div>
+      <div>
+        <div class="drill-role-lbl" style="color:#6366f1">完整生命週期 <span style="font-size:10px;font-weight:500;color:var(--text4)">系統設計展示</span></div>
+        <div class="drill-role-desc">從志工報名到結案照片，走完整個橫向流程，展示系統各模組是如何設計串接的</div>
+        <div class="drill-role-path">
+          <span class="drill-role-step">📝 報名</span><span class="drill-role-step">👥 分組</span><span class="drill-role-step">✅ 報到</span><span class="drill-role-step">🍱 用餐申請</span><span class="drill-role-step">📷 結案照片</span>
+        </div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:10px 0"></div>
     <div class="drill-role-card" onclick="enterDrill('staff')">
       <div class="drill-role-ico">📋</div>
       <div>
@@ -12458,7 +12555,7 @@ function drillLaunchClose(){
       </div>
     </div>
     <div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.7">
-      💡 演練模式使用本機沙箱資料，不影響實際系統。進入後可隨時用底部 HUD 儲存起點、還原分支或結束演練。
+      💡 演練模式使用本機沙箱資料，不影響實際系統。底部 HUD 顯示目前步驟與提示，按「下一步 →」自動跳到下一個模組，系統狀態在結束後完整還原。
     </div>
   </div>
 </div>
