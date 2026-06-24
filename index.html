@@ -993,7 +993,7 @@ body.mobile-mode #mobile-root { display:flex!important; }
       <span style="font-size:18px">📡</span>
       <div>
         <div style="font-size:14px;font-weight:700;color:var(--blue)">DATA 端 — 資料接收與整理</div>
-        <div style="font-size:11px;color:var(--text4);font-family:monospace">政府公告 · 新聞來源 · 總指揮中心指令</div>
+        <div style="font-size:11px;color:var(--text4);font-family:monospace">政府公告 · 新聞來源 · 縣府應變中心公告</div>
       </div>
       <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
         <span style="font-size:10px;color:var(--text4);font-family:monospace">最後更新 14:37</span>
@@ -1190,8 +1190,8 @@ body.mobile-mode #mobile-root { display:flex!important; }
       <div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">縣政府應變中心</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">正常</span></div>
       <div class="conn-row"><div class="conn-dot warn"></div><span style="flex:1;font-size:12px;font-weight:500">現場消防員傳輸</span><span style="font-size:10px;font-family:monospace;color:var(--amber)">延遲 320ms</span></div>
       <div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">Line OA 推播</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">正常</span></div>
-      <div style="font-size:10px;color:var(--text4);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">⚠ 緊急操作（警報/SOS/點名）已移至「即時調度中台 → 緊急」，由現場指揮層發起</div>
-      <button class="btn btn-red" style="margin-top:8px;width:100%;justify-content:center;font-size:11px" onclick="showPage('rtsync');setRTTab('emergency')">🚨 → 前往即時調度中台 · 緊急 tab</button>
+      <div style="font-size:10px;color:var(--text4);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">⚠ 緊急操作（警報/SOS/點名）已移至「即時協調中台 → 緊急」，由現場協調組發起</div>
+      <button class="btn btn-red" style="margin-top:8px;width:100%;justify-content:center;font-size:11px" onclick="showPage('rtsync');setRTTab('emergency')">🚨 → 前往即時協調中台 · 緊急 tab</button>
     </div>
   </div>
 </div>
@@ -1382,7 +1382,7 @@ body.mobile-mode #mobile-root { display:flex!important; }
 
 <!-- ══ 民眾求助通報（災民端入口 + 收件匣）══ -->
 <div class="page" id="page-relief_req">
-  <div class="pg-hdr"><div><div class="pg-title">🆘 民眾求助通報</div><div class="pg-sub">受災民眾自主報案 · 收件匣 → 一鍵轉即時調度中台</div></div></div>
+  <div class="pg-hdr"><div><div class="pg-title">🆘 民眾求助通報</div><div class="pg-sub">受災民眾自主報案 · 收件匣 → 一鍵轉即時協調中台</div></div></div>
   <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
     <button class="btn btn-blue" id="rrtab-inbox" onclick="setReliefTab('inbox')">📥 求助收件匣</button>
     <button class="btn btn-ghost" id="rrtab-map" onclick="setReliefTab('map')">🗺️ 受困分佈</button>
@@ -1601,7 +1601,7 @@ body.mobile-mode #mobile-root { display:flex!important; }
 </div>
 
 <div class="page" id="page-rtsync">
-  <div class="pg-hdr"><div><div class="pg-title">⚡ 即時調度中台</div><div class="pg-sub">多點同步作業 · 開兩個分頁即可見即時連動（本機版，可無痛切換 Firebase）</div></div></div>
+  <div class="pg-hdr"><div><div class="pg-title">⚡ 即時協調中台</div><div class="pg-sub">多點同步作業 · 開兩個分頁即可見即時連動（本機版，可無痛切換 Firebase）</div></div></div>
   <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
     <button class="btn btn-blue" id="rttab-tasks"     onclick="setRTTab('tasks')">🎯 派任務</button>
     <button class="btn btn-ghost" id="rttab-report"   onclick="setRTTab('report')">📡 看進度</button>
@@ -1827,7 +1827,7 @@ background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans TC',-apple
   <div class="head">
     <div>
       <h1>🗺️ 系統架構心智圖 <span class="ver" id="arch-ver"></span></h1>
-      <div class="hint">即時調度中台鎖定中央，其餘放射環繞（上=發起 / 下=結案歸檔 / 左=慈濟 / 右=志工現場）。拖曳排版 · 點節點或線看說明 · ▶ 故事導覽逐段講解。</div>
+      <div class="hint">即時協調中台鎖定中央，其餘放射環繞（上=發起 / 下=結案歸檔 / 左=慈濟 / 右=志工現場）。拖曳排版 · 點節點或線看說明 · ▶ 故事導覽逐段講解。</div>
     </div>
     <div class="toolbar">
       <button class="tbtn play" onclick="arch_storyStart()">▶ 故事導覽</button>
@@ -1963,8 +1963,8 @@ var NODES=[
     desc:'功能後台(權限矩陣、模組管理)+後台維運(系統設定、Gmail/Line 串接、版本備份還原、戰時災型預設、開發待辦)。權限控管與設定所在地。'},
 
   // 中央核心
-  {id:'rtsync',   nm:'即時調度中台', ico:'\u26A1', x:50, y:44, status:'live', kind:'core', center:true, locked:true,
-    script:'我把即時調度中台放在心智圖正中央，不是視覺設計的習慣，而是它真的就是整個系統的核心。在真實救災現場，最常出現的混亂是：這個需求誰負責？這個物資哪裡來？這個志工在哪？這些問題沒有一個統一的入口，就會不斷被詢問、不斷重複協調，浪費時間也容易出錯。調度中台的設計理念是把所有第一線的動作收攏到一個地方——任務建立、派工、物資調度、緊急警報、SOS、點名，全部在同一個介面完成。四個分頁（任務池、任務互動、結案、緊急）對應四種不同的工作節奏，讓幹部不需要在多個系統之間切換。',
+  {id:'rtsync',   nm:'即時協調中台', ico:'\u26A1', x:50, y:44, status:'live', kind:'core', center:true, locked:true,
+    script:'我把即時協調中台放在心智圖正中央，不是視覺設計的習慣，而是它真的就是整個系統的核心。在真實救災現場，最常出現的混亂是：這個需求誰負責？這個物資哪裡來？這個志工在哪？這些問題沒有一個統一的入口，就會不斷被詢問、不斷重複協調，浪費時間也容易出錯。協調中台的設計理念是把 NGO 補位協助的動作收攏到一個地方——需求媒合、任務建立、物資調配、緊急警報、SOS、點名，全部在同一個介面完成。NGO 不替代政府或消防的主責，而是彌補官方系統照顧不到的空白。四個分頁（任務池、任務互動、結案、緊急）對應四種不同的工作節奏，讓幹部不需要在多個系統之間切換。',
     desc:'現場唯一指揮橋樑。4 tab：派任務/看進度(含出貨)/結案/緊急(警報+SOS+點名)。所有派工、調度、叫料媒合在此。'},
 
   // 右上=志工前線
@@ -2023,7 +2023,7 @@ var EDGES=[
     talk:'儀表板到調度中台是「決策轉為行動」的關鍵連線。高層在儀表板做的判斷（支援哪裡、優先哪個），透過這條線轉成調度中台的任務範本和優先級，讓現場執行有明確依據。',
     flow:'戰時自儀表板觸發派遣。傳輸：災型/等級參數，預置調度中台任務範本與優先級。'},
   {from:'staff',to:'rtsync',label:'指揮',
-    talk:'幹部到調度中台的直接連線，讓指揮和調度能同步進行。幹部不需要透過儀表板中轉就能直接建立任務、調整指派——在快速變化的現場，減少操作步驟就是減少出錯的機會。',
+    talk:'幹部到調度中台的直接連線，讓協調與派工能同步進行。幹部不需要透過儀表板中轉就能直接建立任務、調整安排——在快速變化的現場，減少操作步驟就是減少出錯的機會。',
     flow:'幹部下達指揮。傳輸：任務建立/指派/狀態變更，寫派工並觸發推播與稽核。'},
   {from:'volunteer',to:'lineoa',label:'報到',story:2,
     talk:'志工用 LINE 報到這條線的設計前提是：不能要求志工在緊急狀況下學新工具。LINE 是他們已經熟悉的通訊軟體，報到流程嵌在裡面，進入系統的門檻就接近零。',
@@ -2044,7 +2044,7 @@ var EDGES=[
     talk:'倉儲到調度中台這條連線讓物資分配有了客觀基礎。幹部在調度媒合時直接看到即時庫存，缺料告警也從這裡觸發——決策不再靠記憶或詢問，而是看數字。',
     flow:'倉儲回報可用量供調度。傳輸：庫存量、備貨進度、缺料告警。'},
   {from:'rtsync',to:'fieldgroup',label:'分案/進度',bi:true,story:5,
-    talk:'調度中台和現場群之間的雙向線，是「指令」和「執行」之間的橋樑。從中台到現場：任務分案、物資指令、人力編組。從現場到中台：執行進度、個案紀錄、現場需求。這條線讓指揮端不需要打電話就能知道現場的實際狀況。',
+    talk:'協調中台和現場群之間的雙向線，是「需求」和「執行」之間的橋樑。從中台到現場：任務分配、物資安排、人力協調。從現場到中台：執行進度、個案紀錄、現場需求。這條線讓協調端不需要打電話就能掌握現場狀況。',
     flow:'雙向。去程(中台→現場)：任務分案、特殊物資/安心祝福金發放指令、人力編組、座標。回程(現場→中台)：執行進度、個案/關懷紀錄、現場需求。'},
   {from:'lineoa',to:'drive',label:'照片上傳',
     talk:'照片從 LINE OA 上傳是最低門檻的現場回報方式。志工不需要額外的工具，拍完直接傳，系統負責對應個案和分類——讓「留下影像紀錄」這件事的阻力接近零。',
@@ -2093,7 +2093,7 @@ var VIEWS={
       {step:'盤點',on:['dashboard'],
         text:'儀表板即時顯示受災戶數、撤離人數、志工到位、物資完成率。一眼掌握全局，不必等回報。'},
       {step:'調度',on:['dashboard','rtsync'],
-        text:'儀表板下達戰時派遣，即時調度中台接手，把任務派到第一線。'},
+        text:'儀表板下達戰時派遣，即時協調中台接手，把任務派到第一線。'},
       {step:'動員',on:['volunteer','lineoa','reg','rtsync'],
         text:'志工完成報到後立刻成為可派人力 — 人到位，任務就能發。'},
       {step:'照顧',on:['rtsync','fieldgroup'],
@@ -2127,7 +2127,7 @@ var VIEWS={
     nodes:['lineoa','rtsync','backend','story','sysadmin','monitor','emic','dashboard'],
     stories:[
       {step:'入口',on:['lineoa','rtsync','dashboard'],
-        text:'前端是單檔 HTML，無框架。使用者操作與 Line OA 回報都先進即時調度中台這個前端樞紐。'},
+        text:'前端是單檔 HTML，無框架。使用者操作與 Line OA 回報都先進即時協調中台這個前端樞紐。'},
       {step:'落盤',on:['rtsync','backend'],
         text:'所有狀態即時寫 localStorage（drms_data / 版本備份 / 場次 / 遙測），離線可用，連線後再分段上傳。'},
       {step:'後端',on:['backend'],
@@ -2170,7 +2170,7 @@ VIEWS.staff_flow={
     {step:'志工報到',on:['user','lineoa','reg'],
       text:'志工用 Line OA 傳「報到」或系統內掃 QR → GAS 寫 Event_Logs → 名冊更新。行政組在志工人力中心可手動補登、搜尋姓名/編號，完成報到確認。'},
     {step:'任務分派',on:['reg','rtsync'],
-      text:'報到後志工進入可派清單。行政組在即時調度中台建立任務卡（標題/地點/優先序），rtDoAssign() 指派 → 志工 Line OA 收推播 → 狀態即時回寫。'},
+      text:'報到後志工進入可派清單。行政組在即時協調中台建立任務卡（標題/地點/優先序），rtDoAssign() 指派 → 志工 Line OA 收推播 → 狀態即時回寫。'},
     {step:'個案建立',on:['rtsync','fieldgroup','shelter'],
       text:'民眾求助（relief_req）→ 行政組轉派任務（reliefDispatch）→ 建立個案（case_mgt）→ 指定負責組員。個案含姓名/地址/需求分類/優先序。'},
     {step:'關懷紀錄',on:['fieldgroup','shelter','sheets'],
@@ -2276,7 +2276,7 @@ VIEWS.logistics_flow={
   nodes:['warehouse','shelter','rtsync','lineoa','gas_webhook','storage','drive_api'],
   stories:[
     {step:'叫料入口',on:['lineoa','rtsync'],
-      text:'前線志工在 Line OA supply tab 選「叫料」→ loaDispatch() → RTDB tasks.push 新任務（叫料配送 QID）→ 物資組在即時調度中台看到任務，確認派車。'},
+      text:'前線志工在 Line OA supply tab 選「叫料」→ loaDispatch() → RTDB tasks.push 新任務（叫料配送 QID）→ 物資組在即時協調中台看到任務，確認派車。'},
     {step:'庫存管理',on:['warehouse','storage'],
       text:'物資三級分類造冊（類別/品名/數量），入庫登記 → 寫 localStorage drms_data.warehouse → 定期同步 GAS Sheets Warehouse 表。出庫須經調度中台媒合，避免重複發料。'},
     {step:'整理站',on:['shelter','warehouse'],
@@ -2295,7 +2295,7 @@ var ROLE_GUIDE={
     color:'var(--accent)',
     intro:'掌握救災大局：災情判斷 → 動員下令 → 資源調度 → 結案存證。',
     sections:[
-      {icon:'📊',label:'你的核心工具',items:['總控儀表板 — KPI + 情境模擬（10 災型）','即時調度中台 — 派工 / 警報 / SOS / 結案','全域監控 — 決策大屏，不涉操作']},
+      {icon:'📊',label:'你的核心工具',items:['總控儀表板 — KPI + 情境模擬（10 災型）','即時協調中台 — 派工 / 警報 / SOS / 結案','全域監控 — 決策大屏，不涉操作']},
       {icon:'⚡',label:'關鍵流程',items:['平時→戰時 切換 → 儀表板亮起','發出任務 → 中台媒合 → Line OA 推播','SOS 緊急全員動員 → 解除 → 稽核記錄']},
       {icon:'🤝',label:'跨機構協調（你需要知道窗口）',items:[
         '縣府災害防救中心：統一指揮，慈濟以協力組織身分協作',
@@ -2917,7 +2917,7 @@ var ARCH_DOC={
     {id:'monitor',name:'全域監控',layer:'L1',status:'live',note:'高層決策視圖：即時情資彙整、前線需求大方向、即時影像位、連線狀態。不涉細節操作'},
     {id:'permissions',name:'功能後台',layer:'L1',status:'live',note:'權限矩陣、模組管理'},
     {id:'admin',name:'後台維運',layer:'L1',status:'live',note:'系統設定、Gmail/Line OA 串接、版本備份還原、戰時各災型預設模組設定、開發待辦'},
-    {id:'rtsync',name:'即時調度中台',layer:'L2',status:'live',note:'現場唯一指揮橋樑。4 tab：派任務/看進度(含物資出貨)/結案(含日誌+照片+故事線)/緊急(警報+SOS+點名)'},
+    {id:'rtsync',name:'即時協調中台',layer:'L2',status:'live',note:'現場唯一指揮橋樑。4 tab：派任務/看進度(含物資出貨)/結案(含日誌+照片+故事線)/緊急(警報+SOS+點名)'},
     {id:'reg',name:'志工報名與報到',layer:'L2',status:'live',note:'今日報到+明日報名雙軌並行。報到後加入 Line OA 收任務'},
     {id:'sheet_reg',name:'報名資料總表',layer:'L2',status:'partial',note:'Google Sheets 對接，慈誠委員+社區志工。GAS 後端已建，需設定 /exec 網址'},
     {id:'line_oa',name:'Line OA 模擬',layer:'L2',status:'partial',note:'雙手機模擬器已內嵌(base64)。真實 LINE Webhook 後端未接，目前為模擬展示'},
@@ -2941,8 +2941,8 @@ var ARCH_DOC={
   // ── 資料流 ──
   dataflow:[
     '現場回報 → 本機暫存(localStorage,離線可用) → 連線後分段打包上傳 → 標記已同步 → 結案 → 匯出 JSON 封存 → 清本機',
-    '報到 → 加入 Line OA → 即時調度中台收任務/通知/點名',
-    '物資：對內(倉儲頁盤點入庫) / 對外(即時調度中台出貨工具調度)',
+    '報到 → 加入 Line OA → 即時協調中台收任務/通知/點名',
+    '物資：對內(倉儲頁盤點入庫) / 對外(即時協調中台出貨工具調度)',
     '結案 → audit log 串成故事線時間軸 → 含 session 場次/錯誤聚合/UX卡頓遙測 → 匯出當演練劇本燃料'
   ],
   // ── 技術棧 ──
@@ -2974,17 +2974,17 @@ var ARCH_DOC={
     {pri:'P3',title:'Google My Maps 任務地圖',status:'planned',
      bg:'打掃範圍/住宿點目前無視覺化地圖',
      why:'讓需要的人一眼看到現場任務分布',
-     how:'即時調度中台加地圖視圖；靜態資料(範圍/住宿)後台一次設定，動態(任務狀態)系統自動更新'}
+     how:'即時協調中台加地圖視圖；靜態資料(範圍/住宿)後台一次設定，動態(任務狀態)系統自動更新'}
   ],
   // ── 架構圖：節點(x,y 為 0-100 百分比座標) ──
   graphNodes:[
     {id:'user',name:'幹部/志工',x:8,y:30,status:'live',kind:'actor',desc:'系統使用者。依角色(總控/IT/幹部/物流)有不同權限與可見模組。'},
     {id:'lineoa',name:'Line OA',x:82,y:22,status:'partial',kind:'channel',desc:'前線回報入口（模擬器已內嵌）。真實 Webhook 後端未接。報到後加入此頻道收任務/通知/點名。'},
     {id:'dashboard',name:'總控儀表板',x:35,y:22,status:'live',kind:'core',desc:'KPI、情境模擬器(10災型)、可編輯版面、AI戰術分析入口。平時/戰時雙模式起點。'},
-    {id:'rtsync',name:'即時調度中台',x:50,y:44,status:'live',kind:'core',desc:'現場唯一指揮橋樑。4 tab：派任務/看進度/結案/緊急。所有派工、警報、SOS、出貨在此。'},
+    {id:'rtsync',name:'即時協調中台',x:50,y:44,status:'live',kind:'core',desc:'現場唯一指揮橋樑。4 tab：派任務/看進度/結案/緊急。所有派工、警報、SOS、出貨在此。'},
     {id:'reg',name:'報名報到',x:12,y:62,status:'live',kind:'core',desc:'今日報到+明日報名雙軌並行。報到後導引加入 Line OA。'},
     {id:'monitor',name:'全域監控',x:58,y:22,status:'live',kind:'core',desc:'高層決策視圖：情資彙整、前線需求、即時影像、連線狀態。唯讀不涉操作。'},
-    {id:'warehouse',name:'物資倉儲',x:52,y:62,status:'live',kind:'limb',desc:'對內：三級分類造冊、入庫、大車調度。對外出貨在即時調度中台。'},
+    {id:'warehouse',name:'物資倉儲',x:52,y:62,status:'live',kind:'limb',desc:'對內：三級分類造冊、入庫、大車調度。對外出貨在即時協調中台。'},
     {id:'shelter',name:'安置/個案/關懷',x:54,y:50,status:'live',kind:'limb',desc:'L3 現場執行群：安置收容、個案管理、關懷紀錄、資產調度、物資整理站。'},
     {id:'sheets',name:'GAS + Sheets',x:78,y:38,status:'partial',kind:'backend',desc:'後端：報名(Master_Profiles+Event_Logs+Form_Config+Question_Bank)、個案。已建需設定 /exec 網址。'},
     {id:'storage',name:'localStorage',x:54,y:76,status:'live',kind:'backend',desc:'本機資料(drms_data)、版本備份(backup_1/2)、應變場次(session)、遙測。離線可用。'},
@@ -3053,7 +3053,7 @@ function renderArchGraph(){
   // 層3：核心雲端服務（虛線框）
   h+='<div class="topo-layer topo-dashed" style="border-color:var(--blue-border)"><div class="topo-layer-lbl" style="color:var(--blue)">③ 核心服務層</div><div class="topo-row">';
   h+=node('dashboard','總控儀表板','📊','live','情境模擬 · KPI');
-  h+=node('rtsync','即時調度中台','⚡','live','派工/警報/SOS/結案');
+  h+=node('rtsync','即時協調中台','⚡','live','派工/警報/SOS/結案');
   h+=node('reg','報名報到','📋','live','報到+報名雙軌');
   h+=node('monitor','全域監控','🖥️','live','高層決策視圖');
   h+='</div><div class="topo-row" style="margin-top:8px">';
@@ -3324,7 +3324,7 @@ function renderLOATask(){
         +'</div>';
     });
   }
-  html+='<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'rtsync\');setRTTab(\'tasks\')">↗ 即時調度中台</button>';
+  html+='<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'rtsync\');setRTTab(\'tasks\')">↗ 即時協調中台</button>';
   return html;
 }
 function loaPushRtTask(k){
@@ -3443,12 +3443,12 @@ function loaDispatch(i){
   var pend=DATA.warehouse.reqs.filter(function(r){return r.status==='待派案';});
   var q=pend[i]; if(!q) return;
   dispatchReq(q.id);
-  // 叫料同步進即時調度中台任務池，建一筆「叫料配送」派工任務（沿用叫料本身急迫度，無則 P3）
+  // 叫料同步進即時協調中台任務池，建一筆「叫料配送」派工任務（沿用叫料本身急迫度，無則 P3）
   try{
     if(typeof RTDB!=='undefined'&&RTDB.ref){
       var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
       RTDB.ref('tasks').push({title:'【叫料配送 '+q.id+'】'+q.item+' '+q.qty+' → '+q.site,priority:(q.prio||'P3'),status:'待派工',assignee:'',lockedBy:'',created:tm});
-      logSys('ok','【Line OA 叫料】'+q.id+' 已同步至即時調度中台任務池（'+(q.prio||'P3')+'）');
+      logSys('ok','【Line OA 叫料】'+q.id+' 已同步至即時協調中台任務池（'+(q.prio||'P3')+'）');
     }
   }catch(e){}
   loaLog('派案 '+q.id+' 已執行，司機 Line 已收配送單');
@@ -3621,7 +3621,7 @@ function renderLOATaskLeader(){
       +'<div style="display:flex;gap:5px;flex-wrap:wrap">'
       +((!t.assignee||t.status==='待派工')?'<button class="btn btn-blue btn-xs" onclick="loaLeaderPickMember(\''+k+'\')">👤 次派</button>':'')
       +'<button class="btn btn-ghost btn-xs" onclick="loaPushRtTask(\''+k+'\')">📲 推播</button>'
-      +'<button class="btn btn-green btn-xs" onclick="loaReportToCommand(\''+k+'\')">↑ 回報調度</button>'
+      +'<button class="btn btn-green btn-xs" onclick="loaReportToCommand(\''+k+'\')">↑ 回報協調站</button>'
       +'</div></div>';
   });
   // Group member availability
@@ -4138,7 +4138,7 @@ function loaReportToCommand(taskId){
   var gName=getGroupDisplayName();
   var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   RTDB.ref('reportLog').push({time:time,msg:'👥 '+esc(gName)+' 組長回報：「'+esc(t.title||taskId)+'」→ '+esc(t.status||'更新')});
-  rtAudit('組長回報調度',gName+' '+taskId+' '+esc(t.status||''));
+  rtAudit('組長回報協調站',gName+' '+taskId+' '+esc(t.status||''));
   loaLog('↑ ['+esc(gName)+'] 任務 '+taskId+' 已回報調度（'+esc(t.status||'')+'）');
   toast('↑ 回報已送達調度中台');
 }
@@ -4242,7 +4242,7 @@ function loaMemberRequestCustomSupply(){
   if(iEl) iEl.value=''; if(qEl) qEl.value='';
   renderLOATab(LOA_ACTIVE_TAB);
 }
-// ── 即時調度中台：渲染與監聽 ──
+// ── 即時協調中台：渲染與監聽 ──
 function triggerSOS(who,detail){
   var t=new Date().toLocaleTimeString('zh-TW');
   RTDB.ref('sos').set({active:true,who:who||'前線志工',detail:detail||'緊急求救',time:t});
@@ -6232,8 +6232,8 @@ const DATA = {
       {type:'gov',   icon:'🏛', source:'縣政府應變中心',     title:'竹崎鄉撤離公告第三版',           time:'14:20', url:'https://www.chiayi.gov.tw', status:'new'},
       {type:'news',  icon:'📰', source:'中央社',             title:'台18線搶通預估今晚完成',         time:'14:10', url:'https://www.cna.com.tw', status:'read'},
       {type:'news',  icon:'📰', source:'自由時報',           title:'梅山國小收容所湧入逾200人',       time:'13:55', url:'https://news.ltn.com.tw', status:'read'},
-      {type:'cmd',   icon:'📢', source:'總指揮中心',         title:'【指令】A隊立即撤離縣道162，改台18線集結', time:'14:23', url:'', status:'urgent'},
-      {type:'cmd',   icon:'📢', source:'總指揮中心',         title:'【指令】醫護組增援大埔收容所，14:00前到位', time:'13:40', url:'', status:'urgent'},
+      {type:'cmd',   icon:'📢', source:'縣府應變中心',         title:'【指令】A隊立即撤離縣道162，改台18線集結', time:'14:23', url:'', status:'urgent'},
+      {type:'cmd',   icon:'📢', source:'縣府應變中心',         title:'【指令】醫護組增援大埔收容所，14:00前到位', time:'13:40', url:'', status:'urgent'},
       {type:'api',   icon:'🔌', source:'NCDR 災情資訊網',   title:'竹崎鄉土石流潛勢紅色警戒更新',   time:'14:00', url:'https://dmc.ncdr.nat.gov.tw', status:'read'},
     ]
   },
@@ -6414,6 +6414,8 @@ DATA.devTasks = [
   // ── 需 Google Drive API ──
   {id:'dt-arch-10', pri:'lo', mod:'drive',     title:'[Drive] 照片上傳：驗證 GAS 授權 → 存 Drive photos/ → 回傳 fileId 顯示縮圖 — 需 OAuth2/Service Account', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt-arch-11', pri:'lo', mod:'rtsync',    title:'[結案] rtCloseCase() 生成 JSON 劇本 → fetch GAS → 上傳 Drive exports/ — 需 Drive API 整合', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt-ngo-01', pri:'md', mod:'admin', title:'[定位] 全系統語言審視：把剩餘「指揮/指令/調度」改為「協調/支援/補位」，確保 NGO 輔助定位一致', assignee:'', done:false, created:'2026-06-24'},
+  {id:'dt-ngo-02', pri:'md', mod:'relief_req', title:'[定位] 求助通報說明文字加入「優先回報官方（119/1999）」提示，NGO 作為補位銜接，非主責單位', assignee:'', done:false, created:'2026-06-24'},
   {id:'dt-offline-01', pri:'hi', mod:'line_oa', title:'[離線備援] 無網路/弱訊號時 Line OA 無法使用的替代方案：① 手機版 SPA 純 localStorage 離線操作（已可用）② 列印紙本交接單（QR code 指向本機資料）③ 藍牙/WiFi Direct 區域同步（P2P mesh）④ 定義離線 SOP：回到無線電/口頭回報 → 志工手寫紙本 → 恢復網路後批次補登 DRMS。需設計「離線模式提示 banner」+ 批次補登 UI', assignee:'', done:false, created:'2026-06-24'},
 ];
 
@@ -7328,11 +7330,11 @@ const NAV_CFG=[
   {id:'monitor',    icon:'🖥️',label:'全域監控',      tag:'core', group:'L1 戰情指揮',roles:['admin','it']},
   {id:'coord',      icon:'🤝',label:'跨單位資源協調',tag:'core', group:'L1 戰情指揮',roles:['admin','it','staff']},
   {id:'admin',      icon:'🔧',label:'系統管理',      tag:'admin',group:'L1 戰情指揮',roles:['admin']},
-  {id:'rtsync',     icon:'⚡',label:'即時調度中台',  tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
-  {id:'relief_req', icon:'🆘',label:'民眾求助通報',  tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
-  {id:'vol_hub',    icon:'🧑‍🤝‍🧑',label:'志工人力中心',tag:'core', group:'L2 任務調度',roles:['admin','staff']},
-  {id:'line_oa',    icon:'💬',label:'Line OA 模擬',   tag:'core', group:'L2 任務調度',roles:['admin','it']},
-  {id:'drive',      icon:'📸',label:'照片回報與分類',tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
+  {id:'rtsync',     icon:'⚡',label:'即時協調中台',  tag:'core', group:'L2 任務協調',roles:['admin','it','staff','logistics']},
+  {id:'relief_req', icon:'🆘',label:'民眾求助通報',  tag:'core', group:'L2 任務協調',roles:['admin','it','staff','logistics']},
+  {id:'vol_hub',    icon:'🧑‍🤝‍🧑',label:'志工人力中心',tag:'core', group:'L2 任務協調',roles:['admin','staff']},
+  {id:'line_oa',    icon:'💬',label:'Line OA 模擬',   tag:'core', group:'L2 任務協調',roles:['admin','it']},
+  {id:'drive',      icon:'📸',label:'照片回報與分類',tag:'core', group:'L2 任務協調',roles:['admin','it','staff','logistics']},
   {id:'sorting',    icon:'🧰',label:'物資整理站',    tag:'limb', group:'L3 現場執行',roles:['admin','staff','logistics']},
   {id:'warehouse',  icon:'📦',label:'物資倉儲管理',  tag:'limb', group:'L3 現場執行',roles:['admin','logistics']},
   {id:'shelter_mgt',icon:'🏕️',label:'安置收容管理',  tag:'limb', group:'L3 現場執行',roles:['admin','staff','logistics']},
@@ -8735,7 +8737,7 @@ function wtPickLevel(level){
     monitor:'🖥️ 全域監控',vol_hub:'🧑‍🤝‍🧑 志工人力中心',
     sorting:'🧰 物資整理站',warehouse:'📦 物資倉儲',
     case_mgt:'🗂️ 個案管理',care_rec:'💚 關懷紀錄',shelter_mgt:'🏕️ 安置收容',
-    assets:'🛏 資產調度',rtsync:'⚡ 即時調度中台',line_oa:'💬 Line OA',
+    assets:'🛏 資產調度',rtsync:'⚡ 即時協調中台',line_oa:'💬 Line OA',
     drive:'📸 照片回報',admin:'🔧 系統管理'
   };
   var html='';
@@ -9901,7 +9903,7 @@ function renderWarModuleSettings(){
     monitor:'🖥️ 全域監控',vol_hub:'🧑‍🤝‍🧑 志工人力中心',
     sorting:'🧰 物資整理站',warehouse:'📦 物資倉儲',
     case_mgt:'🗂️ 個案管理',care_rec:'💚 關懷紀錄',shelter_mgt:'🏕️ 安置收容',
-    assets:'🛏 資產調度',rtsync:'⚡ 即時調度中台',line_oa:'💬 Line OA',
+    assets:'🛏 資產調度',rtsync:'⚡ 即時協調中台',line_oa:'💬 Line OA',
     drive:'📸 照片回報',admin:'🔧 系統管理'
   };
   var ALL_IDS=Object.keys(ALL_MOD_LABELS);
@@ -10053,8 +10055,8 @@ function resetAll(){
 // ── AI 即時變化球分析引擎 ──
 var AI_RULES = [
   {keys:['指揮','聽誰的','亂','多頭','不合'],     title:'多頭馬車與權責衝突',     tag:'權責混亂', type:'red',
-   sol:'前端自動顯示「指揮鏈與分工機制圖」，壓制越權指揮與假指令',
-   mods:['指揮鏈視覺化','分工機制圖','指令驗證','越權警報']},
+   sol:'顯示「NGO 分工協調架構圖」，釐清各組補位範圍，避免與官方職能重疊',
+   mods:['NGO 分工架構圖','補位範圍說明','與官方分工確認','資訊彙整看板']},
   {keys:['通訊','斷','沒訊號','電話','拋錨','失聯'], title:'前線通訊黑洞與節點斷聯', tag:'通報脫節', type:'amber',
    sol:'啟動社區聯絡網與在地里長遠端備援機制，透過 GPS 與離線造冊進行需求彙整',
    mods:['社區聯絡網','遠端回報','需求彙整','里長聯繫','GPS驗證']},
@@ -10228,7 +10230,7 @@ function renderReliefInbox(){
       +'</tr>';
   }
   html+='</tbody></table>'
-    +'<div style="font-size:10px;color:var(--text4);margin-top:10px">💡 「⚡ 轉調度中台」自動於即時調度中台任務池建立任務（搶救/醫療→P1、收容→P2、物資→P3），打通「民眾求助→指揮派工」的斷點。</div></div>';
+    +'<div style="font-size:10px;color:var(--text4);margin-top:10px">💡 「⚡ 轉調度中台」自動於即時協調中台任務池建立任務（搶救/醫療→P1、收容→P2、物資→P3），打通「民眾求助→指揮派工」的斷點。</div></div>';
   return html;
 }
 function reliefToDispatch(i){
@@ -10237,7 +10239,7 @@ function reliefToDispatch(i){
   var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   var newTaskId=''; try{ if(typeof RTDB!=='undefined'&&RTDB.ref){ newTaskId=RTDB.ref('tasks').push({title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assignee:'',lockedBy:'',created:tm}); } }catch(e){}
   r.status='已轉派'; r.taskRef=newTaskId||'已建任務';
-  logSys('warn','【民眾求助】'+r.id+' 已轉即時調度中台任務池（'+prio+'）'+r.location);
+  logSys('warn','【民眾求助】'+r.id+' 已轉即時協調中台任務池（'+prio+'）'+r.location);
   toast('⚡ '+r.id+' 已轉調度中台（'+prio+'）');
   renderReliefReq(); saveData();
 }
@@ -11947,7 +11949,7 @@ if(IS_MOBILE){ mInitMobile(); }
           <div class="m-role-card" onclick="mSelectRole('commander')">
             <div class="m-role-icon">🎖️</div>
             <div class="m-role-name">緊急指揮</div>
-            <div class="m-role-desc">調度中心管控</div>
+            <div class="m-role-desc">協調中心支援</div>
           </div>
         </div>
       </div>
