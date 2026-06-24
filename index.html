@@ -1599,6 +1599,8 @@ body.drill-on .main{padding-bottom:66px}
       <button class="loa-tab" onclick="switchLOATab('kitchen',this)">🍱 廚房</button>
       <button class="loa-tab" onclick="switchLOATab('medical',this)">🏥 醫療</button>
       <button class="loa-tab" onclick="switchLOATab('rescue',this)">🔍 搜救</button>
+      <button class="loa-tab" onclick="switchLOATab('care',this)">💙 關懷</button>
+      <button class="loa-tab" onclick="switchLOATab('transport',this)">🚗 交通</button>
     </div>
     <div id="loa-body" style="flex:1;overflow-y:auto;padding:14px"></div>
     <div style="border-top:1px solid var(--border);padding:8px 12px;flex-shrink:0;max-height:80px;overflow-y:auto;background:#0F172A" id="loa-log">
@@ -3267,6 +3269,10 @@ function renderLOATab(tab){
     body=(LOA_MODE==='member')?renderLOAMedicalMember():renderLOAMedicalLeader();
   } else if(tab==='rescue'){
     body=(LOA_MODE==='member')?renderLOARescueMember():renderLOARescueLeader();
+  } else if(tab==='care'){
+    body=(LOA_MODE==='member')?renderLOACareMember():renderLOACareLeader();
+  } else if(tab==='transport'){
+    body=(LOA_MODE==='member')?renderLOATransportMember():renderLOATransportLeader();
   }
   el.innerHTML=bar+body;
   renderLOAGroupBar();
@@ -4186,6 +4192,247 @@ function loaRescueMemberReport(msg){
   loaLog('🔍 [搜救組員] 回報：'+msg);
   toast('✓ 已回報：'+msg);
   rtAudit('loa_rescue_member',msg);
+}
+
+// ══════════════════════════════════
+//  Line OA — 人文關懷
+// ══════════════════════════════════
+function renderLOACareLeader(){
+  var cases=DATA.case_mgt&&DATA.case_mgt.items||[];
+  var recs=DATA.care_rec&&DATA.care_rec.logs||[];
+  var pending=cases.filter(function(c){return c.status==='待訪視';});
+  var visiting=cases.filter(function(c){return c.status==='訪視中';});
+  var done=cases.filter(function(c){return c.status==='已完成';});
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">💙 人文關懷組長控制台</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px">'
+    +'<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);padding:8px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--amber)">'+pending.length+'</div><div style="font-size:9px;color:var(--text4)">待訪視</div></div>'
+    +'<div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm);padding:8px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--blue)">'+visiting.length+'</div><div style="font-size:9px;color:var(--text4)">訪視中</div></div>'
+    +'<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r-sm);padding:8px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--green)">'+done.length+'</div><div style="font-size:9px;color:var(--text4)">已完成</div></div>'
+    +'</div>';
+  html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速操作</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
+    +'<button class="btn btn-blue" style="font-size:11px;justify-content:center" onclick="loaCareDispatchVisit()">💙 派發今日訪視單</button>'
+    +'<button class="btn btn-amber" style="font-size:11px;justify-content:center" onclick="loaCareHighRisk()">⚠ 高風險個案確認</button>'
+    +'<button class="btn btn-green" style="font-size:11px;justify-content:center" onclick="loaCareBlessingGift()">🎁 祝福禮發放提醒</button>'
+    +'<button class="btn btn-ghost" style="font-size:11px;justify-content:center" onclick="loaCareEvening()">🌙 夜間關懷廣播</button>'
+    +'</div>';
+  if(pending.length){
+    html+='<div style="border-top:1px solid var(--border);padding-top:10px">'
+      +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">待訪視個案</div>';
+    pending.slice(0,4).forEach(function(c){
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border3)">'
+        +'<span style="flex:1;font-size:11px">'+esc(c.name)+' <span style="font-size:10px;color:var(--text4)">'+esc(c.address)+'</span></span>'
+        +'<button class="btn btn-blue btn-xs" onclick="loaCareAssign(\''+esc(c.caseId)+'\');renderLOATab(\'care\')">💙 派</button>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'care_rec\')">↗ 關懷記錄頁</button>';
+  return html;
+}
+function renderLOACareMember(){
+  var cases=DATA.case_mgt&&DATA.case_mgt.items||[];
+  var myVisit=cases.filter(function(c){return c.status==='待訪視'||c.status==='訪視中';});
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">💙 人文關懷組員</div>';
+  if(myVisit.length){
+    html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px;color:var(--blue)">📋 今日訪視任務（'+myVisit.length+'）</div>';
+    myVisit.slice(0,3).forEach(function(c,i){
+      html+='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;margin-bottom:6px">'
+        +'<div style="font-size:11px;font-weight:600;margin-bottom:2px">'+esc(c.name)+'</div>'
+        +'<div style="font-size:10px;color:var(--text4);margin-bottom:6px">'+esc(c.address)+'</div>'
+        +'<div style="display:flex;gap:5px">'
+        +(c.status==='待訪視'?'<button class="btn btn-blue btn-xs" onclick="loaCareMemberArrive(\''+esc(c.caseId)+'\');renderLOATab(\'care\')">🚶 到達</button>':'')
+        +(c.status==='訪視中'?'<button class="btn btn-green btn-xs" onclick="loaCareMemberComplete(\''+esc(c.caseId)+'\');renderLOATab(\'care\')">✓ 完成訪視</button>':'')
+        +(c.status==='訪視中'?'<button class="btn btn-red btn-xs" onclick="loaCareMemberHighRisk(\''+esc(c.caseId)+'\')">⚠ 高風險</button>':'')
+        +'</div></div>';
+    });
+  } else {
+    html+='<div style="font-size:11px;color:var(--green);text-align:center;padding:12px 0">✅ 今日訪視任務已全部完成</div>';
+  }
+  html+='<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">'
+    +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速回報</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+    +'<button class="btn btn-green btn-xs" onclick="loaCareMemberReport(\'個案情緒穩定\')">😊 個案情緒穩定</button>'
+    +'<button class="btn btn-amber btn-xs" onclick="loaCareMemberReport(\'需要後續追蹤\')">🔔 需後續追蹤</button>'
+    +'<button class="btn btn-blue btn-xs" onclick="loaCareMemberReport(\'發放祝福禮完成\')">🎁 祝福禮已發放</button>'
+    +'<button class="btn btn-red btn-xs" onclick="loaCareMemberReport(\'發現高風險個案，請組長聯繫\')">🆘 高風險個案</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaCareMemberReport(\'個案無人在家\')">🚪 無人在家</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaCareMemberReport(\'需要醫療協助轉介\')">🏥 需醫療轉介</button>'
+    +'</div></div>';
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'care_rec\')">↗ 關懷記錄頁</button>';
+  return html;
+}
+function loaCareDispatchVisit(){
+  var cases=DATA.case_mgt&&DATA.case_mgt.items||[];
+  var pending=cases.filter(function(c){return c.status==='待訪視';});
+  if(!pending.length){ toast('✅ 今日無待訪視個案'); return; }
+  loaLog('💙 [人文關懷] 派發今日訪視單：共 '+pending.length+' 戶，'+pending.map(function(c){return c.name;}).join('、'));
+  toast('💙 訪視單已派發給關懷組員');
+  rtAudit('loa_care_dispatch','派發訪視單 '+pending.length+'戶');
+}
+function loaCareHighRisk(){
+  loaLog('⚠ [人文關懷] 高風險個案確認：請回報獨居老人、精神狀況不穩、失聯未接通個案的現況');
+  toast('⚠ 高風險確認請求已廣播');
+  rtAudit('loa_care_highrisk','廣播高風險個案確認');
+}
+function loaCareBlessingGift(){
+  loaLog('🎁 [人文關懷] 祝福禮發放提醒：請確認每戶個案均已收到祝福禮，並記錄簽收');
+  toast('🎁 祝福禮提醒已推播');
+  rtAudit('loa_care_gift','祝福禮發放提醒');
+}
+function loaCareEvening(){
+  loaLog('🌙 [人文關懷] 夜間關懷廣播：今日訪視結束，請確認獨居老人已安置，若有緊急狀況請立即回報組長');
+  toast('🌙 夜間關懷廣播已送出');
+  rtAudit('loa_care_evening','夜間關懷廣播');
+}
+function loaCareAssign(caseId){
+  var cases=DATA.case_mgt&&DATA.case_mgt.items||[];
+  var c=cases.find(function(x){return x.caseId===caseId;});
+  if(c){c.status='訪視中'; saveData();}
+  loaLog('💙 [人文關懷] 個案 '+caseId+' 已派發訪視，狀態更新為「訪視中」');
+  toast('💙 訪視已派發');
+  rtAudit('loa_care_assign','派發訪視 '+caseId);
+}
+function loaCareMemberArrive(caseId){
+  var cases=DATA.case_mgt&&DATA.case_mgt.items||[];
+  var c=cases.find(function(x){return x.caseId===caseId;});
+  if(c){c.status='訪視中'; saveData();}
+  loaLog('💙 [人文關懷組員] 已到達個案 '+caseId+' 現場，開始訪視');
+  toast('🚶 已標記到達');
+  rtAudit('loa_care_arrive','到達個案 '+caseId);
+}
+function loaCareMemberComplete(caseId){
+  var cases=DATA.case_mgt&&DATA.case_mgt.items||[];
+  var c=cases.find(function(x){return x.caseId===caseId;});
+  if(c){c.status='已完成'; saveData();}
+  loaLog('✅ [人文關懷組員] 個案 '+caseId+' 訪視完成，紀錄已儲存');
+  toast('✅ 訪視完成');
+  rtAudit('loa_care_complete','訪視完成 '+caseId);
+}
+function loaCareMemberHighRisk(caseId){
+  loaLog('🆘 [人文關懷組員] 警示：個案 '+caseId+' 發現高風險狀況，請組長立即聯繫！');
+  toast('🆘 高風險警示已通報組長');
+  rtAudit('loa_care_highrisk','高風險警示 '+caseId);
+}
+function loaCareMemberReport(msg){
+  loaLog('💙 [人文關懷組員] 回報：'+msg);
+  toast('✓ 已回報：'+msg);
+  rtAudit('loa_care_member',msg);
+}
+
+// ══════════════════════════════════
+//  Line OA — 交通運輸
+// ══════════════════════════════════
+function renderLOATransportLeader(){
+  var tasks=rtGet('tasks')||{};
+  var vols=rtGet('volunteers')||{};
+  var transportTasks=Object.keys(tasks).filter(function(k){return tasks[k].type==='物資'||tasks[k].type==='後送';}).map(function(k){return tasks[k];});
+  var active=transportTasks.filter(function(t){return t.status==='進行中';});
+  var pending=transportTasks.filter(function(t){return t.status==='待派工';});
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🚗 交通組長控制台</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px">'
+    +'<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);padding:8px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--amber)">'+pending.length+'</div><div style="font-size:9px;color:var(--text4)">待派車</div></div>'
+    +'<div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm);padding:8px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--blue)">'+active.length+'</div><div style="font-size:9px;color:var(--text4)">行駛中</div></div>'
+    +'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--text)">'+transportTasks.length+'</div><div style="font-size:9px;color:var(--text4)">今日任務</div></div>'
+    +'</div>';
+  html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速操作</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
+    +'<button class="btn btn-blue" style="font-size:11px;justify-content:center" onclick="loaTransportCallDrivers()">🚗 叫司機就位</button>'
+    +'<button class="btn btn-amber" style="font-size:11px;justify-content:center" onclick="loaTransportRoadBlock()">🚧 道路封閉廣播</button>'
+    +'<button class="btn btn-green" style="font-size:11px;justify-content:center" onclick="loaTransportNightStop()">🌙 夜間機車停派</button>'
+    +'<button class="btn btn-ghost" style="font-size:11px;justify-content:center" onclick="loaTransportShiftChange()">🔄 換班提醒廣播</button>'
+    +'</div>';
+  if(pending.length){
+    html+='<div style="border-top:1px solid var(--border);padding-top:10px">'
+      +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">待派車任務</div>';
+    pending.slice(0,3).forEach(function(t){
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border3)">'
+        +'<span style="font-size:9px;padding:2px 5px;background:var(--red-bg);color:var(--red);border-radius:4px;flex-shrink:0">'+esc(t.priority||'P2')+'</span>'
+        +'<span style="flex:1;font-size:11px">'+esc(t.title||'')+'</span>'
+        +'<button class="btn btn-blue btn-xs" onclick="loaTransportDispatch(\''+esc(t.id)+'\');renderLOATab(\'transport\')">🚗 派</button>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'rtsync\')">↗ 協調中台</button>';
+  return html;
+}
+function renderLOATransportMember(){
+  var tasks=rtGet('tasks')||{};
+  var myTasks=Object.keys(tasks).filter(function(k){return tasks[k].assignee===LOA_MEMBER_VID&&tasks[k].status!=='已完成';}).map(function(k){return tasks[k];});
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🚗 交通組員</div>';
+  if(myTasks.length){
+    html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px;color:var(--blue)">🚗 我的任務（'+myTasks.length+'）</div>';
+    myTasks.slice(0,2).forEach(function(t){
+      html+='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;margin-bottom:6px">'
+        +'<div style="font-size:11px;font-weight:600;margin-bottom:2px">'+esc(t.title||'')+'</div>'
+        +'<div style="font-size:10px;color:var(--text4);margin-bottom:6px">狀態：'+esc(t.status||'待派工')+'</div>'
+        +'<div style="display:flex;gap:5px">'
+        +(t.status==='待派工'?'<button class="btn btn-blue btn-xs" onclick="loaTransportAccept(\''+esc(t.id)+'\');renderLOATab(\'transport\')">✓ 接受</button>':'')
+        +(t.status==='進行中'?'<button class="btn btn-green btn-xs" onclick="loaTransportComplete(\''+esc(t.id)+'\');renderLOATab(\'transport\')">✓ 完成</button>':'')
+        +(t.status==='進行中'?'<button class="btn btn-amber btn-xs" onclick="loaTransportReport(\'任務異常，請協調員協助\')">⚠ 異常</button>':'')
+        +'</div></div>';
+    });
+  } else {
+    html+='<div style="font-size:11px;color:var(--green);text-align:center;padding:12px 0">✅ 目前無待執行任務，待命中</div>';
+  }
+  html+='<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">'
+    +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速回報</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+    +'<button class="btn btn-green btn-xs" onclick="loaTransportReport(\'已抵達目的地\')">📍 已到達</button>'
+    +'<button class="btn btn-green btn-xs" onclick="loaTransportReport(\'物資已交接完成\')">📦 物資交接完成</button>'
+    +'<button class="btn btn-amber btn-xs" onclick="loaTransportReport(\'路段封閉，改道中\')">🚧 改道中</button>'
+    +'<button class="btn btn-amber btn-xs" onclick="loaTransportReport(\'塞車中，預計延誤30分\')">⏰ 延誤中</button>'
+    +'<button class="btn btn-red btn-xs" onclick="loaTransportReport(\'車輛故障，需要支援\')">🔧 車輛故障</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaTransportReport(\'返回待命中\')">↩ 返回待命</button>'
+    +'</div></div>';
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'rtsync\')">↗ 協調中台</button>';
+  return html;
+}
+function loaTransportCallDrivers(){
+  var tasks=rtGet('tasks')||{};
+  var pending=Object.keys(tasks).filter(function(k){return tasks[k].status==='待派工'&&(tasks[k].type==='物資'||tasks[k].type==='後送');});
+  loaLog('🚗 [交通組長] 叫司機就位：共 '+pending.length+' 筆待派任務，請持有駕照且車輛正常的志工回報就位');
+  toast('🚗 司機就位通知已送出');
+  rtAudit('loa_transport_call','叫司機就位 '+pending.length+'筆任務');
+}
+function loaTransportRoadBlock(){
+  loaLog('🚧 [交通組長] 道路狀況廣播：請各司機回報行進路段狀況，封閉/積水路段立即通報，等候替代路線指示');
+  toast('🚧 道路狀況廣播已送出');
+  rtAudit('loa_transport_roadblock','廣播道路狀況確認');
+}
+function loaTransportNightStop(){
+  loaLog('🌙 [交通組長] 夜間機車停派通知：22:00起停止派遣機車，改以四輪車輛執行配送任務，請司機確認');
+  toast('🌙 機車停派通知已送出');
+  rtAudit('loa_transport_night','夜間機車停派');
+}
+function loaTransportShiftChange(){
+  loaLog('🔄 [交通組長] 換班提醒：連續駕駛已逾4小時的志工請立即回報，安排接班人員，行車安全第一');
+  toast('🔄 換班提醒已廣播');
+  rtAudit('loa_transport_shift','4小時換班提醒廣播');
+}
+function loaTransportDispatch(taskId){
+  RTDB.ref('tasks/'+taskId).update({status:'進行中'});
+  loaLog('🚗 [交通組長] 任務 '+taskId+' 已派車出發，狀態更新為「進行中」');
+  toast('🚗 派車完成');
+  rtAudit('loa_transport_dispatch','派車任務 '+taskId);
+}
+function loaTransportAccept(taskId){
+  RTDB.ref('tasks/'+taskId).update({status:'進行中'});
+  loaLog('✅ [交通組員] 已接受任務 '+taskId+'，出發中');
+  toast('✅ 任務已接受');
+  rtAudit('loa_transport_accept','接受任務 '+taskId);
+}
+function loaTransportComplete(taskId){
+  RTDB.ref('tasks/'+taskId).update({status:'已完成'});
+  loaLog('✅ [交通組員] 任務 '+taskId+' 已完成，返回待命');
+  toast('✅ 任務完成');
+  rtAudit('loa_transport_complete','完成任務 '+taskId);
+}
+function loaTransportReport(msg){
+  loaLog('🚗 [交通組員] 回報：'+msg);
+  toast('✓ 已回報：'+msg);
+  rtAudit('loa_transport_member',msg);
 }
 
 // ── 組長 Action Functions ──
