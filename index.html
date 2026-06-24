@@ -1796,7 +1796,9 @@ background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans TC',-apple
     <button class="vpill" data-view="it_sec"        onclick="arch_setView('it_sec')">🔧 IT 志工<span class="vsub">資安·稽核·串接</span></button>
     <button class="vpill" data-view="staff_flow"    onclick="arch_setView('staff_flow')">📋 行政組<span class="vsub">報到·個案·關懷</span></button>
     <button class="vpill" data-view="logistics_flow" onclick="arch_setView('logistics_flow')">📦 物資組<span class="vsub">倉儲·配送·叫料</span></button>
-    <button class="vpill" data-view="volunteer"     onclick="arch_setView('volunteer')">🙋 現場志工<span class="vsub">我的一條線</span></button>
+    <button class="vpill" data-view="transport_flow" onclick="arch_setView('transport_flow')">🚗 交通運輸<span class="vsub">大車·小車·ATV</span></button>
+    <button class="vpill" data-view="care_flow"      onclick="arch_setView('care_flow')">💙 人文關懷<span class="vsub">訪視·慰問·救助金</span></button>
+    <button class="vpill" data-view="volunteer"      onclick="arch_setView('volunteer')">🙋 現場志工<span class="vsub">我的一條線</span></button>
     <button class="vpill" data-view="health"        onclick="arch_setView('health')">🩺 健檢<span class="vsub">補/整合/風險</span></button>
     <button class="vpill" data-view="all"           onclick="arch_setView('all')">◍ 全部</button>
   </div>
@@ -2121,6 +2123,42 @@ VIEWS.staff_flow={
   ]
 };
 
+// ── 交通運輸組視角：大車·小車·機車·手推·人力 ──────────────────
+VIEWS.transport_flow={
+  label:'交通運輸',
+  nodes:['rtsync','warehouse','shelter','lineoa','gas_webhook','storage','drive_api','user'],
+  stories:[
+    {step:'任務接收',on:['rtsync','lineoa','user'],
+      text:'調度中台建立配送任務 → Line OA 推播給司機/運輸組員。司機在 Line OA task tab 確認收到，RTDB 任務狀態更新為「執行中」。'},
+    {step:'車型分配',on:['rtsync','user'],
+      text:'依任務性質派對應交通工具：\n大車（聯結/貨車）→ 跨縣市長途物資調撥，需申請通行證。\n小車（轎車/廂型）→ 市區採買或短程配送，協助採買清單追蹤。\n機車/ATV → 災區巷弄或無道路地形的最後一哩。\n手推車/人力 → 建物內部或徒步難行區域，就近搬運。'},
+    {step:'出發前確認',on:['warehouse','storage'],
+      text:'出發前在物資倉儲確認裝載清單（品名/數量/目的地），司機在系統勾選「已裝車」→ 庫存扣減。特殊物品（危險品/冷鏈）需額外備注。'},
+    {step:'配送中回報',on:['lineoa','rtsync','gas_webhook'],
+      text:'行進中每個關鍵節點（出發/到達/卸貨完成）透過 Line OA 回報位置和狀態，GAS 寫 Event_Logs。遭遇道路封閉或車輛故障 → SOS → 調度中台立刻重派。'},
+    {step:'完成存證',on:['drive_api','storage','rtsync'],
+      text:'卸貨完成 → 拍照（含受領人、物資、場景）上傳 Drive photos/，填寫收貨人確認資訊 → rtReport(\'已完成\') → 庫存核銷，系統自動產生配送紀錄。'}
+  ]
+};
+
+// ── 人文關懷組視角：訪視·心靈慰問·救助金·關懷類型 ─────────────
+VIEWS.care_flow={
+  label:'人文關懷',
+  nodes:['reg','rtsync','shelter','lineoa','sheets','story','drive_api','user'],
+  stories:[
+    {step:'個案分派',on:['reg','rtsync','shelter'],
+      text:'安置名冊（shelter_mgt）登錄後，行政組在個案管理（case_mgt）建立個案卡，標記需求類型，派指定關懷志工。關懷組員在調度中台看到指派任務，Line OA 收到個案摘要。'},
+    {step:'初次訪視',on:['shelter','lineoa'],
+      text:'到達住所或安置點，完成身分確認，填寫四面向評估：\n身：身體狀況/受傷/慢性病/藥物需求。\n心：情緒穩定度/創傷反應/睡眠。\n靈：宗教信仰需求/心靈支持偏好。\n群：家庭狀況/社會支持網絡/鄰里關係。'},
+    {step:'心靈慰問',on:['shelter','user'],
+      text:'慰問方式依對象選擇：靜心傾聽、靜思語陪伴、祈禱或默念、手工禮物/書法祝福。紀錄陪伴時長、對話重點、下次追蹤時間。志工自身若有情緒負荷需求 → 志工關懷志工機制。'},
+    {step:'救助金發放',on:['rtsync','shelter','drive_api'],
+      text:'核對資格（需求評估達標、未重複申請）→ 當面說明用途與金額 → 雙人見證、受領人簽收 → 拍照（含面額、簽收單、現場）→ 上傳 Drive docs/。發放記錄存個案管理，GAS doPost 同步 Sheets。'},
+    {step:'關懷類型追蹤',on:['sheets','story','lineoa'],
+      text:'系統支援四種關懷類型標記：\n🟦 一般探視（定期問候）\n🟨 物資連結（轉介物資需求）\n🟧 心理支持（持續陪伴/轉介諮商）\n🟥 緊急關懷（危機干預/即刻到位）。\nLine OA 可設定定期提醒推播，確保長期追蹤不中斷，直到重建穩定結案。'}
+  ]
+};
+
 // ── 物資組視角：倉儲·配送·叫料 ───────────────────────────────
 VIEWS.logistics_flow={
   label:'物資組',
@@ -2230,6 +2268,65 @@ var ROLE_GUIDE={
         '每日盤點 vs 出庫紀錄 → GAS Sheets 日報',
         '結案前「確認同步」避免 localStorage / Sheets 分歧',
         '照片上傳 Drive photos/ 留存發放紀錄'
+      ]}
+    ]
+  },
+  transport_flow:{
+    icon:'🚗', title:'交通運輸組 · 物資最後一哩',
+    color:'#0ea5e9',
+    intro:'依地形與任務距離選對車型，確保物資準時送達每一個角落。',
+    sections:[
+      {icon:'🚛',label:'車型與任務對應',items:[
+        '大車（聯結/貨車）→ 跨縣市長途調撥，需申請通行臨時證',
+        '小車（廂型/轎車）→ 市區採買 + 短程配送，協助採買清單',
+        '機車 / ATV → 災區巷弄、無路地形，最後一哩突破',
+        '手推車 → 建物內部、電梯故障、狹窄通道',
+        '人力接力 → 土石流/斷橋無法車行，志工組隊傳遞'
+      ]},
+      {icon:'📍',label:'配送流程',items:[
+        '接收任務（Line OA / 調度中台）→ 確認載貨清單',
+        '出發前：倉儲勾選「已裝車」→ 庫存即時扣減',
+        '行進中：出發 / 到達 / 卸貨三節點 Line OA 回報',
+        '完成：拍照（物資 + 受領人 + 場景）→ 上傳 Drive photos/',
+        '車輛故障或道路封閉 → 即時 SOS → 調度中台重派'
+      ]},
+      {icon:'⚠️',label:'注意事項',items:[
+        '特殊物品（冷鏈/藥品/危險品）需另外備注存放條件',
+        '跨縣市大車出發前確認聯絡窗口與卸貨地點',
+        '每次配送需雙人確認，避免單一記錄錯誤',
+        '夜間或風雨天 → 降低機車 ATV 派遣，優先改人力或等天明'
+      ]}
+    ]
+  },
+  care_flow:{
+    icon:'💙', title:'人文關懷組 · 身心靈群陪伴',
+    color:'#ec4899',
+    intro:'從初次訪視到長期追蹤，用關懷讓受災鄉親感受不孤單。',
+    sections:[
+      {icon:'🏠',label:'四面向評估（每次訪視必填）',items:[
+        '🟦 身：身體狀況 / 受傷 / 慢性病 / 藥物需求',
+        '🟨 心：情緒穩定度 / 創傷反應 / 睡眠 / 壓力源',
+        '🟧 靈：宗教信仰需求 / 心靈支持偏好 / 靜思語陪伴',
+        '🟥 群：家庭狀況 / 社會支持網絡 / 鄰里關係 / 孤立風險'
+      ]},
+      {icon:'💛',label:'關懷類型標記',items:[
+        '🟦 一般探視 — 定期問候，記錄近況',
+        '🟨 物資連結 — 轉介物資需求給物資組',
+        '🟧 心理支持 — 持續陪伴或轉介專業諮商',
+        '🟥 緊急關懷 — 危機干預（自傷/放棄）需即刻到位 + 通報'
+      ]},
+      {icon:'💰',label:'救助金發放流程',items:[
+        '① 核對資格（需求評估達標、未重複申請）',
+        '② 當面說明金額與用途',
+        '③ 雙人見證 + 受領人簽收',
+        '④ 拍照（含面額、簽收單、現場環境）→ 上傳 Drive docs/',
+        '⑤ GAS doPost 同步 Sheets Cases 發放記錄'
+      ]},
+      {icon:'📅',label:'長期追蹤機制',items:[
+        'Line OA 定期推播提醒（可設週期）',
+        '重建追蹤排程（rebuild 模組）',
+        '志工關懷志工：若志工本身有情緒負荷 → 安排督導陪談',
+        '結案條件：四面向穩定 + 鄰里支持恢復 + 本人同意'
       ]}
     ]
   },
