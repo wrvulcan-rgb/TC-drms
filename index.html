@@ -7117,21 +7117,21 @@ function enableDrag(){
 //  SCENARIO DB + RENDER
 // ══════════════════════════════════════════════════════
 const SCENARIOS={
-  wind:{name:'風災',emoji:'🌀',sub:'颱風侵台 · 農損缺電缺水缺糧',stats:[{lbl:'農損面積',val:'3,240',sub:'公頃',color:'red'},{lbl:'停電戶數',val:'8,521',sub:'戶',color:'amber'},{lbl:'志工到位',val:'86',sub:'/ 目標 150',color:'green'},{lbl:'發放站',val:'7',sub:'處',color:'blue'},{lbl:'道路搶通',val:'43%',sub:'完成率',color:'purple'}],bugs:[{type:'red',badge:'現場情境挑戰',tag:'多頭馬車',title:'每個人都想當指揮者',desc:'縣府、軍方、消防、慈濟各自發號施令，前線志工不知聽誰的。',sol:'前端自動顯示「指揮鏈與分工機制圖」，壓制越權指揮',mods:['指揮鏈視覺化','分工機制圖','指令驗證','越權警報']}]},
-  flood:{name:'水災',emoji:'🌊',sub:'家中淹水未退 · 水中送餐 · 清運作業中',stats:[{lbl:'淹水戶數',val:'1,203',sub:'戶',color:'red'},{lbl:'等待清運',val:'534',sub:'戶',color:'amber'},{lbl:'水中送餐',val:'289',sub:'份',color:'green'},{lbl:'收容所',val:'9',sub:'處',color:'blue'},{lbl:'查核通報',val:'67%',sub:'雙人核實',color:'purple'}],bugs:[{type:'amber',badge:'現場情境挑戰',tag:'通報脫節',title:'民間/新聞/政府/軍方資訊嚴重落差',desc:'多方資訊互相矛盾，決策嚴重失誤。',sol:'開啟「資訊查核彙整看板」，每條回報需 2 人查核才更新至地圖',mods:['雙人查核','信源標記','追蹤看板','地圖鎖']}]},
-  fire:{name:'火災/爆炸',emoji:'🔥',sub:'多地同時受災 · 高危險性無法勘災',stats:[{lbl:'受災地點',val:'23',sub:'處同時',color:'red'},{lbl:'傷亡人數',val:'156',sub:'人',color:'amber'},{lbl:'志工到位',val:'58',sub:'/ 需 300+',color:'green'},{lbl:'危險封鎖',val:'11',sub:'區',color:'blue'},{lbl:'聯絡網',val:'94%',sub:'節點啟動',color:'purple'}],bugs:[{type:'red',badge:'現場情境挑戰',tag:'多地同時',title:'現場危險，無法全面勘查',desc:'爆炸持續、有毒氣體，無法派人深入，資訊嚴重黑洞。',sol:'啟動「社區聯絡網狀態」，透過里長/社工即時搜集需求',mods:['社區聯絡網','遠端回報','危險熱力圖','需求彙整']}]},
-  quake:{name:'地震',emoji:'🏚',sub:'地震 · 緊急安置 · 熱食發放',stats:[{lbl:'受災戶數',val:'247',sub:'↑ 23',color:'red'},{lbl:'撤離人數',val:'1,842',sub:'/ 2,100',color:'amber'},{lbl:'志工到位',val:'142',sub:'/ 200',color:'green'},{lbl:'收容所',val:'12',sub:'處',color:'blue'},{lbl:'物資配送',val:'89%',sub:'完成率',color:'purple'}],bugs:[{type:'red',badge:'現場情境挑戰',tag:'沒有光的角落',title:'偏遠地區、獨居老人、育幼院斷聯',desc:'山區道路中斷，獨居長者無人回報，政府系統沒有這些地址。',sol:'啟動「弱勢關懷網動態地圖」，GPS距離>500m自動觸發串接',mods:['弱勢關懷地圖','GPS驗證','政府串接','里長聯繫']}]},
-  war_s:{name:'戰爭/動亂',emoji:'⚔️',sub:'選擇下方現場情境',stats:[{lbl:'—',val:'—',sub:'',color:'blue'},{lbl:'—',val:'—',sub:'',color:'blue'},{lbl:'—',val:'—',sub:'',color:'blue'},{lbl:'—',val:'—',sub:'',color:'blue'},{lbl:'—',val:'—',sub:'',color:'blue'}],bugs:[]}
+  quake:{name:'地震',emoji:'🏚',sub:'地震 · 緊急安置 · 熱食發放',stats:[{lbl:'受災戶數',val:'247',sub:'↑ 23',color:'red'},{lbl:'撤離人數',val:'1,842',sub:'/ 2,100',color:'amber'},{lbl:'志工到位',val:'142',sub:'/ 200',color:'green'},{lbl:'收容所',val:'12',sub:'處',color:'blue'},{lbl:'物資配送',val:'89%',sub:'完成率',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'蓮花里23號 — 鑿牆搜救中，12:31 偵測呼救音，持續通話確認',status:'進行中'},{level:'amber',icon:'🟡',text:'竹崎國小收容所 — 入住 847/1200，第 3 批熱食 14:00 發放',status:'正常'},{level:'green',icon:'🟢',text:'前線醫療站 — 5 名輕傷處置完畢，1 人後送嘉基急診 12:47',status:'已處置'},{level:'blue',icon:'🔵',text:'物資庫存 — 飲水 87% · 毛毯 91% · 食物包 73% · 乾糧 68%',status:'充裕'},{level:'amber',icon:'⏱',text:'蓮花段道路封閉，迂迴竹崎路啟用，通行時間延長 25min',status:'管制中'}],pending:'3 筆新求助單待審核，最老一筆已等候 47 分鐘'}},
+  wind:{name:'風災',emoji:'🌀',sub:'颱風侵台 · 農損缺電缺水缺糧',stats:[{lbl:'農損面積',val:'3,240',sub:'公頃',color:'red'},{lbl:'停電戶數',val:'8,521',sub:'戶',color:'amber'},{lbl:'志工到位',val:'86',sub:'/ 目標 150',color:'green'},{lbl:'發放站',val:'7',sub:'處',color:'blue'},{lbl:'道路搶通',val:'43%',sub:'完成率',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'北區高壓電線落地 — 緊急疏散 2 戶，台電搶修隊 20min 抵達',status:'警戒'},{level:'amber',icon:'🟡',text:'農損登記 — 今日受理 87 戶，截止 18:00，已完成 64%',status:'進行中'},{level:'green',icon:'🟢',text:'7 發放站全開 — 今日已發 2,847 份，明日預估 3,200 份',status:'正常'},{level:'blue',icon:'🔵',text:'後寮產業道路持續搶通，成功路 3 段已通，預計 2h 完工',status:'進行中'},{level:'amber',icon:'🌬',text:'氣象局 — 風速 14m/s，預計 17:00 後減弱至 8m/s',status:'關注中'}],pending:'後寮里 12 戶農損尚未登記，需主動聯繫到戶'}},
+  flood:{name:'水災',emoji:'🌊',sub:'家中淹水未退 · 水中送餐 · 清運作業中',stats:[{lbl:'淹水戶數',val:'1,203',sub:'戶',color:'red'},{lbl:'等待清運',val:'534',sub:'戶',color:'amber'},{lbl:'水中送餐',val:'289',sub:'份',color:'green'},{lbl:'收容所',val:'9',sub:'處',color:'blue'},{lbl:'查核通報',val:'67%',sub:'雙人核實',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'義竹里水中送餐 — 23 戶仍淹水，橡皮艇 2 組 13:15 出發',status:'進行中'},{level:'amber',icon:'🟡',text:'清運等待隊列 — 534 戶，今日預計完成 120 戶，明日優先民',status:'進行中'},{level:'green',icon:'🟢',text:'北港溪水位 4.2m — 低於警戒 4.5m，持續緩降中（安全）',status:'安全'},{level:'red',icon:'⚠️',text:'消毒水庫存 43% — 低於安全門檻 50%，已發緊急補貨申請',status:'偏低'},{level:'blue',icon:'🔵',text:'雙人查核 — 今日 89 筆回報，已查核 76 筆，13 筆待核實',status:'進行中'}],pending:'消毒水庫存低警報，補貨預計 15:30 抵達前須暫緩部分清消作業'}},
+  fire:{name:'火災/爆炸',emoji:'🔥',sub:'多地同時受災 · 高危險性無法勘災',stats:[{lbl:'受災地點',val:'23',sub:'處同時',color:'red'},{lbl:'傷亡人數',val:'156',sub:'人',color:'amber'},{lbl:'志工到位',val:'58',sub:'/ 需 300+',color:'green'},{lbl:'危險封鎖',val:'11',sub:'區',color:'blue'},{lbl:'聯絡網',val:'94%',sub:'節點啟動',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'仁愛路爆炸現場 — 消防管制 200m，志工外圍待命，禁止進入',status:'管制中'},{level:'red',icon:'🔴',text:'11 個危險封鎖區 — 行動受限，電話遠端聯繫 47 戶，3 戶失聯',status:'持續'},{level:'amber',icon:'🟡',text:'後送追蹤 — 156 傷患，32 人急診觀察，5 人手術，1 人 ICU',status:'追蹤'},{level:'green',icon:'🟢',text:'社區聯絡網 — 94% 里長回報，3 里失聯中，持續撥打確認',status:'進行中'},{level:'blue',icon:'🔵',text:'後勤供應 — 志工餐食 ×3 班次，防護裝備全員充足',status:'正常'}],pending:'3 里里長仍失聯，需派員繞道確認，避開封鎖區'}},
+  landslide:{name:'土石流',emoji:'⛰️',sub:'土石流 · 孤島聚落 · 空運空投',stats:[{lbl:'受困聚落',val:'8',sub:'處',color:'red'},{lbl:'待撤離',val:'326',sub:'人',color:'amber'},{lbl:'志工到位',val:'94',sub:'/ 150',color:'green'},{lbl:'道路中斷',val:'14',sub:'處',color:'blue'},{lbl:'空投架次',val:'6',sub:'今日',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'豐山聚落 84 人受困 — 直升機今日 3 架次，空投補給持續',status:'緊急'},{level:'red',icon:'🔴',text:'14 處道路中斷 — 搶通預估 2-3 天，聯外道路孤島效應持續',status:'管制'},{level:'amber',icon:'🟡',text:'空投補給 — 今日 6 架次，最後一班 16:30，物資包 × 240kg',status:'進行中'},{level:'green',icon:'🟢',text:'搜救三隊（甲/乙/丙）持續進行，丁隊待命空投區降落後跟進',status:'執行中'},{level:'blue',icon:'🔵',text:'通訊覆蓋 — 衛星電話 ×3 組，步話機 12 組，信號穩定',status:'正常'}],pending:'峰仔里 5 位獨居長者尚未確認安全，需空投偵查組優先確認'}},
+  compound:{name:'複合災害',emoji:'🌐',sub:'複合災害 · 多重災情 · 跨區協調',stats:[{lbl:'受災戶數',val:'512',sub:'↑ 67',color:'red'},{lbl:'撤離人數',val:'3,240',sub:'/ 4,000',color:'amber'},{lbl:'志工到位',val:'198',sub:'/ 300',color:'green'},{lbl:'收容所',val:'21',sub:'處',color:'blue'},{lbl:'跨區支援',val:'4',sub:'縣市',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'3 地同時災情 — 嘉義市/竹崎/梅山，跨區物資動線交錯調度',status:'緊急'},{level:'amber',icon:'🟡',text:'跨縣協調 — 4 縣市支援協議，今日協調會 14:00 縣府 ICS',status:'進行中'},{level:'green',icon:'🟢',text:'統一指揮啟動 — 縣府 ICS 主責，DRMS 作為前線現場端',status:'上線'},{level:'amber',icon:'⏱',text:'198 人在場，42% 連續工作 6h+，已安排 15:00 輪班交接',status:'需輪班'},{level:'blue',icon:'🔵',text:'資源重新分配中 — 竹崎→梅山物資調撥，今日完成 67%',status:'調整中'}],pending:'梅山指揮站輪班交接 14:30，請組長確認接替人員名單'}},
+  drought:{name:'乾旱',emoji:'🏜️',sub:'乾旱 · 供水調度 · 民生支援',stats:[{lbl:'缺水里別',val:'37',sub:'里',color:'red'},{lbl:'供水點',val:'58',sub:'處',color:'amber'},{lbl:'志工到位',val:'62',sub:'/ 80',color:'green'},{lbl:'水車調度',val:'18',sub:'輛',color:'blue'},{lbl:'配水完成',val:'74%',sub:'今日',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'限水三階段啟動 — 37 里分區輪流，工業用水強制減量 30%',status:'執行中'},{level:'amber',icon:'🟡',text:'水車配水 — 18 輛，今日 74% 完成，預計 17:30 全部到位',status:'進行中'},{level:'green',icon:'🟢',text:'弱勢送水 — 62 位獨居長者 89% 已配送，11 戶待下午補送',status:'進行中'},{level:'blue',icon:'🔵',text:'曾文水庫蓄水 23% — 預估維持限水狀態至少 14 天',status:'關注'},{level:'amber',icon:'📢',text:'定點取水公告 — 58 處，今日熱線 47 通，公告更新已推播',status:'正常'}],pending:'11 位長者今日尚未配送，優先安排下午 15:00 補送路線'}},
+  epidemic:{name:'疫情',emoji:'🦠',sub:'疫情 · 造冊匡列 · 物資配送',stats:[{lbl:'確診管理',val:'1,247',sub:'人',color:'red'},{lbl:'居隔對象',val:'3,860',sub:'人',color:'amber'},{lbl:'志工到位',val:'88',sub:'/ 120',color:'green'},{lbl:'物資包',val:'2,400',sub:'已送',color:'blue'},{lbl:'造冊完成',val:'92%',sub:'今日',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'高風險匡列 — 45 名接觸者待完成，今日截止 18:00，需加速',status:'緊急'},{level:'amber',icon:'🟡',text:'居隔物資派送 — 3,860 居隔，已送 2,400 份，餘 1,460 今午後',status:'進行中'},{level:'green',icon:'🟢',text:'健康日回報 — 92% 完成，8% 電話追蹤中（志工 23 組負責）',status:'進行中'},{level:'blue',icon:'🔵',text:'志工防護 — 全員 N95 + 手套，酒精庫存足用 7 天，換班消毒',status:'充裕'},{level:'amber',icon:'📊',text:'今日新增 23 案，接觸者 103 人待聯繫，匡列效率 78%',status:'進行中'}],pending:'某高齡居隔者 24h 未回報，需立即派員到戶確認健康狀況'}},
+  tsunami:{name:'海嘯',emoji:'🌊',sub:'海嘯 · 緊急撤離 · 垂直避難',stats:[{lbl:'警戒沿岸',val:'42',sub:'km',color:'red'},{lbl:'撤離人數',val:'5,180',sub:'/ 6,000',color:'amber'},{lbl:'志工到位',val:'156',sub:'/ 200',color:'green'},{lbl:'避難所',val:'18',sub:'處',color:'blue'},{lbl:'撤離完成',val:'86%',sub:'警戒區',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'第 2 波海嘯預警 — 預計 14:22 抵達，引導隊持續疏散低窪區',status:'緊急'},{level:'red',icon:'🔴',text:'低窪區 820 人尚未撤離 — 志工引導隊 8 組全力疏散中',status:'緊急'},{level:'amber',icon:'🟡',text:'垂直避難所 — 18 處已開放，平均入住率 72%，飲水食糧充裕',status:'正常'},{level:'green',icon:'🟢',text:'撤離進度 — 5,180/6,000，完成率 86%，速度 60 人/10min',status:'進行中'},{level:'blue',icon:'🔵',text:'海況感測 — 全線水位感測器運作，港口封閉，第 1 波已通過',status:'警戒'}],pending:'陳宅區 43 位行動不便者需優先安排交通工具引導撤離'}},
+  war_s:{name:'動亂/戰爭',emoji:'⚔️',sub:'選擇下方現場情境',stats:[{lbl:'—',val:'—',sub:'',color:'blue'},{lbl:'—',val:'—',sub:'',color:'blue'},{lbl:'—',val:'—',sub:'',color:'blue'},{lbl:'—',val:'—',sub:'',color:'blue'},{lbl:'—',val:'—',sub:'',color:'blue'}],rt:null}
 };
 const WAR_SUBS={
-  overflow:{tag:'人力過多',type:'amber',title:'大量志工湧入',desc:'數千名志工自發抵達，現場秩序混亂，無法有效分配。',sol:'切換「即時造冊、分組、後勤聯繫模組」，進場前掃碼造冊',mods:['即時造冊','自動分組','後勤聯繫','進場管制'],stats:[{lbl:'湧入志工',val:'2,847',sub:'人',color:'red'},{lbl:'已造冊',val:'1,203',sub:'42%',color:'amber'},{lbl:'分組完成',val:'34',sub:'組',color:'green'},{lbl:'組長指派',val:'34',sub:'人',color:'blue'},{lbl:'管制閘',val:'8',sub:'處',color:'purple'}]},
-  shortage:{tag:'人力太少',type:'red',title:'人手不足，關鍵人員斜槓',desc:'志工嚴重短缺，一人身兼三職，關鍵任務無人執行。',sol:'啟動「精簡任務樹與社區支援調配」，非緊急任務凍結',mods:['精簡任務樹','斜槓整合','社區調配','外援請求'],stats:[{lbl:'可用志工',val:'23',sub:'人',color:'red'},{lbl:'凍結任務',val:'18',sub:'項',color:'amber'},{lbl:'核心任務',val:'7',sub:'項',color:'green'},{lbl:'外援請求',val:'3',sub:'件',color:'blue'},{lbl:'斜槓整合',val:'15',sub:'人次',color:'purple'}]},
-  supplies:{tag:'物資太多',type:'blue',title:'物資嚴重過量，倉儲崩潰',desc:'大量捐贈湧入，缺乏分類，物資開始腐壞。',sol:'切換「大中小物資分類造冊、大車接應物流動線圖」',mods:['物資三級分類','物流動線圖','大車調度','環保站模式'],stats:[{lbl:'物資總量',val:'18.4t',sub:'已入庫',color:'red'},{lbl:'待分類',val:'6.2t',sub:'積壓',color:'amber'},{lbl:'大車調度',val:'12',sub:'輛',color:'green'},{lbl:'接收站點',val:'5',sub:'處',color:'blue'},{lbl:'轉發完成',val:'61%',sub:'今日',color:'purple'}]},
-  landslide:{name:'土石流/山崩',emoji:'⛰️',sub:'土石流 · 孤島聚落 · 空運空投',stats:[{lbl:'受困聚落',val:'8',sub:'處',color:'red'},{lbl:'待撤離',val:'326',sub:'人',color:'amber'},{lbl:'志工到位',val:'94',sub:'/ 150',color:'green'},{lbl:'道路中斷',val:'14',sub:'處',color:'blue'},{lbl:'空投架次',val:'6',sub:'今日',color:'purple'}],bugs:[{type:'red',badge:'現場情境挑戰',tag:'孤島效應',title:'聯外道路全斷，聚落失聯',desc:'土石流沖毀唯一聯外道路，山區聚落通訊與物資雙重斷絕，需空中支援。'}]},
-  compound:{name:'複合型災害',emoji:'🌐',sub:'複合災害 · 多重災情 · 跨區協調',stats:[{lbl:'受災戶數',val:'512',sub:'↑ 67',color:'red'},{lbl:'撤離人數',val:'3,240',sub:'/ 4,000',color:'amber'},{lbl:'志工到位',val:'198',sub:'/ 300',color:'green'},{lbl:'收容所',val:'21',sub:'處',color:'blue'},{lbl:'跨區支援',val:'4',sub:'縣市',color:'purple'}],bugs:[{type:'red',badge:'現場情境挑戰',tag:'災害疊加',title:'地震後豪雨引發土石流與淹水',desc:'多重災害同時發生，資源排擠、動線交錯，指揮層級需跨區整合。'}]},
-  drought:{name:'乾旱/缺水',emoji:'🏜️',sub:'乾旱 · 供水調度 · 民生支援',stats:[{lbl:'缺水里別',val:'37',sub:'里',color:'red'},{lbl:'供水點',val:'58',sub:'處',color:'amber'},{lbl:'志工到位',val:'62',sub:'/ 80',color:'green'},{lbl:'水車調度',val:'18',sub:'輛',color:'blue'},{lbl:'配水完成',val:'74%',sub:'今日',color:'purple'}],bugs:[{type:'amber',badge:'現場情境挑戰',tag:'長期消耗',title:'限水分區輪流，弱勢取水困難',desc:'乾旱為長期災害，獨居長者與行動不便者難自行取水，需定點配送。'}]},
-  epidemic:{name:'疫情/傳染病',emoji:'🦠',sub:'疫情 · 造冊匡列 · 物資配送',stats:[{lbl:'確診管理',val:'1,247',sub:'人',color:'red'},{lbl:'居隔對象',val:'3,860',sub:'人',color:'amber'},{lbl:'志工到位',val:'88',sub:'/ 120',color:'green'},{lbl:'物資包',val:'2,400',sub:'已送',color:'blue'},{lbl:'造冊完成',val:'92%',sub:'今日',color:'purple'}],bugs:[{type:'red',badge:'現場情境挑戰',tag:'零接觸防疫',title:'居隔戶物資配送與健康關懷',desc:'防疫期間需零接觸配送，獨居確診者健康狀況追蹤不易，仰賴遠端關懷。'}]},
-  tsunami:{name:'海嘯',emoji:'🌊',sub:'海嘯 · 緊急撤離 · 垂直避難',stats:[{lbl:'警戒沿岸',val:'42',sub:'km',color:'red'},{lbl:'撤離人數',val:'5,180',sub:'/ 6,000',color:'amber'},{lbl:'志工到位',val:'156',sub:'/ 200',color:'green'},{lbl:'避難所',val:'18',sub:'處',color:'blue'},{lbl:'撤離完成',val:'86%',sub:'警戒區',color:'purple'}],bugs:[{type:'red',badge:'現場情境挑戰',tag:'黃金撤離',title:'海嘯來襲前的垂直避難引導',desc:'地震後海嘯警報發布，沿海居民需即刻垂直避難，時間壓力極大。'}]}
+  overflow:{tag:'人力過多',stats:[{lbl:'湧入志工',val:'2,847',sub:'人',color:'red'},{lbl:'已造冊',val:'1,203',sub:'42%',color:'amber'},{lbl:'分組完成',val:'34',sub:'組',color:'green'},{lbl:'組長指派',val:'34',sub:'人',color:'blue'},{lbl:'管制閘',val:'8',sub:'處',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'2,847 人湧入 — 現場秩序混亂，8 管制閘啟動，等候約 15min',status:'緊急'},{level:'amber',icon:'🟡',text:'已造冊 1,203 人（42%）— 未造冊 1,644 人持續等候掃碼入場',status:'進行中'},{level:'green',icon:'🟢',text:'34 組分組完成 — 組長已指派，任務分配正在進行',status:'完成'},{level:'blue',icon:'🔵',text:'8 管制閘運行 — 進場動線疏通，等候時間約 15min',status:'正常'},{level:'amber',icon:'📦',text:'民眾自帶物資大量湧入 — 需統一入庫登錄，避免混亂',status:'處理中'}],pending:'加派造冊志工 10 名，優先疏散等候區年長者優先造冊登記'}},
+  shortage:{tag:'人力不足',stats:[{lbl:'可用志工',val:'23',sub:'人',color:'red'},{lbl:'凍結任務',val:'18',sub:'項',color:'amber'},{lbl:'核心任務',val:'7',sub:'項',color:'green'},{lbl:'外援請求',val:'3',sub:'件',color:'blue'},{lbl:'斜槓整合',val:'15',sub:'人次',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'可用志工僅 23 人 — 關鍵任務 7 項，1 人身兼多職，嚴重不足',status:'緊急'},{level:'red',icon:'🔴',text:'18 項任務已凍結 — 非核心任務暫停執行，等待外援到位',status:'凍結'},{level:'amber',icon:'🟡',text:'外援請求 3 件 — 已發送縣府/慈濟/其他 NGO，待回覆中',status:'等待'},{level:'green',icon:'🟢',text:'斜槓整合 15 人次 — 多工分配完成，效率最大化排班',status:'執行中'},{level:'amber',icon:'⏱',text:'志工超時警示 — 超時率 67%，最長連續工作 14h，需輪班',status:'警示'}],pending:'外援預計最快 2h 後抵達，現況須以 23 人維持 7 項核心任務'}},
+  supplies:{tag:'物資過量',stats:[{lbl:'物資總量',val:'18.4t',sub:'已入庫',color:'red'},{lbl:'待分類',val:'6.2t',sub:'積壓',color:'amber'},{lbl:'大車調度',val:'12',sub:'輛',color:'green'},{lbl:'接收站點',val:'5',sub:'處',color:'blue'},{lbl:'轉發完成',val:'61%',sub:'今日',color:'purple'}],rt:{items:[{level:'red',icon:'🔴',text:'18.4 噸物資積壓 — 6.2 噸待分類，食品類接近有效期限',status:'緊急'},{level:'amber',icon:'🟡',text:'大車調度 — 12 輛今日轉運，5 個接收站點全開，輪班進行',status:'進行中'},{level:'green',icon:'🟢',text:'三級分類 — A 緊急物資 100%，B 日用品 78%，C 其他 45%',status:'進行中'},{level:'blue',icon:'🔵',text:'今日轉發 61% 完成，受益 847 戶，明日預計 85%',status:'正常'},{level:'amber',icon:'♻️',text:'環保站模式啟動 — 3 類不宜物資已移置環保站，減少損耗',status:'進行中'}],pending:'食品類 1.2 噸接近有效期，需立即優先安排今日發放出清'}}
 };
 let currentScenario='quake',currentWarSub='overflow';
 
@@ -7157,14 +7157,14 @@ function setScenario(id){
   });
   document.getElementById('war-subs').style.display=id==='war_s'?'block':'none';
   const sc=SCENARIOS[id];
-  if(!sc) return;
+  if(!sc){ const ws=WAR_SUBS[id]; if(ws&&ws.stats){ document.getElementById('sim-active-lbl').textContent='當前：'+ws.tag; var badge=document.getElementById('sim-active-badge'); if(badge){badge.textContent=ws.tag;badge.style.display='inline-block';} document.getElementById('dash-sub').textContent='即時動態 · '+ws.tag; applyWarSub(id); } return; }
   document.getElementById('sim-active-lbl').textContent='當前：'+sc.name;
   document.getElementById('dash-sub').textContent='即時災情 · '+sc.sub;
   var badge=document.getElementById('sim-active-badge');
   if(badge){badge.textContent=sc.name;badge.style.display='inline-block';}
   if(id==='war_s'){applyWarSub(currentWarSub);return;}
   applyScenarioStats(sc.stats);
-  renderBugs(sc.bugs);
+  renderRTInfo(sc.rt);
 }
 function setWarSub(sub,el){
   currentWarSub=sub;
@@ -7172,7 +7172,7 @@ function setWarSub(sub,el){
   if(el) el.classList.add('sel');
   applyWarSub(sub);
 }
-function applyWarSub(sub){ const ws=WAR_SUBS[sub]; if(!ws) return; applyScenarioStats(ws.stats); renderBugs([{type:ws.type,badge:'現場情境挑戰',tag:ws.tag,title:ws.title,desc:ws.desc,solLabel:'系統防禦啟動',sol:ws.sol,mods:ws.mods}]); }
+function applyWarSub(sub){ const ws=WAR_SUBS[sub]; if(!ws) return; applyScenarioStats(ws.stats); renderRTInfo(ws.rt); }
 function applyScenarioStats(stats){
   for(var i=0;i<stats.length;i++){
     var sv=stats[i];
@@ -7182,6 +7182,43 @@ function applyScenarioStats(stats){
     DATA.stats[i].color = sv.color || DATA.stats[i].color;
   }
   renderStats();
+}
+function renderRTInfo(rt){
+  var panel=document.getElementById('bug-panel');
+  if(!panel) return;
+  if(!rt||!rt.items||!rt.items.length){panel.className='bug-panel';panel.innerHTML='';return;}
+  panel.className='bug-panel show';
+  var now=new Date();
+  var ts=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0');
+  var rows='';
+  rt.items.forEach(function(item){
+    var bg,bd,tc;
+    if(item.level==='red'){bg='var(--red-bg)';bd='var(--red-border)';tc='var(--red)';}
+    else if(item.level==='amber'){bg='var(--amber-bg)';bd='var(--amber-border)';tc='var(--amber)';}
+    else if(item.level==='green'){bg='var(--green-bg)';bd='var(--green-border)';tc='var(--green)';}
+    else{bg='var(--blue-bg)';bd='var(--blue-border)';tc='var(--blue)';}
+    rows+='<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 9px;background:'+bg+';border-radius:6px;border:1px solid '+bd+';margin-bottom:5px">'
+      +'<span style="font-size:13px;min-width:18px;line-height:1.3">'+item.icon+'</span>'
+      +'<span style="flex:1;font-size:11.5px;font-weight:500;color:var(--text);line-height:1.4">'+item.text+'</span>'
+      +'<span style="font-size:9px;font-family:monospace;font-weight:700;color:'+tc+';white-space:nowrap;padding:1px 5px;background:white;border-radius:4px;border:1px solid '+bd+'">'+item.status+'</span>'
+      +'</div>';
+  });
+  var pending='';
+  if(rt.pending){
+    pending='<div style="margin-top:8px;padding:7px 9px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:6px;display:flex;align-items:flex-start;gap:8px">'
+      +'<span style="font-size:13px">⚡</span>'
+      +'<span style="flex:1;font-size:11px;font-weight:600;color:var(--amber);line-height:1.4">待處理：'+rt.pending+'</span>'
+      +'</div>';
+  }
+  panel.innerHTML='<div class="bug-card" style="border-color:var(--green-border);padding-bottom:4px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<div style="display:flex;align-items:center;gap:6px">'
+    +'<span class="bug-badge" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)">即時動態</span>'
+    +'<span style="font-size:9px;font-family:monospace;padding:2px 7px;border-radius:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);font-weight:700">● LIVE</span>'
+    +'</div>'
+    +'<span style="font-size:10px;color:var(--text3);font-family:monospace">更新 '+ts+'</span>'
+    +'</div>'
+    +rows+pending+'</div>';
 }
 const TB={red:'var(--red-bg)',amber:'var(--amber-bg)',blue:'var(--blue-bg)'};
 const TD={red:'var(--red-border)',amber:'var(--amber-border)',blue:'var(--blue-border)'};
