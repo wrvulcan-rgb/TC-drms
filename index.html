@@ -6505,6 +6505,18 @@ DATA.devTasks = [
   {id:'dt-ngo-01', pri:'md', mod:'admin', title:'[定位] 全系統語言審視：把剩餘「指揮/指令/調度」改為「協調/支援/補位」，確保 NGO 輔助定位一致', assignee:'', done:false, created:'2026-06-24'},
   {id:'dt-ngo-02', pri:'md', mod:'relief_req', title:'[定位] 求助通報說明文字加入「優先回報官方（119/1999）」提示，NGO 作為補位銜接，非主責單位', assignee:'', done:false, created:'2026-06-24'},
   {id:'dt-offline-01', pri:'hi', mod:'line_oa', title:'[離線備援] 無網路/弱訊號時 Line OA 無法使用的替代方案：① 手機版 SPA 純 localStorage 離線操作（已可用）② 列印紙本交接單（QR code 指向本機資料）③ 藍牙/WiFi Direct 區域同步（P2P mesh）④ 定義離線 SOP：回到無線電/口頭回報 → 志工手寫紙本 → 恢復網路後批次補登 DRMS。需設計「離線模式提示 banner」+ 批次補登 UI', assignee:'', done:false, created:'2026-06-24'},
+  // ── 演練包擴充（6 新角色流程）──
+  {id:'dt-drill-01', pri:'md', mod:'kitchen',    title:'[演練] 廚房/餐食流程（kitchen drill）：餐點申請→食材確認→備餐完成→關懷記錄，共4步，inject seed data 已完成', assignee:'', done:true, created:'2026-06-24'},
+  {id:'dt-drill-02', pri:'md', mod:'medical_aid',title:'[演練] 醫療急救流程（medical drill）：接任務→START分診→耗材補充→個案建立，共4步，inject seed data 已完成', assignee:'', done:true, created:'2026-06-24'},
+  {id:'dt-drill-03', pri:'md', mod:'rescue',     title:'[演練] 搜救勘災流程（rescue drill）：接任務→出隊記錄→勘察建物→任務完成→轉個案，共5步，inject seed data 已完成', assignee:'', done:true, created:'2026-06-24'},
+  {id:'dt-drill-04', pri:'md', mod:'care_rec',   title:'[演練] 人文關懷流程（care drill）：個案清單→訪視四面向→安置確認→重建追蹤，共4步，inject seed data 已完成', assignee:'', done:true, created:'2026-06-24'},
+  {id:'dt-drill-05', pri:'md', mod:'rtsync',     title:'[演練] 交通運輸流程（transport drill）：接派車任務→確認出庫→出發回報→協調台確認，共4步，inject seed data 已完成', assignee:'', done:true, created:'2026-06-24'},
+  {id:'dt-drill-06', pri:'md', mod:'dashboard',  title:'[演練] 決策者/組長流程（commander drill）：全局掌握→資源監控→指揮派工→推播→稽核結案，共5步，inject seed data 已完成', assignee:'', done:true, created:'2026-06-24'},
+  // ── LOA 互動樹實作（從設計稿轉為 LOA 模擬器擴充）──
+  {id:'dt-loa-01', pri:'hi', mod:'line_oa', title:'[LOA互動樹] 實作物資組 Rich Menu 4格互動：入庫/出庫/庫存查詢/異常回報，各深度5層 Flex Message 模擬', assignee:'', done:false, created:'2026-06-24'},
+  {id:'dt-loa-02', pri:'hi', mod:'line_oa', title:'[LOA互動樹] 實作行政組 Rich Menu：受理通報/志工管理/文書作業/緊急通報，含轉派任務→rtsync 連動', assignee:'', done:false, created:'2026-06-24'},
+  {id:'dt-loa-03', pri:'md', mod:'line_oa', title:'[LOA互動樹] 實作廚房/醫療/搜救/人文/交通/IT/決策者/志工A 8個角色 Rich Menu 模擬（共10角色完整樹）', assignee:'', done:false, created:'2026-06-24'},
+  {id:'dt-loa-04', pri:'md', mod:'line_oa', title:'[LOA互動樹] LOA跨組通知機制：物資入庫→物資組、SOS觸發→全員、任務派發→指定志工 Line ID，前端模擬 loaPush()', assignee:'', done:false, created:'2026-06-24'},
 ];
 
 // ══════════════════════════════════════════════════════
@@ -12001,11 +12013,17 @@ var drillMode=false, drillRole=null, drillBackup=null, drillCPs={A:null,B:null};
 var DRILL_STEP=0;
 
 var DRILL_ROLES={
-  lifecycle:{lbl:'完整生命週期',icon:'🗺', roleName:'admin'},
-  staff:    {lbl:'行政幹部',    icon:'📋', roleName:'staff'},
-  logistics:{lbl:'物資幹部',    icon:'📦', roleName:'logistics'},
-  it:       {lbl:'IT 志工',     icon:'🖥', roleName:'it'},
-  admin:    {lbl:'總控演練',    icon:'🏛', roleName:'admin'},
+  lifecycle: {lbl:'完整生命週期', icon:'🗺',  roleName:'admin'},
+  staff:     {lbl:'行政幹部',     icon:'📋',  roleName:'staff'},
+  logistics: {lbl:'物資幹部',     icon:'📦',  roleName:'logistics'},
+  it:        {lbl:'IT 志工',      icon:'🖥',  roleName:'it'},
+  admin:     {lbl:'總控演練',     icon:'🏛',  roleName:'admin'},
+  kitchen:   {lbl:'廚房/餐食',    icon:'🍱',  roleName:'logistics'},
+  medical:   {lbl:'醫療急救',     icon:'🏥',  roleName:'admin'},
+  rescue:    {lbl:'搜救勘災',     icon:'🔍',  roleName:'admin'},
+  care:      {lbl:'人文關懷',     icon:'💙',  roleName:'staff'},
+  transport: {lbl:'交通運輸',     icon:'🚗',  roleName:'logistics'},
+  commander: {lbl:'決策者/組長',  icon:'⭐',  roleName:'admin'},
 };
 
 var DRILL_FLOWS={
@@ -12126,6 +12144,246 @@ var DRILL_FLOWS={
       inject:function(){ try{ RTDB.ref('auditLog').push({time:new Date().toISOString(),action:'drill_admin_final',note:'總控演練流程完成'}); }catch(e){} }
     },
   ],
+
+  kitchen:[
+    {
+      page:'kitchen',
+      hint:'步驟 1 — 廚房餐點申請。查看今日餐點申請清單（已有3筆），找到 M001「午餐×120份」，按「▶ 開始備餐」推進備餐狀態。',
+      inject:function(){
+        DATA.kitchen=DATA.kitchen||{meals:[],cookTasks:[],safetyChecklist:[],deliveries:[]};
+        if(!DATA.kitchen.meals||DATA.kitchen.meals.length<2){
+          DATA.kitchen.meals=[
+            {id:'M001',meal:'午餐',time:'12:00',location:'竹崎國小收容所',qty:120,served:0,status:'待備餐'},
+            {id:'M002',meal:'午餐（素食）',time:'12:00',location:'竹崎國小收容所',qty:18,served:0,status:'待備餐'},
+            {id:'M003',meal:'晚餐',time:'18:00',location:'中和里安置點',qty:65,served:0,status:'待備餐'},
+          ];
+          DATA.kitchen.cookTasks=[
+            {id:'CT01',shift:'午班',item:'白飯×138份',assignee:'廚房A組',status:'待命'},
+            {id:'CT02',shift:'午班',item:'素食菜餚×18份',assignee:'廚房B組',status:'待命'},
+            {id:'CT03',shift:'晚班',item:'熱食便當×65份',assignee:'廚房C組',status:'待命'},
+          ];
+          saveData();
+        }
+      }
+    },
+    {
+      page:'warehouse',
+      hint:'步驟 2 — 食材庫存確認。廚房備餐前需先確認食材庫存。查看物資倉儲庫存，確認「白米/蔬菜/食用油」充足，若有不足請發起叫料需求單。',
+      inject:function(){
+        DATA.warehouse=DATA.warehouse||{reqs:[]};
+        if(!DATA.warehouse.reqs||!DATA.warehouse.reqs.find(function(r){return r.id==='REQ-K01';})){
+          DATA.warehouse.reqs.unshift(
+            {id:'REQ-K01',item:'🥬 高麗菜',qty:'×15 公斤',site:'廚房/食材備料區',note:'午晚餐蔬菜備料，今日需求量較大',prio:'P2',status:'待派案'}
+          );
+          saveData();
+        }
+      }
+    },
+    {
+      page:'kitchen',
+      hint:'步驟 3 — 備餐完成記錄。找到 M001，點「✓ 標記供應完成」，填入實際供應份數（若有剩餘或不足請備注說明）。廚房志工完成記錄後確認送出。'
+    },
+    {
+      page:'care_rec',
+      hint:'步驟 4（最後）— 定點關懷記錄。確認今日定點供餐關懷記錄：「定點關懷 — 竹崎國小收容所，午餐供應熱食120份」。這是廚房組與人文關懷的交接點。完成後按「完成演練」。',
+      inject:function(){
+        try{ RTDB.ref('auditLog').push({time:new Date().toISOString(),action:'廚房結案',detail:'午餐M001 120份供應完成，已入關懷紀錄'}); }catch(e){}
+      }
+    },
+  ],
+
+  medical:[
+    {
+      page:'rtsync',
+      hint:'步驟 1 — 接收醫療任務。協調中台有一筆 P1 任務「T-D03：醫療後送 — 王○○ 灣橋里12號」（長者疑似中風）。切換到「任務池」Tab，找到此任務，指派醫療組志工執行。',
+      inject:function(){
+        RTDB.ref('tasks/T-D03').update({status:'待派工',title:'醫療後送 — 王○○ 灣橋里12號',priority:'P1',type:'醫療'});
+      }
+    },
+    {
+      page:'medical_aid',
+      hint:'步驟 2 — 醫療站評估。醫療急救模組，新增一筆傷患評估紀錄：傷患「王○○」，年齡75，主訴「意識模糊，右側肢體無力」，依 START 分診判定為「紅」（需立即處置）。填入基本生命徵象後送審。',
+      inject:function(){
+        DATA.medical_aid=DATA.medical_aid||{patients:[],supplies:[],vitals:[]};
+        if(!DATA.medical_aid.patients||!DATA.medical_aid.patients.find(function(p){return p.id==='P001';})){
+          DATA.medical_aid.patients=[
+            {id:'P001',name:'王○○',age:75,gender:'男',triage:'紅',chief:'意識模糊，右側肢體無力',bp:'160/95',hr:92,rr:22,spo2:94,status:'處置中',time:'14:38',recorder:'V003'},
+          ];
+          saveData();
+        }
+      }
+    },
+    {
+      page:'warehouse',
+      hint:'步驟 3 — 醫療耗材補充。醫療站消毒液告急（REQ-D03）。找到倉儲叫料需求「REQ-D03：消毒液×30瓶 — 灣橋里臨時醫療站」（🔴 P1），按「審核通過」完成派案。',
+      inject:function(){
+        DATA.warehouse=DATA.warehouse||{reqs:[]};
+        if(!DATA.warehouse.reqs.find(function(r){return r.id==='REQ-D03';})){
+          DATA.warehouse.reqs.push({id:'REQ-D03',item:'🧴 消毒液',qty:'×30瓶',site:'灣橋里臨時醫療站',note:'醫療站存量告急',prio:'P1',status:'待派案'});
+          saveData();
+        }
+      }
+    },
+    {
+      page:'case_mgt',
+      hint:'步驟 4（最後）— 建立個案追蹤。醫療處置完成後，為王○○建立後續追蹤個案：地址「竹崎鄉灣橋里12號」，狀況填入「疑似中風，已後送竹崎醫院，待家屬確認」，指定行政組幹部跟進。完成後按「完成演練」。',
+      inject:function(){
+        try{ RTDB.ref('auditLog').push({time:new Date().toISOString(),action:'醫療結案',detail:'P001王○○ START紅色，已後送，個案轉入case_mgt追蹤'}); }catch(e){}
+      }
+    },
+  ],
+
+  rescue:[
+    {
+      page:'rtsync',
+      hint:'步驟 1 — 接收勘災任務。協調中台有一筆「T-D04：屋頂損害評估 — 獅山里23號」。切換到任務池，找到此任務卡，指派搜救組志工，確認出隊前準備（對講機/手電筒/急救包）。',
+      inject:function(){
+        RTDB.ref('tasks/T-D04').update({status:'待派工',title:'屋頂損害評估 — 獅山里23號',priority:'P2',type:'勘災'});
+      }
+    },
+    {
+      page:'rescue',
+      hint:'步驟 2 — 填出隊記錄。進入搜救/勘災模組，建立出隊記錄：組長填「搜救甲組」，組員至少2位，目的地「竹崎鄉獅山里23號陳○○宅」，預計返回時間設為2小時後，完成出隊申請。',
+      inject:function(){
+        DATA.rescue=DATA.rescue||{teams:[],surveys:[],handovers:[]};
+        if(!DATA.rescue.teams||!DATA.rescue.teams.find(function(t){return t.id==='T-R01';})){
+          DATA.rescue.teams=[
+            {id:'T-R01',leader:'黃組長',members:['V003','V004'],destination:'竹崎鄉獅山里23號',departTime:'14:30',returnETA:'16:30',status:'出隊中',taskRef:'T-D04'},
+          ];
+          saveData();
+        }
+      }
+    },
+    {
+      page:'rescue',
+      hint:'步驟 3 — 建立勘災紀錄。搜救組抵達後填寫勘察紀錄：戶主「陳○○」，建物受損程度選「中等」，屋頂部分塌陷，戶內2人皆安全但需暫時安置。上傳至少1張建物外觀照片（可填文字模擬），標記「需後續修繕評估」。'
+    },
+    {
+      page:'rtsync',
+      hint:'步驟 4 — 任務完成回報。回到協調中台，找到 T-D04 任務卡，點「✓ 完成」更新狀態，並在進度回報欄填入：「已完成屋頂勘察，建物中度損壞，2人待安置，已轉個案管理」。',
+      inject:function(){
+        try{ RTDB.ref('tasks/T-D04').update({status:'已完成'}); }catch(e){}
+      }
+    },
+    {
+      page:'case_mgt',
+      hint:'步驟 5（最後）— 勘災轉個案。勘察到陳○○需要安置支援，在個案管理建立新個案：姓名「陳○○」，地址「竹崎鄉獅山里23號」，狀況「屋頂中度受損，2人待安置，無傷亡」，指定行政組跟進。完成後按「完成演練」。',
+      inject:function(){
+        try{ RTDB.ref('auditLog').push({time:new Date().toISOString(),action:'勘災結案',detail:'T-D04獅山里23號勘察完成，已轉個案追蹤'}); }catch(e){}
+      }
+    },
+  ],
+
+  care:[
+    {
+      page:'case_mgt',
+      hint:'步驟 1 — 查看待訪視個案。個案管理清單中，找到 C001「張本個案 — 竹崎鄉中正路123號」，狀態為「待訪視」。點開詳情確認個案基本資料與歷史紀錄，準備今日訪視。',
+      inject:function(){
+        DATA.case_mgt=DATA.case_mgt||{items:[]};
+        if(!DATA.case_mgt.items||!DATA.case_mgt.items.find(function(c){return c.caseId==='C001';})){
+          DATA.case_mgt.items=[
+            {caseId:'C001',name:'張本個案',address:'竹崎鄉中正路 123 號',status:'待訪視',route:'動線A',note:'獨居老人，子女在外縣市，需定期關懷'},
+            {caseId:'C002',name:'李本個案',address:'梅山鄉中山路 45 號', status:'訪視中',route:'動線B'},
+            {caseId:'C003',name:'王本個案',address:'大埔鄉和平街 67 號', status:'已完成',route:'動線A'},
+          ];
+          saveData();
+        }
+      }
+    },
+    {
+      page:'care_rec',
+      hint:'步驟 2 — 建立訪視紀錄。切換到多元關懷記錄，新增一筆訪視：對象「C001 張○○ 竹崎中正路123號」，填入四面向評分：身體(4)/心理(3)/靈性(5)/社群(3)，摘要填入「長者情緒穩定，輕微腰痛，鄰居有定期探訪，需再追蹤心理調適」。'
+    },
+    {
+      page:'shelter_mgt',
+      hint:'步驟 3 — 確認安置狀況。到安置所管理確認此個案安置資訊：確認張○○是否已入住收容所（或仍在原宅），更新安置狀態與特殊需求（獨居/老人/需定期追蹤）。',
+      inject:function(){
+        DATA.shelter_mgt=DATA.shelter_mgt||{households:[]};
+        if(!DATA.shelter_mgt.households||!DATA.shelter_mgt.households.find(function(h){return h.name&&h.name.includes('張');})){
+          DATA.shelter_mgt.households=DATA.shelter_mgt.households||[];
+          DATA.shelter_mgt.households.push({id:'H-C001',name:'張○○',address:'竹崎鄉中正路123號',people:1,elderly:1,infant:0,disabled:0,status:'已安置',note:'獨居老人，需每日關懷'});
+          saveData();
+        }
+      }
+    },
+    {
+      page:'rebuild',
+      hint:'步驟 4（最後）— 重建與長期陪伴。切換到災後重建模組，為張○○建立長期追蹤計畫：「屋頂修繕申請中，預計2週內完工；安排每週2次電話關懷，下次現場訪視日期設為7天後」。完成後按「完成演練」。',
+      inject:function(){
+        try{ RTDB.ref('auditLog').push({time:new Date().toISOString(),action:'關懷結案',detail:'C001張○○首次訪視完成，身心靈群四面向均已記錄，重建追蹤已建立'}); }catch(e){}
+      }
+    },
+  ],
+
+  transport:[
+    {
+      page:'rtsync',
+      hint:'步驟 1 — 接收派車任務。協調中台任務池有「T-D02：物資配送 — 礦泉水120瓶 → 竹崎國小」（P2）。找到此任務，確認目的地與時間，按「指派」把任務分配給物資組林志工（V002）。',
+      inject:function(){
+        RTDB.ref('tasks/T-D02').update({status:'待派工',title:'物資配送 — 礦泉水120瓶 → 竹崎國小',priority:'P2',type:'物資'});
+      }
+    },
+    {
+      page:'warehouse',
+      hint:'步驟 2 — 確認出庫。找到叫料需求「REQ-D01：礦泉水×120瓶」（🔴 P1），按「審核通過」，系統記錄庫存扣除。確認倉儲剩餘量仍高於安全庫存（240瓶）。',
+      inject:function(){
+        DATA.warehouse=DATA.warehouse||{reqs:[]};
+        if(!DATA.warehouse.reqs.find(function(r){return r.id==='REQ-D01';})){
+          DATA.warehouse.reqs.unshift({id:'REQ-D01',item:'🥤 礦泉水',qty:'×120瓶',site:'竹崎國小收容所',note:'收容所存量不足1日',prio:'P1',status:'待派案'});
+          saveData();
+        }
+      }
+    },
+    {
+      page:'rtsync',
+      hint:'步驟 3 — 出發回報。T-D02 任務已指派，現在模擬出發：在協調中台找到任務卡，點「進行中」更新狀態，填入出發時間（可直接用目前時間）。這讓後台知道物資正在配送途中。',
+      inject:function(){
+        try{ RTDB.ref('tasks/T-D02').update({status:'進行中',startTime:new Date().toLocaleTimeString('zh-TW')}); }catch(e){}
+      }
+    },
+    {
+      page:'coord',
+      hint:'步驟 4（最後）— 跨單位協調記錄。到協調台確認「竹崎國小收容所 飲用水 80 箱」已媒合統一企業供源。練習在協調台新增一筆媒合記錄或更新既有記錄狀態為「已媒合」。完成後按「完成演練」。',
+      inject:function(){
+        try{ RTDB.ref('auditLog').push({time:new Date().toISOString(),action:'配送完成',detail:'T-D02礦泉水120瓶已配送竹崎國小，物資組林志工執行完畢'}); }catch(e){}
+      }
+    },
+  ],
+
+  commander:[
+    {
+      page:'dashboard',
+      hint:'步驟 1 — 全局態勢掌握。進入總控儀表板，確認地震情境已啟動（右上角可見「⚡戰時模式」），查看目前警示數量、各組人力分佈、以及 AI 戰術建議欄最新的3項建議。'
+    },
+    {
+      page:'monitor',
+      hint:'步驟 2 — 資源監控。全域監控畫面顯示各模組健康狀態。確認：① 即時協調中台「正常」② 物資倉儲有待處理叫料 ③ 查看前線需求統計，識別當前最迫切的資源缺口。'
+    },
+    {
+      page:'rtsync',
+      hint:'步驟 3 — 任務指揮。協調中台目前有4筆待派工任務（T-D01到T-D04）。確認 P1 任務（T-D01、T-D03）皆已指派人員執行。如有未派工，立即指派待命志工。',
+      inject:function(){
+        RTDB.ref('tasks').once(function(tasks){
+          var t=tasks||{};
+          if(!t['T-D01']) RTDB.ref('tasks/T-D01').set({id:'T-D01',title:'確認獨居長者狀況 — 獅山里23號',priority:'P1',status:'待派工',type:'關懷',created:Date.now()-1800000});
+          if(!t['T-D03']) RTDB.ref('tasks/T-D03').set({id:'T-D03',title:'醫療後送 — 王○○ 灣橋里12號',priority:'P1',status:'待派工',type:'醫療',created:Date.now()-600000});
+        });
+      }
+    },
+    {
+      page:'line_oa',
+      hint:'步驟 4 — 全員推播。切換到 Line OA 模擬器的「push」Tab，發送橙色警報：「【橙色警戒】嘉義地震救援第二階段啟動，各組立即確認人員在位，P1 任務限1小時內完成回報，請回覆「收到」」。確認 HQ Log 有紀錄。'
+    },
+    {
+      page:'rtsync',
+      hint:'步驟 5（最後）— 稽核與結案報告。切換到「稽核日誌」Tab，確認今日操作完整記錄。查閱「結案」Tab，填入今日決策摘要：派工X筆、個案Y件、物資出庫Z項。完成後按「完成演練」。',
+      inject:function(){
+        try{
+          RTDB.ref('auditLog').push({time:new Date().toISOString(),action:'指揮決策',detail:'決策者完成全局掌握，P1任務全部派工，橙色警報已發布'});
+        }catch(e){}
+      }
+    },
+  ],
 };
 
 var DRILL_HINTS={
@@ -12167,6 +12425,52 @@ var DRILL_HINTS={
     admin:'系統後台。管理帳號權限、查閱稽核記錄，以及匯出系統報表。',
     relief_req:'求助通報全覽。審核所有待處理求助，依優先序轉派或合併處理。',
     default:'以總控角色探索這個模組。所有操作皆可執行，試著跑完整流程。',
+  },
+  kitchen:{
+    kitchen:'廚房主頁。查看今日餐點申請清單，開始備餐、記錄供應份數與特殊飲食需求。',
+    warehouse:'食材倉儲對接。確認食材庫存充足，發起補貨叫料，注意效期與冷鏈要求。',
+    care_rec:'定點供餐關懷記錄。餐食配送完成後在這裡記錄定點關懷服務的戶次與份數。',
+    coord:'協調台確認。確認與外部食材捐贈廠商的媒合狀態，更新供給來源。',
+    default:'以廚房組角色探索這個模組。關注餐食供需鏈與食安記錄。',
+  },
+  medical:{
+    rtsync:'協調中台：醫療任務視角。接收醫療後送、救護任務，確認指派與執行狀況。',
+    medical_aid:'醫療急救站。新增傷患評估、START分診、發藥記錄，以及醫療耗材庫存管理。',
+    warehouse:'醫療物資申請。確認急救耗材庫存，發起緊急補貨叫料（P1優先）。',
+    case_mgt:'醫療轉個案追蹤。重傷患者處置後建立個案，指定行政組後續跟進。',
+    care_rec:'傷後關懷記錄。醫療穩定後填入心理與生活關懷記錄，確保全人照護。',
+    default:'以醫療急救角色探索這個模組。關注傷患狀態與醫療資源鏈。',
+  },
+  rescue:{
+    rtsync:'協調中台：搜救任務視角。接收勘災、搜救任務，確認組隊出隊，回報進度。',
+    rescue:'搜救/勘災主頁。填寫出隊紀錄、建立勘察報告，記錄建物損壞與人員情況。',
+    case_mgt:'勘災轉個案。發現需要安置或跟進的受災戶，直接在此建立個案轉行政組。',
+    coord:'協調台：確認勘察區域分工，避免重複或遺漏，更新勘察進度。',
+    default:'以搜救勘災角色探索這個模組。關注安全出隊、完整記錄與跨組通報。',
+  },
+  care:{
+    case_mgt:'個案管理。查看待訪視個案清單，點開詳情，準備今日訪視行程。',
+    care_rec:'多元關懷記錄。填入訪視四面向（身心靈群），建立每次接觸的紀錄。',
+    shelter_mgt:'安置所管理。確認個案安置狀況，更新特殊需求（老人/嬰幼兒/身障）。',
+    rebuild:'長期重建陪伴。建立再訪計畫，設定定期提醒，確保個案長期被跟進。',
+    relief_req:'求助連動。若訪視發現新需求，從這裡建立新的求助通報轉協調中台。',
+    default:'以人文關懷角色探索這個模組。關注個案完整性與長期陪伴品質。',
+  },
+  transport:{
+    rtsync:'協調中台：交通任務視角。接收派車任務，確認目的地、物資清單與回報時程。',
+    warehouse:'物資確認裝車。出庫前核對品項與數量，完成裝車記錄再出發。',
+    coord:'協調台：確認目的地收件方，更新運送狀態，媒合外部車輛資源。',
+    rescue:'配合搜救組移動。載送搜救組員進出作業區，確認安全路線回報。',
+    default:'以交通運輸角色探索這個模組。關注任務調度、路況與車輛安全。',
+  },
+  commander:{
+    dashboard:'指揮儀表板。掌握全局KPI、AI建議與各組人力，判斷當前最高優先事項。',
+    monitor:'資源監控大屏。確認各組系統健康狀態，識別需要立即介入的異常。',
+    rtsync:'指揮中台。確認所有P1任務已派工，查看進度，必要時發出緊急調度。',
+    line_oa:'全員通訊。發出分級警報、全體動員或SOS，確認指令送達紀錄。',
+    coord:'跨機構協調。確認各外部資源媒合狀態，建立正式協調指令記錄。',
+    admin:'稽核後台。確認今日操作完整記錄，匯出結案報告，移交給基金會窗口。',
+    default:'以決策者/組長角色探索這個模組。所有功能皆可用，關注全局指揮鏈。',
   },
 };
 
@@ -12551,6 +12855,70 @@ function drillLaunchClose(){
         <div class="drill-role-desc">完整系統所有功能皆可操作，適合跑完整流程或測試角色權限邊界</div>
         <div class="drill-role-path">
           <span class="drill-role-step">📊 儀表板</span><span class="drill-role-step">⚡ 全模組</span><span class="drill-role-step">🚨 SOS 測試</span><span class="drill-role-step">🎖 角色切換</span>
+        </div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:10px 0"></div>
+    <div style="font-size:10px;font-weight:700;color:var(--text4);letter-spacing:.08em;text-transform:uppercase;margin:8px 0 6px">現場職能演練</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="drill-role-card" onclick="enterDrill('kitchen')" style="margin:0">
+        <div class="drill-role-ico">🍱</div>
+        <div>
+          <div class="drill-role-lbl">廚房/餐食</div>
+          <div class="drill-role-desc" style="font-size:10px">從餐點申請到食材確認到供餐完成</div>
+          <div class="drill-role-path">
+            <span class="drill-role-step">🍱 餐點申請</span><span class="drill-role-step">📦 食材確認</span><span class="drill-role-step">✅ 備餐完成</span><span class="drill-role-step">💚 關懷紀錄</span>
+          </div>
+        </div>
+      </div>
+      <div class="drill-role-card" onclick="enterDrill('medical')" style="margin:0">
+        <div class="drill-role-ico">🏥</div>
+        <div>
+          <div class="drill-role-lbl">醫療急救</div>
+          <div class="drill-role-desc" style="font-size:10px">接任務→分診評估→耗材補充→個案</div>
+          <div class="drill-role-path">
+            <span class="drill-role-step">⚡ 接任務</span><span class="drill-role-step">🏥 START分診</span><span class="drill-role-step">🧴 耗材</span><span class="drill-role-step">📋 個案</span>
+          </div>
+        </div>
+      </div>
+      <div class="drill-role-card" onclick="enterDrill('rescue')" style="margin:0">
+        <div class="drill-role-ico">🔍</div>
+        <div>
+          <div class="drill-role-lbl">搜救勘災</div>
+          <div class="drill-role-desc" style="font-size:10px">接任務→出隊記錄→勘察建物→轉案</div>
+          <div class="drill-role-path">
+            <span class="drill-role-step">⚡ 接任務</span><span class="drill-role-step">🔍 出隊記錄</span><span class="drill-role-step">📋 勘災紀錄</span><span class="drill-role-step">📝 轉個案</span>
+          </div>
+        </div>
+      </div>
+      <div class="drill-role-card" onclick="enterDrill('care')" style="margin:0">
+        <div class="drill-role-ico">💙</div>
+        <div>
+          <div class="drill-role-lbl">人文關懷</div>
+          <div class="drill-role-desc" style="font-size:10px">個案清單→訪視四面向→安置→重建</div>
+          <div class="drill-role-path">
+            <span class="drill-role-step">📋 個案</span><span class="drill-role-step">💙 訪視記錄</span><span class="drill-role-step">🏠 安置確認</span><span class="drill-role-step">🌱 重建追蹤</span>
+          </div>
+        </div>
+      </div>
+      <div class="drill-role-card" onclick="enterDrill('transport')" style="margin:0">
+        <div class="drill-role-ico">🚗</div>
+        <div>
+          <div class="drill-role-lbl">交通運輸</div>
+          <div class="drill-role-desc" style="font-size:10px">接派車→確認出庫→出發回報→協調</div>
+          <div class="drill-role-path">
+            <span class="drill-role-step">🚗 接任務</span><span class="drill-role-step">📦 確認出庫</span><span class="drill-role-step">📍 出發回報</span><span class="drill-role-step">🤝 協調確認</span>
+          </div>
+        </div>
+      </div>
+      <div class="drill-role-card" onclick="enterDrill('commander')" style="margin:0;border-color:var(--amber-border);background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(217,119,6,.04))">
+        <div class="drill-role-ico">⭐</div>
+        <div>
+          <div class="drill-role-lbl" style="color:var(--amber)">決策者/組長</div>
+          <div class="drill-role-desc" style="font-size:10px">全局掌握→資源監控→指揮派工→推播</div>
+          <div class="drill-role-path">
+            <span class="drill-role-step">📊 儀表板</span><span class="drill-role-step">🖥 監控</span><span class="drill-role-step">⚡ 指揮</span><span class="drill-role-step">📢 推播</span><span class="drill-role-step">📋 結案</span>
+          </div>
         </div>
       </div>
     </div>
