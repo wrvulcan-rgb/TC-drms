@@ -711,14 +711,15 @@ body.mobile-mode #mobile-root { display:flex!important; }
   background:#4f46e5;color:#fff;letter-spacing:.04em;white-space:nowrap}
 .drill-hud-role{font-size:12px;font-weight:700;color:#c7d2fe;white-space:nowrap}
 #drill-hint-text{flex:1;font-size:11.5px;color:#e0e7ff;line-height:1.55;min-width:200px}
-.drill-cp-btn{border:1px solid #6366f1;background:rgba(99,102,241,.18);color:#a5b4fc;
-  padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s}
-.drill-cp-btn:hover{background:rgba(99,102,241,.35);color:#fff}
-.drill-cp-btn.saved{border-color:#34d399;background:rgba(52,211,153,.2);color:#6ee7b7}
+.drill-next-btn{border:none;background:#4f46e5;color:#fff;border-radius:8px;padding:7px 18px;
+  font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s}
+.drill-next-btn:hover{background:#6366f1}
+.drill-next-btn.finish{background:#059669}
+.drill-next-btn.finish:hover{background:#10b981}
 .drill-exit-btn{border:1px solid #f87171;background:rgba(248,113,113,.18);color:#fca5a5;
   padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s}
 .drill-exit-btn:hover{background:rgba(248,113,113,.35);color:#fff}
-body.drill-on .main{padding-bottom:62px}
+body.drill-on .main{padding-bottom:66px}
 /* launch modal */
 #drill-launch{display:none;position:fixed;inset:0;background:rgba(15,15,25,.8);z-index:700;
   backdrop-filter:blur(4px);align-items:center;justify-content:center}
@@ -11996,13 +11997,49 @@ if(IS_MOBILE){ mInitMobile(); }
 // ══════════════════════════════════════════════════════
 // DRILL MODE
 // ══════════════════════════════════════════════════════
-var drillMode=false, drillRole=null, drillCPs={A:null,B:null}, drillBackup=null;
+var drillMode=false, drillRole=null, drillBackup=null, drillCPs={A:null,B:null};
+var DRILL_STEP=0;
 
 var DRILL_ROLES={
-  staff:    {lbl:'行政幹部',icon:'📋',startPage:'relief_req',roleName:'staff'},
-  logistics:{lbl:'物資幹部',icon:'📦',startPage:'warehouse', roleName:'logistics'},
-  it:       {lbl:'IT 志工', icon:'🖥', startPage:'monitor',  roleName:'it'},
-  admin:    {lbl:'總控演練',icon:'🏛', startPage:'dashboard', roleName:'admin'},
+  staff:    {lbl:'行政幹部',icon:'📋',roleName:'staff'},
+  logistics:{lbl:'物資幹部',icon:'📦',roleName:'logistics'},
+  it:       {lbl:'IT 志工', icon:'🖥', roleName:'it'},
+  admin:    {lbl:'總控演練',icon:'🏛', roleName:'admin'},
+};
+
+var DRILL_FLOWS={
+  staff:[
+    {page:'relief_req', hint:'步驟 1 — 民眾求助收件匣。已載入 4 筆求助單，找到 DR001（🔴 P1緊急），按「轉派任務」把它送進協調中台。'},
+    {page:'rtsync',     hint:'步驟 2 — 協調中台任務池。剛才轉派的任務已出現。點「確認獨居長者狀況」任務卡，指派一位待命組員執行。'},
+    {page:'case_mgt',   hint:'步驟 3 — 個案管理。點「＋ 新增個案」，填入陳○○ 的姓名、地址「獅山里23號」、初始狀況，指定負責組員。'},
+    {page:'care_rec',   hint:'步驟 4 — 關懷紀錄。選擇剛建立的個案，填入第一次訪視的四大面向（身心靈群），記錄現場觀察。'},
+    {page:'shelter_mgt',hint:'步驟 5（最後）— 收容所造冊。新增一筆家戶資料，確認特殊需求欄位（老人/嬰幼兒/身障）。完成後按「完成演練」。'},
+  ],
+  logistics:[
+    {page:'warehouse',  hint:'步驟 1 — 物資倉儲。查看叫料需求清單，找到 REQ-D01（🔴 P1 礦泉水×120瓶），按「審核通過」完成派案。'},
+    {page:'sorting',    hint:'步驟 2 — 物資整理站。確認入庫品項 FIFO 效期排列，找出最近效期的品項並標記為即期。'},
+    {page:'rtsync',     hint:'步驟 3 — 協調中台。找到「物資配送 — 礦泉水」任務卡，指派物資組組員並確認配送路線。',
+      inject:function(){ try{ RTDB.ref('tasks/T-D02').update({status:'待派工',title:'物資配送 — 礦泉水120瓶 → 竹崎國小'}); }catch(e){} }
+    },
+    {page:'warehouse',  hint:'步驟 4（最後）— 出庫確認。確認 REQ-D01 狀態已更新為「已派案」，庫存反映配送量。完成後按「完成演練」。',
+      inject:function(){ try{ if(DATA.warehouse&&DATA.warehouse.reqs&&DATA.warehouse.reqs[0]){ DATA.warehouse.reqs[0].status='已派案'; saveData(); } }catch(e){} }
+    },
+  ],
+  it:[
+    {page:'monitor',    hint:'步驟 1 — 全域監控。掃描各模組健康指標，找出任何標紅的異常項目，確認是否有需要介入的警示。'},
+    {page:'arch_doc',   hint:'步驟 2 — 架構文件。打開心智圖，點「GAS Webhook」節點 → 按「看現況示意」，理解 Line→GAS→Sheets 資料流。'},
+    {page:'line_oa',    hint:'步驟 3 — Line OA 模擬器。切換到「push」Tab，發送一則全體推播，確認右側 HQ Log 有紀錄出現。'},
+    {page:'admin',      hint:'步驟 4（最後）— 系統管理層。查閱稽核日誌，確認剛才的推播動作已被完整記錄。完成後按「完成演練」。'},
+  ],
+  admin:[
+    {page:'dashboard',  hint:'步驟 1 — 總控儀表板。確認地震情境已啟動，查看警示數量與 AI 建議，掌握全局狀況。'},
+    {page:'relief_req', hint:'步驟 2 — 民眾求助審核。所有 P1 求助（DR001、DR003）逐筆按「轉派任務」送入協調中台。'},
+    {page:'rtsync',     hint:'步驟 3 — 協調中台。將 T-D01 和 T-D03 各指派一位待命組員，確認兩筆 P1 任務都有人執行。'},
+    {page:'line_oa',    hint:'步驟 4 — Line OA 推播。切換到「push」Tab，發送全體動員通知：「地震救援啟動，各組請立即就位」。'},
+    {page:'rtsync',     hint:'步驟 5（最後）— 結案確認。查看所有任務進度，確認稽核日誌有本次演練的完整紀錄。完成後按「完成演練」。',
+      inject:function(){ try{ RTDB.ref('auditLog').push({time:new Date().toISOString(),action:'drill_admin_final',note:'總控演練流程完成'}); }catch(e){} }
+    },
+  ],
 };
 
 var DRILL_HINTS={
@@ -12049,14 +12086,51 @@ var DRILL_HINTS={
 
 function drillHint(pageId){
   if(!drillMode||!drillRole) return '';
+  var flow=DRILL_FLOWS[drillRole]||[];
+  var step=flow[DRILL_STEP];
+  if(step&&step.hint) return step.hint;
   var h=DRILL_HINTS[drillRole]||{};
   return h[pageId]||h['default']||'';
 }
 
 function updateDrillHint(pageId){
   if(!drillMode) return;
-  var el=document.getElementById('drill-hint-text');
-  if(el) el.textContent=drillHint(pageId)||'點選左側模組繼續探索…';
+  drillUpdateHUD();
+}
+
+function drillUpdateHUD(){
+  var flow=DRILL_FLOWS[drillRole]||[];
+  var total=flow.length;
+  var step=flow[DRILL_STEP]||{};
+  var pct=total>1?Math.round((DRILL_STEP/(total-1))*100):100;
+  var sl=document.getElementById('drill-step-lbl');
+  if(sl) sl.textContent='步驟 '+(DRILL_STEP+1)+' / '+total;
+  var pf=document.getElementById('drill-progress-fill');
+  if(pf) pf.style.width=pct+'%';
+  var ht=document.getElementById('drill-hint-text');
+  if(ht) ht.textContent=step.hint||'';
+  var nb=document.getElementById('drill-next-btn');
+  if(nb){
+    var isLast=(DRILL_STEP>=total-1);
+    nb.textContent=isLast?'完成演練 ✓':'下一步 →';
+    nb.className='drill-next-btn'+(isLast?' finish':'');
+  }
+}
+
+function drillNextStep(){
+  var flow=DRILL_FLOWS[drillRole]||[];
+  if(DRILL_STEP>=flow.length-1){ drillComplete(); return; }
+  DRILL_STEP++;
+  var step=flow[DRILL_STEP];
+  if(step.inject){ try{ step.inject(); }catch(e){} }
+  showPage(step.page);
+  drillUpdateHUD();
+}
+
+function drillComplete(){
+  var dr=DRILL_ROLES[drillRole];
+  toast('🎉 演練完成！「'+(dr?dr.lbl:'')+'」全流程已跑完，系統狀態即將還原。');
+  setTimeout(function(){ exitDrill(); },2000);
 }
 
 function drillLoadPreset(){
@@ -12092,17 +12166,12 @@ function drillLoadPreset(){
 function enterDrill(dRole){
   drillLaunchClose();
   var dr=DRILL_ROLES[dRole]; if(!dr) return;
-  // backup current state
-  drillBackup=JSON.stringify({
-    role:role, state:state, scenario:currentScenario,
-    data:JSON.stringify(DATA)
-  });
+  drillBackup=JSON.stringify({role:role,state:state,scenario:currentScenario,data:JSON.stringify(DATA)});
   drillRole=dRole; drillMode=true; drillCPs={A:null,B:null};
-  // set role
+  DRILL_STEP=0;
   role=dr.roleName;
   var rsel=document.getElementById('role-sel');
   if(rsel) rsel.value=dr.roleName;
-  // set war mode (IT stays in current mode)
   if(dRole!=='it'){
     state='war';
     var bp=document.getElementById('btn-p'), bw=document.getElementById('btn-w');
@@ -12112,20 +12181,20 @@ function enterDrill(dRole){
     try{ document.getElementById('wt-overlay').classList.remove('show'); }catch(e){}
     setScenario('quake');
   }
-  // load preset data
   drillLoadPreset();
-  // update HUD
   var rlbl=document.getElementById('drill-role-lbl');
   if(rlbl) rlbl.textContent=dr.icon+' '+dr.lbl;
   document.getElementById('drill-hud').classList.add('on');
   var tb=document.getElementById('drill-topbar-btn');
   if(tb) tb.classList.add('on');
   document.body.classList.add('drill-on');
-  // navigate
-  showPage(dr.startPage);
-  updateDrillHint(dr.startPage);
+  var flow=DRILL_FLOWS[dRole]||[];
+  var firstStep=flow[0]||{page:'dashboard'};
+  if(firstStep.inject){ try{ firstStep.inject(); }catch(e){} }
+  showPage(firstStep.page);
+  drillUpdateHUD();
   renderNav();
-  toast('🎯 演練模式啟動：'+dr.lbl+'　點任何模組即可自由探索');
+  toast('🎯 演練開始：'+dr.lbl+'　按 HUD「下一步 →」推進每個階段');
 }
 
 function exitDrill(){
@@ -12398,11 +12467,14 @@ function drillLaunchClose(){
 <div id="drill-hud">
   <span class="drill-hud-badge">🎯 演練中</span>
   <span class="drill-hud-role" id="drill-role-lbl">—</span>
-  <div id="drill-hint-text" style="flex:1">點選左側模組開始…</div>
-  <button class="drill-cp-btn" id="drill-save-a" onclick="drillSaveCP('A')">儲存起點 A</button>
-  <button class="drill-cp-btn" id="drill-cp-a" onclick="drillRestoreCP('A')">↩ A</button>
-  <button class="drill-cp-btn" id="drill-save-b" onclick="drillSaveCP('B')">儲存起點 B</button>
-  <button class="drill-cp-btn" id="drill-cp-b" onclick="drillRestoreCP('B')">↩ B</button>
+  <div style="display:flex;flex-direction:column;gap:3px;min-width:100px">
+    <div id="drill-step-lbl" style="font-size:10px;color:#a5b4fc;font-weight:700;white-space:nowrap">步驟 1 / 1</div>
+    <div style="width:100px;height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden">
+      <div id="drill-progress-fill" style="height:100%;background:#6366f1;border-radius:3px;transition:width .4s ease;width:0%"></div>
+    </div>
+  </div>
+  <div id="drill-hint-text" style="flex:1;font-size:11.5px;color:#e0e7ff;line-height:1.5">準備中…</div>
+  <button class="drill-next-btn" id="drill-next-btn" onclick="drillNextStep()">下一步 →</button>
   <button class="drill-exit-btn" onclick="exitDrill()">✕ 結束演練</button>
 </div>
 
