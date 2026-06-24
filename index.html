@@ -701,6 +701,46 @@ body.mobile-mode #mobile-root { display:flex!important; }
 .m-stat-num { font-size:26px; font-weight:800; }
 .m-stat-lbl { font-size:11px; color:#64748b; margin-top:4px; }
 
+/* ═══ DRILL MODE ═══ */
+#drill-hud{display:none;position:fixed;bottom:0;left:0;right:0;z-index:600;
+  background:linear-gradient(135deg,#1e1b4b,#312e81);border-top:2px solid #818cf8;
+  padding:10px 16px;align-items:center;gap:12px;flex-wrap:wrap;
+  box-shadow:0 -4px 24px rgba(99,102,241,.35);font-family:'Noto Sans TC','Inter',sans-serif}
+#drill-hud.on{display:flex}
+.drill-hud-badge{font-size:10px;font-weight:800;padding:3px 9px;border-radius:6px;
+  background:#4f46e5;color:#fff;letter-spacing:.04em;white-space:nowrap}
+.drill-hud-role{font-size:12px;font-weight:700;color:#c7d2fe;white-space:nowrap}
+#drill-hint-text{flex:1;font-size:11.5px;color:#e0e7ff;line-height:1.55;min-width:200px}
+.drill-cp-btn{border:1px solid #6366f1;background:rgba(99,102,241,.18);color:#a5b4fc;
+  padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s}
+.drill-cp-btn:hover{background:rgba(99,102,241,.35);color:#fff}
+.drill-cp-btn.saved{border-color:#34d399;background:rgba(52,211,153,.2);color:#6ee7b7}
+.drill-exit-btn{border:1px solid #f87171;background:rgba(248,113,113,.18);color:#fca5a5;
+  padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s}
+.drill-exit-btn:hover{background:rgba(248,113,113,.35);color:#fff}
+body.drill-on .main{padding-bottom:62px}
+/* launch modal */
+#drill-launch{display:none;position:fixed;inset:0;background:rgba(15,15,25,.8);z-index:700;
+  backdrop-filter:blur(4px);align-items:center;justify-content:center}
+#drill-launch.on{display:flex}
+#drill-launch-box{background:var(--bg);border-radius:16px;padding:28px;width:min(640px,96vw);
+  max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);
+  border:1px solid var(--border)}
+.drill-role-card{display:flex;align-items:flex-start;gap:14px;padding:16px;border:1px solid var(--border2);
+  border-radius:12px;cursor:pointer;transition:all .18s;margin-bottom:10px}
+.drill-role-card:hover{border-color:#6366f1;background:var(--bg2);box-shadow:0 4px 16px rgba(99,102,241,.15)}
+.drill-role-ico{font-size:30px;flex-shrink:0;line-height:1;margin-top:2px}
+.drill-role-lbl{font-size:14px;font-weight:800;color:var(--text);margin-bottom:3px}
+.drill-role-desc{font-size:11px;color:var(--text3);line-height:1.6}
+.drill-role-path{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.drill-role-step{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg3);
+  color:var(--text3);border:1px solid var(--border)}
+#drill-topbar-btn{border:1px solid #818cf8;background:rgba(99,102,241,.12);color:#818cf8;
+  padding:5px 11px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;
+  white-space:nowrap;transition:all .15s;font-family:'Noto Sans TC','Inter',sans-serif}
+#drill-topbar-btn:hover{background:rgba(99,102,241,.28);color:#a5b4fc}
+#drill-topbar-btn.on{background:#4f46e5;color:#fff;border-color:#4f46e5}
+
 </style>
 </head>
 <body>
@@ -724,6 +764,7 @@ body.mobile-mode #mobile-root { display:flex!important; }
       <option value="staff">📋 行政組</option>
       <option value="logistics">📦 物資組</option>
     </select>
+    <button id="drill-topbar-btn" onclick="drillLaunchOpen()">🎯 演練</button>
     <button id="sync-btn"
       style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--text3);font-family:'Noto Sans TC','Inter',sans-serif;font-size:12px;cursor:pointer;font-weight:500;transition:all .2s;user-select:none;white-space:nowrap"
       onclick="handleSyncClick()"
@@ -7516,6 +7557,7 @@ function showPage(id){
   if(id==='sorting') renderSorting();
   if(id==='assets') renderAssets();
   if(id==='rtsync'){ renderRTSync(); bindRTListeners(); }
+  updateDrillHint(id);
   if(state==='war'&&['case_mgt','care_rec','warehouse','shelter_mgt'].indexOf(id)>=0&&pg){
     var wb=document.getElementById('war-lock-'+id);
     if(!wb){
@@ -11950,6 +11992,205 @@ function mCmdEvacuate(){
 }
 // ────────────────────────────────────────────────────────
 if(IS_MOBILE){ mInitMobile(); }
+
+// ══════════════════════════════════════════════════════
+// DRILL MODE
+// ══════════════════════════════════════════════════════
+var drillMode=false, drillRole=null, drillCPs={A:null,B:null}, drillBackup=null;
+
+var DRILL_ROLES={
+  staff:    {lbl:'行政幹部',icon:'📋',startPage:'relief_req',roleName:'staff'},
+  logistics:{lbl:'物資幹部',icon:'📦',startPage:'warehouse', roleName:'logistics'},
+  it:       {lbl:'IT 志工', icon:'🖥', startPage:'monitor',  roleName:'it'},
+  admin:    {lbl:'總控演練',icon:'🏛', startPage:'dashboard', roleName:'admin'},
+};
+
+var DRILL_HINTS={
+  staff:{
+    relief_req:'這裡是民眾求助收件匣。找一筆 P1 緊急求助，點「轉派任務」送入協調中台。',
+    rtsync:'任務池出現剛才的求助了！點任務卡指派組員，或用「＋ 建立任務」手動新增。',
+    case_mgt:'求助轉成個案後在這裡追蹤。建立一筆個案，指定負責組員並填入初始狀況。',
+    care_rec:'每次現場訪視後在這裡填寫關懷面向（身心靈群），形成追蹤紀錄。',
+    vol_hub:'管理今日出席志工。在報到子頁勾選在場人員，並確認待命狀態。',
+    shelter_mgt:'收容所造冊管理。新增家戶資料並更新入住人數。',
+    coord:'查看目前協調指令與進度回報，確認各組任務狀態。',
+    rebuild:'長期追蹤重建進度與心理陪伴安排，可設定提醒時間。',
+    default:'以行政幹部角色探索這個模組。試著完成一個操作後切換到下一模組。',
+  },
+  logistics:{
+    warehouse:'物資倉儲主頁。練習新增入庫單、確認庫存水位，以及審核叫料需求。',
+    sorting:'物資整理站。將入庫物資分類標記，練習整理流程並輸出分類清單。',
+    rtsync:'協調中台任務池。找物資相關任務（叫料/配送），點派車或完成按鈕。',
+    assets:'設備管理。盤點現有設備狀態，標記損壞或待維修項目。',
+    kitchen:'廚房物資對接。確認餐食需求並核對材料庫存是否充足。',
+    medical_aid:'醫療物資補給。確認醫療站耗材需求，發起補貨申請。',
+    rescue:'搜救設備清單。確認裝備齊全並記錄出借/歸還紀錄。',
+    default:'以物資幹部角色探索這個模組。試著完成一個庫存相關操作。',
+  },
+  it:{
+    monitor:'全域監控面板。查看各模組健康狀態，找到任何紅色警示並定位問題來源。',
+    admin:'系統管理層。查閱組織架構、設定用戶權限，以及查看稽核日誌。',
+    arch_doc:'架構文件心智圖。點開各節點查看「看現況示意」，理解模組間資料流。',
+    rtsync:'協調中台技術視角。觀察任務狀態機（待派工→進行中→已完成）是否運作正常。',
+    line_oa:'Line OA 模擬器。練習推播流程、點名功能，以及物資叫料派案。',
+    dashboard:'儀表板技術面。確認各統計數字來源，追蹤 AI 分析模組輸出。',
+    default:'以 IT 志工角色探索這個模組。關注資料流與系統整合點。',
+  },
+  admin:{
+    dashboard:'總控儀表板。一眼掌握全局狀態、警示、AI 建議，以及各組人力分配。',
+    rtsync:'即時協調中台。以總控視角派工、監看進度、觸發 SOS 或發出緊急廣播。',
+    line_oa:'Line OA 全頻道操作。練習全體推播、SOS 發送、以及查閱最新訊息紀錄。',
+    vol_hub:'人力全局管理。查看今日出席、待命人數，以及跨組別調動志工。',
+    admin:'系統後台。管理帳號權限、查閱稽核記錄，以及匯出系統報表。',
+    relief_req:'求助通報全覽。審核所有待處理求助，依優先序轉派或合併處理。',
+    default:'以總控角色探索這個模組。所有操作皆可執行，試著跑完整流程。',
+  },
+};
+
+function drillHint(pageId){
+  if(!drillMode||!drillRole) return '';
+  var h=DRILL_HINTS[drillRole]||{};
+  return h[pageId]||h['default']||'';
+}
+
+function updateDrillHint(pageId){
+  if(!drillMode) return;
+  var el=document.getElementById('drill-hint-text');
+  if(el) el.textContent=drillHint(pageId)||'點選左側模組繼續探索…';
+}
+
+function drillLoadPreset(){
+  DATA.relief_req=DATA.relief_req||{requests:[]};
+  DATA.relief_req.requests=[
+    {id:'DR001',name:'陳○○',addr:'竹崎鄉獅山里23號',phone:'0912-xxx-001',need:'屋頂受損，2位獨居長者無法出門',priority:'P1',status:'待處理',created:'10:23'},
+    {id:'DR002',name:'林○○',addr:'竹崎鄉中和里5號',phone:'0923-xxx-002',need:'食物飲水短缺，一家5口',priority:'P2',status:'待處理',created:'10:45'},
+    {id:'DR003',name:'王○○',addr:'竹崎鄉灣橋里12號',phone:'0934-xxx-003',need:'老人跌倒無法行走，需醫療協助',priority:'P1',status:'待處理',created:'11:02'},
+    {id:'DR004',name:'張○○',addr:'竹崎鄉紫雲里8號',phone:'0945-xxx-004',need:'嬰幼兒缺奶粉尿布',priority:'P2',status:'待處理',created:'11:18'},
+  ];
+  DATA.warehouse=DATA.warehouse||{reqs:[]};
+  DATA.warehouse.reqs=[
+    {id:'REQ-D01',item:'🥤 礦泉水',qty:'×120瓶',site:'竹崎國小收容所',note:'收容所存量不足1日',prio:'P1',status:'待派案'},
+    {id:'REQ-D02',item:'🍱 便當',qty:'×85份',site:'竹崎國小收容所',note:'午餐供應時間',prio:'P2',status:'待派案'},
+    {id:'REQ-D03',item:'🧴 消毒液',qty:'×30瓶',site:'灣橋里臨時醫療站',note:'醫療站存量告急',prio:'P1',status:'待派案'},
+  ];
+  RTDB.ref('tasks').set({
+    'T-D01':{id:'T-D01',title:'確認獨居長者狀況 — 獅山里23號',priority:'P1',status:'待派工',type:'關懷',created:Date.now()-1800000},
+    'T-D02':{id:'T-D02',title:'物資配送 — 礦泉水120瓶 → 竹崎國小',priority:'P2',status:'待派工',type:'物資',created:Date.now()-1200000},
+    'T-D03':{id:'T-D03',title:'醫療後送 — 王○○ 灣橋里12號',priority:'P1',status:'待派工',type:'醫療',created:Date.now()-600000},
+    'T-D04':{id:'T-D04',title:'屋頂損害評估 — 獅山里23號',priority:'P2',status:'待派工',type:'勘災',created:Date.now()-300000},
+  });
+  RTDB.ref('volunteers').set({
+    'V001':{id:'V001',name:'陳師兄',group:'行政組',skill:'個案管理',status:'待命',phone:'0912-001'},
+    'V002':{id:'V002',name:'林志工',group:'物資組',skill:'搬運駕車',status:'待命',phone:'0923-002'},
+    'V003':{id:'V003',name:'黃組長',group:'醫療組',skill:'護理急救',status:'出勤中',phone:'0934-003'},
+    'V004':{id:'V004',name:'吳幹部',group:'行政組',skill:'行政協調',status:'待命',phone:'0945-004'},
+    'V005':{id:'V005',name:'鄭師姐',group:'物資組',skill:'倉儲管理',status:'待命',phone:'0956-005'},
+  });
+  saveData();
+}
+
+function enterDrill(dRole){
+  drillLaunchClose();
+  var dr=DRILL_ROLES[dRole]; if(!dr) return;
+  // backup current state
+  drillBackup=JSON.stringify({
+    role:role, state:state, scenario:currentScenario,
+    data:JSON.stringify(DATA)
+  });
+  drillRole=dRole; drillMode=true; drillCPs={A:null,B:null};
+  // set role
+  role=dr.roleName;
+  var rsel=document.getElementById('role-sel');
+  if(rsel) rsel.value=dr.roleName;
+  // set war mode (IT stays in current mode)
+  if(dRole!=='it'){
+    state='war';
+    var bp=document.getElementById('btn-p'), bw=document.getElementById('btn-w');
+    if(bp) bp.className='sbtn';
+    if(bw) bw.className='sbtn sw';
+    document.body.classList.add('wt-mode');
+    try{ document.getElementById('wt-overlay').classList.remove('show'); }catch(e){}
+    setScenario('quake');
+  }
+  // load preset data
+  drillLoadPreset();
+  // update HUD
+  var rlbl=document.getElementById('drill-role-lbl');
+  if(rlbl) rlbl.textContent=dr.icon+' '+dr.lbl;
+  document.getElementById('drill-hud').classList.add('on');
+  var tb=document.getElementById('drill-topbar-btn');
+  if(tb) tb.classList.add('on');
+  document.body.classList.add('drill-on');
+  // navigate
+  showPage(dr.startPage);
+  updateDrillHint(dr.startPage);
+  renderNav();
+  toast('🎯 演練模式啟動：'+dr.lbl+'　點任何模組即可自由探索');
+}
+
+function exitDrill(){
+  if(!drillMode) return;
+  drillMode=false; drillRole=null;
+  if(drillBackup){
+    try{
+      var bk=JSON.parse(drillBackup);
+      DATA=JSON.parse(bk.data);
+      role=bk.role; state=bk.state; currentScenario=bk.scenario;
+      var rsel=document.getElementById('role-sel');
+      if(rsel) rsel.value=role;
+      // restore state buttons
+      var bp=document.getElementById('btn-p'), bw=document.getElementById('btn-w');
+      if(state==='peace'){
+        if(bp) bp.className='sbtn sp';
+        if(bw) bw.className='sbtn';
+        document.body.classList.remove('wt-mode');
+      } else {
+        if(bp) bp.className='sbtn';
+        if(bw) bw.className='sbtn sw';
+        document.body.classList.add('wt-mode');
+      }
+      saveData();
+    }catch(e){ console.warn('drill restore failed',e); }
+    drillBackup=null;
+  }
+  drillCPs={A:null,B:null};
+  document.getElementById('drill-hud').classList.remove('on');
+  var tb=document.getElementById('drill-topbar-btn');
+  if(tb){ tb.classList.remove('on'); }
+  document.body.classList.remove('drill-on');
+  showPage('dashboard'); renderNav();
+  toast('演練模式已結束，系統狀態已還原');
+}
+
+function drillSaveCP(slot){
+  drillCPs[slot]=JSON.stringify(DATA);
+  var btn=document.getElementById('drill-save-'+slot.toLowerCase());
+  if(btn){ btn.classList.add('saved'); btn.textContent='✓ 起點 '+slot; }
+  var rb=document.getElementById('drill-cp-'+slot.toLowerCase());
+  if(rb){ rb.style.opacity='1'; }
+  toast('起點 '+slot+' 已儲存（當前頁面：'+activePage+'）');
+}
+
+function drillRestoreCP(slot){
+  if(!drillCPs[slot]){ toast('⚠ 起點 '+slot+' 尚未儲存，請先按「儲存起點 '+slot+'」'); return; }
+  try{
+    DATA=JSON.parse(drillCPs[slot]);
+    saveData();
+    var pg=activePage;
+    showPage(pg);
+    updateDrillHint(pg);
+    toast('↩ 已還原到起點 '+slot+'，可重新跑這個分支');
+  }catch(e){ toast('⚠ 還原失敗：'+e.message); }
+}
+
+function drillLaunchOpen(){
+  document.getElementById('drill-launch').classList.add('on');
+}
+
+function drillLaunchClose(){
+  var el=document.getElementById('drill-launch');
+  if(el) el.classList.remove('on');
+}
 </script>
 
 <!-- ══ 手機模式根節點 ══ -->
@@ -12096,5 +12337,74 @@ if(IS_MOBILE){ mInitMobile(); }
   </div>
 
 </div>
+
+<!-- ══════════ DRILL LAUNCH MODAL ══════════ -->
+<div id="drill-launch" onclick="if(event.target===this)drillLaunchClose()">
+  <div id="drill-launch-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:18px;font-weight:800;color:var(--text)">🎯 演練模式</div>
+        <div style="font-size:11px;color:var(--text4);margin-top:2px">選擇角色開始自由探索演練 · 可隨時儲存起點並重跑任意分支</div>
+      </div>
+      <button onclick="drillLaunchClose()" style="border:none;background:var(--bg3);padding:6px 12px;border-radius:8px;cursor:pointer;color:var(--text3);font-size:13px">✕</button>
+    </div>
+    <div class="drill-role-card" onclick="enterDrill('staff')">
+      <div class="drill-role-ico">📋</div>
+      <div>
+        <div class="drill-role-lbl">行政幹部</div>
+        <div class="drill-role-desc">練習完整的受災民眾服務流程：從求助收件、轉派任務、到個案追蹤與關懷記錄</div>
+        <div class="drill-role-path">
+          <span class="drill-role-step">🆘 求助通報</span><span class="drill-role-step">⚡ 協調中台</span><span class="drill-role-step">📋 個案管理</span><span class="drill-role-step">💚 關懷紀錄</span><span class="drill-role-step">🏠 收容所</span>
+        </div>
+      </div>
+    </div>
+    <div class="drill-role-card" onclick="enterDrill('logistics')">
+      <div class="drill-role-ico">📦</div>
+      <div>
+        <div class="drill-role-lbl">物資幹部</div>
+        <div class="drill-role-desc">練習物資生命週期：入庫造冊、分類、出庫配送，以及叫料需求處理</div>
+        <div class="drill-role-path">
+          <span class="drill-role-step">📦 物資倉儲</span><span class="drill-role-step">📥 整理站</span><span class="drill-role-step">⚡ 協調中台</span><span class="drill-role-step">🍱 廚房</span><span class="drill-role-step">🏥 醫療</span>
+        </div>
+      </div>
+    </div>
+    <div class="drill-role-card" onclick="enterDrill('it')">
+      <div class="drill-role-ico">🖥️</div>
+      <div>
+        <div class="drill-role-lbl">IT 志工</div>
+        <div class="drill-role-desc">練習系統監控、架構查閱與 Line OA 模擬，熟悉系統全貌與各介面設計</div>
+        <div class="drill-role-path">
+          <span class="drill-role-step">🖥 全域監控</span><span class="drill-role-step">🛡 系統管理</span><span class="drill-role-step">🗺 架構文件</span><span class="drill-role-step">💬 Line OA</span>
+        </div>
+      </div>
+    </div>
+    <div class="drill-role-card" onclick="enterDrill('admin')">
+      <div class="drill-role-ico">🏛️</div>
+      <div>
+        <div class="drill-role-lbl">總控演練</div>
+        <div class="drill-role-desc">完整系統所有功能皆可操作，適合跑完整流程或測試角色權限邊界</div>
+        <div class="drill-role-path">
+          <span class="drill-role-step">📊 儀表板</span><span class="drill-role-step">⚡ 全模組</span><span class="drill-role-step">🚨 SOS 測試</span><span class="drill-role-step">🎖 角色切換</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.7">
+      💡 演練模式使用本機沙箱資料，不影響實際系統。進入後可隨時用底部 HUD 儲存起點、還原分支或結束演練。
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ DRILL HUD ══════════ -->
+<div id="drill-hud">
+  <span class="drill-hud-badge">🎯 演練中</span>
+  <span class="drill-hud-role" id="drill-role-lbl">—</span>
+  <div id="drill-hint-text" style="flex:1">點選左側模組開始…</div>
+  <button class="drill-cp-btn" id="drill-save-a" onclick="drillSaveCP('A')">儲存起點 A</button>
+  <button class="drill-cp-btn" id="drill-cp-a" onclick="drillRestoreCP('A')">↩ A</button>
+  <button class="drill-cp-btn" id="drill-save-b" onclick="drillSaveCP('B')">儲存起點 B</button>
+  <button class="drill-cp-btn" id="drill-cp-b" onclick="drillRestoreCP('B')">↩ B</button>
+  <button class="drill-exit-btn" onclick="exitDrill()">✕ 結束演練</button>
+</div>
+
 </body>
 </html>
