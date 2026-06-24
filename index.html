@@ -12340,6 +12340,8 @@ if(IS_MOBILE){ mInitMobile(); }
 // ══════════════════════════════════════════════════════
 var drillMode=false, drillRole=null, drillBackup=null, drillCPs={A:null,B:null};
 var DRILL_STEP=0;
+var DRILL_START_TIME=0;
+var DRILL_ACTIONS=[];
 
 var DRILL_ROLES={
   lifecycle: {lbl:'完整生命週期', icon:'🗺',  roleName:'admin'},
@@ -12847,9 +12849,62 @@ function drillNextStep(){
 }
 
 function drillComplete(){
-  var dr=DRILL_ROLES[drillRole];
-  toast('🎉 演練完成！「'+(dr?dr.lbl:'')+'」全流程已跑完，系統狀態即將還原。');
-  setTimeout(function(){ exitDrill(); },2000);
+  var dr=DRILL_ROLES[drillRole]||{lbl:'未知',icon:'🎯'};
+  var flow=DRILL_FLOWS[drillRole]||[];
+  var elapsed=DRILL_START_TIME>0?Math.round((Date.now()-DRILL_START_TIME)/1000):0;
+  var mins=Math.floor(elapsed/60), secs=elapsed%60;
+  var timeStr=(mins>0?mins+'分':'')+(secs+'秒');
+  var stepsTotal=flow.length;
+  var stepsStr=stepsTotal+'步驟';
+  // Gather recent auditLog entries from RTDB mock
+  var logEntries=rtGet('auditLog')||{};
+  var logArr=Object.values(logEntries).slice(-8);
+  var logHtml=logArr.length>0
+    ? logArr.map(function(e){ return '<div style="font-size:12px;color:#555;padding:2px 0;border-bottom:1px solid #eee">'+
+        (e.time||'')+'&nbsp;'+escHtml(e.action||e.msg||JSON.stringify(e))+'</div>'; }).join('')
+    : '<div style="font-size:12px;color:#999">（本次演練無審計紀錄）</div>';
+  // Score: simple formula based on steps completed and time
+  var score=Math.min(100, Math.round((DRILL_STEP/Math.max(stepsTotal,1))*60 + (elapsed<600?30:elapsed<900?20:10)));
+  var scoreColor=score>=90?'#27ae60':score>=70?'#f39c12':'#e74c3c';
+  var el=document.createElement('div');
+  el.id='drill-complete-modal';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  el.innerHTML='<div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:480px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.3)">'+
+    '<div style="text-align:center;margin-bottom:20px">'+
+      '<div style="font-size:48px;margin-bottom:8px">🎉</div>'+
+      '<h2 style="margin:0;font-size:20px;color:#1a1a2e">演練完成！</h2>'+
+      '<div style="font-size:14px;color:#666;margin-top:4px">'+dr.icon+' '+dr.lbl+'　完整流程</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">'+
+      '<div style="background:#f0f4ff;border-radius:10px;padding:12px;text-align:center">'+
+        '<div style="font-size:22px;font-weight:bold;color:#3b5bdb">'+stepsStr+'</div>'+
+        '<div style="font-size:11px;color:#666;margin-top:2px">完成步驟</div>'+
+      '</div>'+
+      '<div style="background:#f0fff4;border-radius:10px;padding:12px;text-align:center">'+
+        '<div style="font-size:22px;font-weight:bold;color:#2f9e44">'+timeStr+'</div>'+
+        '<div style="font-size:11px;color:#666;margin-top:2px">總用時</div>'+
+      '</div>'+
+      '<div style="background:#fff9f0;border-radius:10px;padding:12px;text-align:center">'+
+        '<div style="font-size:22px;font-weight:bold;color:'+scoreColor+'">'+score+'分</div>'+
+        '<div style="font-size:11px;color:#666;margin-top:2px">演練評分</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px">'+
+      '<div style="font-size:13px;font-weight:bold;color:#333;margin-bottom:8px">📋 操作紀錄（最近8筆）</div>'+
+      '<div style="background:#f8f9fa;border-radius:8px;padding:8px 10px;max-height:140px;overflow-y:auto">'+logHtml+'</div>'+
+    '</div>'+
+    '<div style="display:flex;flex-direction:column;gap:10px">'+
+      '<button onclick="drillShareUrl(\''+drillRole+'\')" style="background:#0d6efd;color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;cursor:pointer;font-weight:bold">'+
+        '🔗 分享此演練連結</button>'+
+      '<div style="display:flex;gap:10px">'+
+        '<button onclick="document.getElementById(\'drill-complete-modal\').remove()" style="flex:1;background:#e9ecef;color:#333;border:none;border-radius:8px;padding:10px;font-size:14px;cursor:pointer">'+
+          '繼續探索 →</button>'+
+        '<button onclick="document.getElementById(\'drill-complete-modal\').remove();exitDrill();" style="flex:1;background:#27ae60;color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;cursor:pointer;font-weight:bold">'+
+          '✓ 完成並還原</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+  document.body.appendChild(el);
 }
 
 function drillLoadPreset(){
@@ -12887,7 +12942,7 @@ function enterDrill(dRole){
   var dr=DRILL_ROLES[dRole]; if(!dr) return;
   drillBackup=JSON.stringify({role:role,state:state,scenario:currentScenario,data:JSON.stringify(DATA)});
   drillRole=dRole; drillMode=true; drillCPs={A:null,B:null};
-  DRILL_STEP=0;
+  DRILL_STEP=0; DRILL_START_TIME=Date.now(); DRILL_ACTIONS=[];
   role=dr.roleName;
   var rsel=document.getElementById('role-sel');
   if(rsel) rsel.value=dr.roleName;
@@ -13138,8 +13193,8 @@ function drillLaunchClose(){
     </div>
     <div class="drill-role-card" onclick="enterDrill('lifecycle')" style="border-color:#6366f1;background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(79,70,229,.04))">
       <div class="drill-role-ico">🗺</div>
-      <div>
-        <div class="drill-role-lbl" style="color:#6366f1">完整生命週期 <span style="font-size:10px;font-weight:500;color:var(--text4)">系統設計展示</span></div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:4px"><div class="drill-role-lbl" style="color:#6366f1;flex:1">完整生命週期 <span style="font-size:10px;font-weight:500;color:var(--text4)">系統設計展示</span></div><button onclick="event.stopPropagation();drillShareUrl('lifecycle')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 5px;font-size:9px;color:var(--text3);cursor:pointer">🔗 分享</button></div>
         <div class="drill-role-desc">從志工報名到結案照片，走完整個橫向流程，展示系統各模組是如何設計串接的</div>
         <div class="drill-role-path">
           <span class="drill-role-step">📝 報名</span><span class="drill-role-step">👥 分組</span><span class="drill-role-step">✅ 報到</span><span class="drill-role-step">🍱 用餐申請</span><span class="drill-role-step">📷 結案照片</span>
@@ -13162,8 +13217,8 @@ function drillLaunchClose(){
     </div>
     <div class="drill-role-card" onclick="enterDrill('logistics')">
       <div class="drill-role-ico">📦</div>
-      <div>
-        <div class="drill-role-lbl">物資幹部</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:4px"><div class="drill-role-lbl" style="flex:1">物資幹部</div><button onclick="event.stopPropagation();drillShareUrl('logistics')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 5px;font-size:9px;color:var(--text3);cursor:pointer">🔗 分享</button></div>
         <div class="drill-role-desc">練習物資生命週期：入庫造冊、分類、出庫配送，以及叫料需求處理</div>
         <div class="drill-role-path">
           <span class="drill-role-step">📦 物資倉儲</span><span class="drill-role-step">📥 整理站</span><span class="drill-role-step">⚡ 協調中台</span><span class="drill-role-step">🍱 廚房</span><span class="drill-role-step">🏥 醫療</span>
@@ -13172,8 +13227,8 @@ function drillLaunchClose(){
     </div>
     <div class="drill-role-card" onclick="enterDrill('it')">
       <div class="drill-role-ico">🖥️</div>
-      <div>
-        <div class="drill-role-lbl">IT 志工</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:4px"><div class="drill-role-lbl" style="flex:1">IT 志工</div><button onclick="event.stopPropagation();drillShareUrl('it')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 5px;font-size:9px;color:var(--text3);cursor:pointer">🔗 分享</button></div>
         <div class="drill-role-desc">練習系統監控、架構查閱與 Line OA 模擬，熟悉系統全貌與各介面設計</div>
         <div class="drill-role-path">
           <span class="drill-role-step">🖥 全域監控</span><span class="drill-role-step">🛡 系統管理</span><span class="drill-role-step">🗺 架構文件</span><span class="drill-role-step">💬 Line OA</span>
@@ -13182,8 +13237,8 @@ function drillLaunchClose(){
     </div>
     <div class="drill-role-card" onclick="enterDrill('admin')">
       <div class="drill-role-ico">🏛️</div>
-      <div>
-        <div class="drill-role-lbl">總控演練</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:4px"><div class="drill-role-lbl" style="flex:1">總控演練</div><button onclick="event.stopPropagation();drillShareUrl('admin')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 5px;font-size:9px;color:var(--text3);cursor:pointer">🔗 分享</button></div>
         <div class="drill-role-desc">完整系統所有功能皆可操作，適合跑完整流程或測試角色權限邊界</div>
         <div class="drill-role-path">
           <span class="drill-role-step">📊 儀表板</span><span class="drill-role-step">⚡ 全模組</span><span class="drill-role-step">🚨 SOS 測試</span><span class="drill-role-step">🎖 角色切換</span>
@@ -13196,7 +13251,7 @@ function drillLaunchClose(){
       <div class="drill-role-card" onclick="enterDrill('kitchen')" style="margin:0">
         <div class="drill-role-ico">🍱</div>
         <div>
-          <div class="drill-role-lbl">廚房/餐食</div>
+          <div style="display:flex;align-items:center;gap:4px"><div class="drill-role-lbl" style="flex:1">廚房/餐食</div><button onclick="event.stopPropagation();drillShareUrl('kitchen')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 5px;font-size:9px;color:var(--text3);cursor:pointer">🔗</button></div>
           <div class="drill-role-desc" style="font-size:10px">從餐點申請到食材確認到供餐完成</div>
           <div class="drill-role-path">
             <span class="drill-role-step">🍱 餐點申請</span><span class="drill-role-step">📦 食材確認</span><span class="drill-role-step">✅ 備餐完成</span><span class="drill-role-step">💚 關懷紀錄</span>
@@ -13206,7 +13261,7 @@ function drillLaunchClose(){
       <div class="drill-role-card" onclick="enterDrill('medical')" style="margin:0">
         <div class="drill-role-ico">🏥</div>
         <div>
-          <div class="drill-role-lbl">醫療急救</div>
+          <div style="display:flex;align-items:center;gap:4px"><div class="drill-role-lbl" style="flex:1">醫療急救</div><button onclick="event.stopPropagation();drillShareUrl('medical')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 5px;font-size:9px;color:var(--text3);cursor:pointer">🔗</button></div>
           <div class="drill-role-desc" style="font-size:10px">接任務→分診評估→耗材補充→個案</div>
           <div class="drill-role-path">
             <span class="drill-role-step">⚡ 接任務</span><span class="drill-role-step">🏥 START分診</span><span class="drill-role-step">🧴 耗材</span><span class="drill-role-step">📋 個案</span>
@@ -13216,7 +13271,7 @@ function drillLaunchClose(){
       <div class="drill-role-card" onclick="enterDrill('rescue')" style="margin:0">
         <div class="drill-role-ico">🔍</div>
         <div>
-          <div class="drill-role-lbl">搜救勘災</div>
+          <div style="display:flex;align-items:center;gap:4px"><div class="drill-role-lbl" style="flex:1">搜救勘災</div><button onclick="event.stopPropagation();drillShareUrl('rescue')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 5px;font-size:9px;color:var(--text3);cursor:pointer">🔗</button></div>
           <div class="drill-role-desc" style="font-size:10px">接任務→出隊記錄→勘察建物→轉案</div>
           <div class="drill-role-path">
             <span class="drill-role-step">⚡ 接任務</span><span class="drill-role-step">🔍 出隊記錄</span><span class="drill-role-step">📋 勘災紀錄</span><span class="drill-role-step">📝 轉個案</span>
@@ -13226,7 +13281,7 @@ function drillLaunchClose(){
       <div class="drill-role-card" onclick="enterDrill('care')" style="margin:0">
         <div class="drill-role-ico">💙</div>
         <div>
-          <div class="drill-role-lbl">人文關懷</div>
+          <div style="display:flex;align-items:center;gap:4px"><div class="drill-role-lbl" style="flex:1">人文關懷</div><button onclick="event.stopPropagation();drillShareUrl('care')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 5px;font-size:9px;color:var(--text3);cursor:pointer">🔗</button></div>
           <div class="drill-role-desc" style="font-size:10px">個案清單→訪視四面向→安置→重建</div>
           <div class="drill-role-path">
             <span class="drill-role-step">📋 個案</span><span class="drill-role-step">💙 訪視記錄</span><span class="drill-role-step">🏠 安置確認</span><span class="drill-role-step">🌱 重建追蹤</span>
@@ -13236,7 +13291,7 @@ function drillLaunchClose(){
       <div class="drill-role-card" onclick="enterDrill('transport')" style="margin:0">
         <div class="drill-role-ico">🚗</div>
         <div>
-          <div class="drill-role-lbl">交通運輸</div>
+          <div style="display:flex;align-items:center;gap:4px"><div class="drill-role-lbl" style="flex:1">交通運輸</div><button onclick="event.stopPropagation();drillShareUrl('transport')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 5px;font-size:9px;color:var(--text3);cursor:pointer">🔗</button></div>
           <div class="drill-role-desc" style="font-size:10px">接派車→確認出庫→出發回報→協調</div>
           <div class="drill-role-path">
             <span class="drill-role-step">🚗 接任務</span><span class="drill-role-step">📦 確認出庫</span><span class="drill-role-step">📍 出發回報</span><span class="drill-role-step">🤝 協調確認</span>
@@ -13246,7 +13301,7 @@ function drillLaunchClose(){
       <div class="drill-role-card" onclick="enterDrill('commander')" style="margin:0;border-color:var(--amber-border);background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(217,119,6,.04))">
         <div class="drill-role-ico">⭐</div>
         <div>
-          <div class="drill-role-lbl" style="color:var(--amber)">決策者/組長</div>
+          <div style="display:flex;align-items:center;gap:4px"><div class="drill-role-lbl" style="color:var(--amber);flex:1">決策者/組長</div><button onclick="event.stopPropagation();drillShareUrl('commander')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 5px;font-size:9px;color:var(--text3);cursor:pointer">🔗</button></div>
           <div class="drill-role-desc" style="font-size:10px">全局掌握→資源監控→指揮派工→推播</div>
           <div class="drill-role-path">
             <span class="drill-role-step">📊 儀表板</span><span class="drill-role-step">🖥 監控</span><span class="drill-role-step">⚡ 指揮</span><span class="drill-role-step">📢 推播</span><span class="drill-role-step">📋 結案</span>
