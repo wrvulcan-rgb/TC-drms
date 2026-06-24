@@ -3209,9 +3209,14 @@ function gasPost(payload, cb){
 }
 function loaSendTask(vid, taskTitle, location){
   var v=rtGet('volunteers/'+vid)||{};
-  gasPost({action:'pushMessage',lineUid:v.lineUid||vid,message:'【新任務】'+taskTitle+(location?'\n地點：'+location:'')},function(r,err){
-    if(!err) loaLog('任務推播 → '+(v.name||vid)+'（'+taskTitle+'）');
-    else if(err==='no_url') logSys('info','loaSendTask 跳過（GAS URL 未設定）');
+  var msg='【新任務】'+taskTitle+(location?'\n地點：'+location:'');
+  // 本機收件匣模擬（無論 GAS 是否設定皆執行）
+  var inboxKey='loaInbox/'+vid+'/'+Date.now();
+  RTDB.ref(inboxKey).set({type:'task',title:taskTitle,location:location||'',time:new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),read:false});
+  loaLog('📨 任務推播(模擬) → '+(v.name||vid)+'：'+taskTitle);
+  gasPost({action:'pushMessage',lineUid:v.lineUid||vid,message:msg},function(r,err){
+    if(!err) loaLog('📨 任務推播(GAS) → '+(v.name||vid)+'（'+taskTitle+'）');
+    else if(err==='no_url') {} // silently handled by local inbox above
   });
 }
 function checkIn(vid){
@@ -3767,6 +3772,10 @@ function renderLOATaskLeader(){
   html+='<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'rtsync\');setRTTab(\'tasks\')">↗ 調度中台</button>';
   return html;
 }
+function loaMarkInboxRead(vid,k){
+  RTDB.ref('loaInbox/'+vid+'/'+k).update({read:true});
+  renderLOATab(LOA_ACTIVE_TAB);
+}
 function renderLOATaskMember(){
   var vid=LOA_MEMBER_VID;
   var vols=rtGet('volunteers')||{};
@@ -3775,7 +3784,22 @@ function renderLOATaskMember(){
   if(!vid||!v) return '<div style="font-size:12px;color:var(--amber);text-align:center;padding:20px 0">請在上方「我是」選擇您的志工帳號</div>';
   var pC={'P1':'var(--red)','P2':'var(--amber)','P3':'var(--green)'};
   var myTasks=Object.keys(tasks).filter(function(k){return tasks[k].assignee===vid&&tasks[k].status!=='已完成';});
+  // 顯示未讀收件匣通知
+  var inbox=rtGet('loaInbox/'+vid)||{};
+  var unread=Object.keys(inbox).filter(function(k){return !inbox[k].read;});
   var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🙋 '+esc(v.name)+' 的任務</div>';
+  if(unread.length){
+    html+='<div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm);padding:8px 10px;margin-bottom:8px">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:5px">📨 新通知（'+unread.length+'）</div>';
+    unread.forEach(function(k){
+      var n=inbox[k];
+      html+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--blue-border)">'
+        +'<span style="flex:1;font-size:11px">'+esc(n.title||'')+'<span style="font-size:9px;color:var(--text4);margin-left:4px">'+esc(n.time||'')+'</span></span>'
+        +'<button class="btn btn-blue btn-xs" onclick="loaMarkInboxRead(\''+esc(vid)+'\',\''+esc(k)+'\')">✓ 收到</button>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
   if(!myTasks.length){
     html+='<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r-sm);padding:12px;text-align:center;font-size:11px;color:var(--green);margin-bottom:10px">✓ 目前無進行中任務<br><span style="font-size:10px;color:var(--text4)">狀態：待命中</span></div>';
   }
