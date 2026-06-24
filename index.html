@@ -1554,6 +1554,9 @@ body.mobile-mode #mobile-root { display:flex!important; }
       <button class="loa-tab" onclick="switchLOATab('rollcall',this)">🚨 點名</button>
       <button class="loa-tab" onclick="switchLOATab('task',this)">🎯 派工</button>
       <button class="loa-tab" onclick="switchLOATab('supply',this)">📦 物資</button>
+      <button class="loa-tab" onclick="switchLOATab('kitchen',this)">🍱 廚房</button>
+      <button class="loa-tab" onclick="switchLOATab('medical',this)">🏥 醫療</button>
+      <button class="loa-tab" onclick="switchLOATab('rescue',this)">🔍 搜救</button>
     </div>
     <div id="loa-body" style="flex:1;overflow-y:auto;padding:14px"></div>
     <div style="border-top:1px solid var(--border);padding:8px 12px;flex-shrink:0;max-height:80px;overflow-y:auto;background:#0F172A" id="loa-log">
@@ -3170,6 +3173,12 @@ function renderLOATab(tab){
     else                         body=renderLOATask();
   } else if(tab==='supply'){
     body=(LOA_MODE==='member')?renderLOASupplyMember():renderLOASupply();
+  } else if(tab==='kitchen'){
+    body=(LOA_MODE==='member')?renderLOAKitchenMember():renderLOAKitchenLeader();
+  } else if(tab==='medical'){
+    body=(LOA_MODE==='member')?renderLOAMedicalMember():renderLOAMedicalLeader();
+  } else if(tab==='rescue'){
+    body=(LOA_MODE==='member')?renderLOARescueMember():renderLOARescueLeader();
   }
   el.innerHTML=bar+body;
   renderLOAGroupBar();
@@ -3741,6 +3750,354 @@ function renderLOASupplyMember(){
     +'<button class="btn btn-amber" style="width:100%;justify-content:center;font-size:12px;margin-bottom:8px" onclick="loaMemberRequestCustomSupply()">📦 送出叫料需求</button>'
     +'<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px" onclick="closeLineOAPanel();showPage(\'warehouse\')">↗ 物資倉儲</button>';
   return html;
+}
+
+// ══════════════════════════════════
+//  Line OA — 廚房/餐食
+// ══════════════════════════════════
+function renderLOAKitchenLeader(){
+  var d=DATA.kitchen;
+  var totalQty=d.meals.reduce(function(s,m){return s+m.qty;},0);
+  var totalServed=d.meals.reduce(function(s,m){return s+m.served;},0);
+  var pct=totalQty?Math.round(totalServed/totalQty*100):0;
+  var active=d.meals.filter(function(m){return m.status==='進行中'||m.status==='備餐中';});
+  var safe=d.safetyChecklist;
+  var safeDone=safe.filter(function(x){return x.checked;}).length;
+  var safeWarn=safeDone<safe.length;
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🍱 廚房組長控制台</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">'
+    +'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--green)">'+pct+'%</div><div style="font-size:9px;color:var(--text4)">配餐完成率</div></div>'
+    +'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--blue)">'+active.length+'</div><div style="font-size:9px;color:var(--text4)">進行中餐次</div></div>'
+    +'<div style="background:'+(safeWarn?'var(--red-bg)':'var(--bg3)')+';border:1px solid '+(safeWarn?'var(--red-border)':'var(--border)')+';border-radius:var(--r-sm);padding:8px;text-align:center"><div style="font-size:20px;font-weight:700;color:'+(safeWarn?'var(--red)':'var(--green)')+'">'+safeDone+'/'+safe.length+'</div><div style="font-size:9px;color:var(--text4)">廚房安全</div></div>'
+    +'</div>';
+  if(safeWarn) html+='<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r-sm);padding:7px 10px;font-size:11px;color:var(--red);margin-bottom:8px">⚠ '+safe.filter(function(x){return !x.checked;}).length+' 項安全確認未完成：'+safe.filter(function(x){return !x.checked;}).map(function(x){return x.item;}).join('、')+'</div>';
+  html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速操作</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
+    +'<button class="btn btn-amber" style="font-size:11px;justify-content:center" onclick="loaKitchenBroadcastMeal()">📢 廣播配餐任務</button>'
+    +'<button class="btn btn-green" style="font-size:11px;justify-content:center" onclick="loaKitchenPushSpecial()">🥗 推播特殊餐提醒</button>'
+    +'<button class="btn btn-blue" style="font-size:11px;justify-content:center" onclick="loaKitchenCallDelivery()">🚗 叫配餐司機就位</button>'
+    +'<button class="btn btn-ghost" style="font-size:11px;justify-content:center" onclick="loaKitchenSafetyAlert()">🔥 廚房安全廣播</button>'
+    +'</div>';
+  html+='<div style="border-top:1px solid var(--border);padding-top:10px"><div style="font-size:11px;font-weight:600;margin-bottom:6px">今日餐次速覽</div>';
+  var stC={'已完成':'var(--green)','進行中':'var(--blue)','備餐中':'var(--amber)','待備餐':'var(--text4)'};
+  d.meals.forEach(function(m,i){
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border3)">'
+      +'<span style="font-size:10px;width:28px;font-weight:600;color:'+stC[m.status]+'">'+m.time+'</span>'
+      +'<span style="flex:1;font-size:11px">'+m.meal+' · '+m.location+'</span>'
+      +'<span style="font-size:10px;color:'+stC[m.status]+';font-weight:600">'+m.status+'</span>'
+      +(m.status==='待備餐'?'<button class="btn btn-amber btn-xs" onclick="kitchenStartMeal('+i+');renderLOATab(\'kitchen\')">▶</button>':'')
+      +(m.status==='備餐中'?'<button class="btn btn-blue btn-xs" onclick="kitchenStartDeliver('+i+');renderLOATab(\'kitchen\')">🚗</button>':'')
+      +(m.status==='進行中'?'<button class="btn btn-green btn-xs" onclick="kitchenCompleteMeal('+i+');renderLOATab(\'kitchen\')">✓</button>':'')
+      +'</div>';
+  });
+  html+='</div>';
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'kitchen\')">↗ 廚房管理頁</button>';
+  return html;
+}
+function renderLOAKitchenMember(){
+  var d=DATA.kitchen;
+  var vid=LOA_MEMBER_VID;
+  var myTasks=d.cookTasks.filter(function(t){return t.status!=='完成';});
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🍱 廚房組員</div>';
+  if(myTasks.length){
+    html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px;color:var(--amber)">⏳ 未完成備餐任務（'+myTasks.length+'）</div>';
+    myTasks.forEach(function(t,i){
+      var idx=d.cookTasks.indexOf(t);
+      html+='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;margin-bottom:6px">'
+        +'<div style="font-size:11px;font-weight:600;margin-bottom:2px">'+t.item+' × '+t.qty+'</div>'
+        +'<div style="font-size:10px;color:var(--text4)">班次：'+t.shift+'</div>'
+        +'<div style="display:flex;gap:5px;margin-top:6px">'
+        +(t.status==='待命'?'<button class="btn btn-amber btn-xs" onclick="kitchenActivateTask('+idx+');renderLOATab(\'kitchen\')">▶ 開始</button>':'')
+        +(t.status==='進行中'?'<button class="btn btn-green btn-xs" onclick="kitchenFinishTask('+idx+');renderLOATab(\'kitchen\')">✓ 完成回報</button>':'')
+        +'</div></div>';
+    });
+  } else {
+    html+='<div style="font-size:11px;color:var(--green);text-align:center;padding:12px 0">✅ 目前無待辦備餐任務</div>';
+  }
+  html+='<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">'
+    +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速回報</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+    +'<button class="btn btn-green btn-xs" onclick="loaKitchenMemberReport(\'食材備料完畢\')">✓ 食材備料完畢</button>'
+    +'<button class="btn btn-blue btn-xs" onclick="loaKitchenMemberReport(\'熱食已出鍋\')">🍲 熱食已出鍋</button>'
+    +'<button class="btn btn-amber btn-xs" onclick="loaKitchenMemberReport(\'特殊餐已備好\')">🥗 特殊餐已備好</button>'
+    +'<button class="btn btn-red btn-xs" onclick="loaKitchenMemberReport(\'食材不足請補充\')">⚠ 食材不足</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaKitchenMemberReport(\'廚房清潔完成\')">🧹 清潔完成</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaKitchenMemberReport(\'我需要支援\')">🆘 我需要支援</button>'
+    +'</div></div>';
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'kitchen\')">↗ 廚房管理頁</button>';
+  return html;
+}
+// 廚房 LOA action functions
+function loaKitchenBroadcastMeal(){
+  var d=DATA.kitchen;
+  var active=d.meals.filter(function(m){return m.status==='備餐中'||m.status==='待備餐';});
+  var msg=active.length?'🍱 廚房任務通知：請備妥 '+active.map(function(m){return m.meal+' '+m.location+' '+m.qty+'份';}).join('、'):' 🍱 今日配餐任務已全部完成，辛苦各位了！';
+  loaLog('📢 [廚房組長] 廣播配餐任務：'+msg.substring(0,40));
+  toast('📢 配餐任務已廣播至廚房組');
+  rtAudit('loa_kitchen_broadcast','廣播配餐任務');
+}
+function loaKitchenPushSpecial(){
+  var d=DATA.kitchen;
+  var total=d.specialDiets.reduce(function(s,x){return s+x.count;},0);
+  loaLog('🥗 [廚房組長] 推播特殊餐提醒：共 '+total+' 份，請逐一核對姓名貼標');
+  toast('🥗 特殊餐提醒已推播');
+  rtAudit('loa_kitchen_special','推播特殊餐 '+total+' 份');
+}
+function loaKitchenCallDelivery(){
+  var d=DATA.kitchen;
+  var pending=d.deliveries.filter(function(dv){return dv.status!=='已完成';});
+  var msg=pending.length?'🚗 請司機就位：'+pending.map(function(dv){return dv.driver+'('+dv.route+')';}).join('、'):'🚗 配送請求：請備妥便當箱，等候指示出發';
+  loaLog('[廚房組長] 叫配餐司機就位：'+msg.substring(0,40));
+  toast('🚗 司機就位通知已送出');
+  rtAudit('loa_kitchen_delivery','叫司機就位');
+}
+function loaKitchenSafetyAlert(){
+  var d=DATA.kitchen;
+  var undone=d.safetyChecklist.filter(function(x){return !x.checked;});
+  if(undone.length){ loaLog('🔥 [廚房安全] 警告：'+undone.map(function(x){return x.item;}).join('、')+' 尚未確認！'); toast('⚠ 廚房安全廣播已送出'); }
+  else{ loaLog('🔥 [廚房安全] 全部安全確認完畢，廚房可以開始運作'); toast('✅ 廚房安全廣播已送出'); }
+  rtAudit('loa_kitchen_safety','廚房安全廣播');
+}
+function loaKitchenMemberReport(msg){
+  loaLog('🍱 [廚房組員] 回報：'+msg);
+  toast('✓ 已回報：'+msg);
+  rtAudit('loa_kitchen_member',msg);
+}
+
+// ══════════════════════════════════
+//  Line OA — 醫療急救
+// ══════════════════════════════════
+function renderLOAMedicalLeader(){
+  var d=DATA.medical_aid;
+  var red=d.triage.filter(function(p){return p.color==='red';}).length;
+  var yellow=d.triage.filter(function(p){return p.color==='yellow';}).length;
+  var pending=d.triage.filter(function(p){return p.status==='處置中';}).length;
+  var pendingTransport=d.transports.filter(function(t){return t.status==='待後送';}).length;
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🏥 醫療組長控制台</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px">'
+    +'<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r-sm);padding:7px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--red)">'+red+'</div><div style="font-size:9px;color:var(--text4)">紅（立即）</div></div>'
+    +'<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);padding:7px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--amber)">'+yellow+'</div><div style="font-size:9px;color:var(--text4)">黃（緊急）</div></div>'
+    +'<div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm);padding:7px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--blue)">'+pending+'</div><div style="font-size:9px;color:var(--text4)">處置中</div></div>'
+    +'<div style="background:'+(pendingTransport?'var(--amber-bg)':'var(--bg3)')+';border:1px solid '+(pendingTransport?'var(--amber-border)':'var(--border)')+';border-radius:var(--r-sm);padding:7px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+(pendingTransport?'var(--amber)':'var(--text4)')+'">'+pendingTransport+'</div><div style="font-size:9px;color:var(--text4)">待後送</div></div>'
+    +'</div>';
+  if(pendingTransport) html+='<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);padding:7px 10px;font-size:11px;color:var(--amber);margin-bottom:8px">⚠ 有 '+pendingTransport+' 人待後送，請立即聯繫救護車</div>';
+  html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速操作</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
+    +'<button class="btn btn-red" style="font-size:11px;justify-content:center" onclick="loaMedCallSOS()">🆘 呼叫醫療支援</button>'
+    +'<button class="btn btn-amber" style="font-size:11px;justify-content:center" onclick="loaMedCallAmbulance()">🚑 叫救護車</button>'
+    +'<button class="btn btn-blue" style="font-size:11px;justify-content:center" onclick="loaMedBroadcastTriage()">📢 廣播分診狀況</button>'
+    +'<button class="btn btn-ghost" style="font-size:11px;justify-content:center" onclick="loaMedLowMedAlert()">💊 藥品不足警告</button>'
+    +'</div>';
+  html+='<div style="border-top:1px solid var(--border);padding-top:10px"><div style="font-size:11px;font-weight:600;margin-bottom:6px">傷患快覽（紅/黃優先）</div>';
+  var priority=d.triage.filter(function(p){return p.color==='red'||p.color==='yellow';}).slice(0,4);
+  if(priority.length){
+    priority.forEach(function(p){
+      var cColor=p.color==='red'?'var(--red)':'var(--amber)';
+      html+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border3)">'
+        +'<span style="width:8px;height:8px;border-radius:50%;background:'+cColor+';flex-shrink:0;display:inline-block"></span>'
+        +'<span style="flex:1;font-size:11px">'+p.name+'（'+p.age+'） · '+p.complaint+'</span>'
+        +'<span style="font-size:10px;color:var(--text4)">'+p.assignee+'</span>'
+        +'<span style="font-size:10px;font-weight:600;color:'+(p.status==='已處置'?'var(--green)':'var(--blue)')+'">'+p.status+'</span>'
+        +'</div>';
+    });
+  } else {
+    html+='<div style="font-size:11px;color:var(--green);text-align:center;padding:8px 0">目前無紅/黃傷患</div>';
+  }
+  html+='</div>';
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'medical_aid\')">↗ 醫療急救頁</button>';
+  return html;
+}
+function renderLOAMedicalMember(){
+  var d=DATA.medical_aid;
+  var myPatients=d.triage.filter(function(p){return p.status==='處置中';});
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🏥 醫療組員</div>';
+  if(myPatients.length){
+    html+='<div style="font-size:11px;color:var(--blue);margin-bottom:6px">目前處置中傷患（'+myPatients.length+'）</div>';
+    myPatients.slice(0,3).forEach(function(p,i){
+      var idx=d.triage.indexOf(p);
+      var cColor=p.color==='red'?'var(--red)':p.color==='yellow'?'var(--amber)':'var(--green)';
+      html+='<div style="background:var(--bg3);border:1px solid var(--border);border-left:3px solid '+cColor+';border-radius:var(--r-sm);padding:8px 10px;margin-bottom:6px">'
+        +'<div style="font-size:11px;font-weight:600">'+p.name+'（'+p.age+'歲）· '+p.color.toUpperCase()+'</div>'
+        +'<div style="font-size:10px;color:var(--text4);margin-bottom:5px">'+p.complaint+'</div>'
+        +'<div style="display:flex;gap:5px">'
+        +'<button class="btn btn-green btn-xs" onclick="medComplete('+idx+');renderLOATab(\'medical\')">✓ 處置完成</button>'
+        +'<button class="btn btn-amber btn-xs" onclick="loaMedMemberRequestHelp(\''+p.id+'\')">🆘 請求支援</button>'
+        +'</div></div>';
+    });
+  } else {
+    html+='<div style="font-size:11px;color:var(--green);text-align:center;padding:10px 0">✅ 目前無待處置傷患</div>';
+  }
+  html+='<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">'
+    +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速回報</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+    +'<button class="btn btn-green btn-xs" onclick="loaMedMemberReport(\'分診站就位\')">✓ 分診站就位</button>'
+    +'<button class="btn btn-blue btn-xs" onclick="loaMedMemberReport(\'AED 已確認可用\')">💚 AED 就緒</button>'
+    +'<button class="btn btn-amber btn-xs" onclick="loaMedMemberReport(\'需要醫師支援\')">⚕ 需醫師支援</button>'
+    +'<button class="btn btn-red btn-xs" onclick="loaMedMemberReport(\'心肺停止，CPR 進行中\')">🔴 CPR 進行中</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaMedMemberReport(\'藥品需要補充\')">💊 藥品不足</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaMedMemberReport(\'傷患情況穩定\')">✅ 傷患穩定</button>'
+    +'</div></div>';
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'medical_aid\')">↗ 醫療急救頁</button>';
+  return html;
+}
+// 醫療 LOA action functions
+function loaMedCallSOS(){
+  triggerSOS('醫療組','現場需要緊急醫療支援，人力不足！');
+  loaLog('🆘 [醫療組長] 緊急醫療支援已觸發 SOS');
+  toast('🆘 醫療 SOS 已發出');
+}
+function loaMedCallAmbulance(){
+  var d=DATA.medical_aid;
+  var pending=d.triage.filter(function(p){return p.color==='red'||p.color==='yellow';});
+  loaLog('🚑 [醫療組長] 呼叫救護車，現有重症 '+pending.length+' 人，請撥 119');
+  toast('🚑 救護車呼叫已記錄，請直接撥 119');
+  rtAudit('loa_med_ambulance','呼叫救護車 重症'+pending.length+'人');
+}
+function loaMedBroadcastTriage(){
+  var d=DATA.medical_aid;
+  var counts={red:0,yellow:0,green:0};
+  d.triage.forEach(function(p){if(counts[p.color]!==undefined)counts[p.color]++;});
+  var msg='🏥 分診狀況：紅色 '+counts.red+' 人、黃色 '+counts.yellow+' 人、綠色 '+counts.green+' 人，請各組員維持崗位';
+  loaLog('[醫療組長] 廣播：'+msg);
+  toast('📢 分診狀況廣播已送出');
+  rtAudit('loa_med_triage_broadcast',msg);
+}
+function loaMedLowMedAlert(){
+  var d=DATA.medical_aid;
+  var low=d.meds.filter(function(m){return (m.qty-m.used)<=m.threshold;});
+  if(!low.length){ toast('✅ 目前藥品庫存充足'); return; }
+  loaLog('💊 [醫療組長] 藥品不足警告：'+low.map(function(m){return m.name;}).join('、')+' 需緊急補充');
+  toast('⚠ 藥品不足廣播已送出：'+low.length+' 項');
+  rtAudit('loa_med_low_med','藥品不足 '+low.map(function(m){return m.name;}).join(','));
+}
+function loaMedMemberReport(msg){
+  loaLog('🏥 [醫療組員] 回報：'+msg);
+  toast('✓ 已回報：'+msg);
+  rtAudit('loa_med_member',msg);
+}
+function loaMedMemberRequestHelp(patientId){
+  loaLog('🆘 [醫療組員] 請求支援：傷患 '+patientId+' 需要協助！');
+  toast('🆘 支援請求已送出：'+patientId);
+  rtAudit('loa_med_help','請求支援 傷患 '+patientId);
+}
+
+// ══════════════════════════════════
+//  Line OA — 搜救/勘災
+// ══════════════════════════════════
+function renderLOARescueLeader(){
+  var d=DATA.rescue;
+  var active=d.teams.filter(function(t){return t.status!=='已返回';}).length;
+  var missing=d.missing.filter(function(m){return m.searchStatus==='搜索中';}).length;
+  var overdue=d.teams.filter(function(t){return t.sosOverdue;}).length;
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🔍 搜救組長控制台</div>';
+  if(overdue) html+='<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r-sm);padding:7px 10px;font-size:11px;color:var(--red);font-weight:600;margin-bottom:8px">🆘 '+overdue+' 支隊伍回報逾時！請立即確認狀況</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px">'
+    +'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--red)">'+active+'</div><div style="font-size:9px;color:var(--text4)">出勤中隊伍</div></div>'
+    +'<div style="background:'+(missing?'var(--red-bg)':'var(--bg3)')+';border:1px solid '+(missing?'var(--red-border)':'var(--border)')+';border-radius:var(--r-sm);padding:7px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+(missing?'var(--red)':'var(--text4)')+'">'+missing+'</div><div style="font-size:9px;color:var(--text4)">失聯待尋</div></div>'
+    +'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--amber)">'+d.assessments.length+'</div><div style="font-size:9px;color:var(--text4)">現場評估</div></div>'
+    +'</div>';
+  html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速操作</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
+    +'<button class="btn btn-amber" style="font-size:11px;justify-content:center" onclick="loaRescueBroadcast()">📡 廣播：定時回報</button>'
+    +'<button class="btn btn-red" style="font-size:11px;justify-content:center" onclick="loaRescueCallAll()">🚨 全隊緊急集合</button>'
+    +'<button class="btn btn-blue" style="font-size:11px;justify-content:center" onclick="loaRescuePushMissing()">🔎 推播失聯協尋</button>'
+    +'<button class="btn btn-ghost" style="font-size:11px;justify-content:center" onclick="loaRescuePushSafeRule()">⚠ 安全規定提醒</button>'
+    +'</div>';
+  html+='<div style="border-top:1px solid var(--border);padding-top:10px"><div style="font-size:11px;font-weight:600;margin-bottom:6px">隊伍狀態</div>';
+  var stC={'搜救中':'var(--red)','勘災中':'var(--amber)','已返回':'var(--green)','待命':'var(--text4)'};
+  d.teams.forEach(function(t,i){
+    html+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border3)">'
+      +(t.sosOverdue?'<span style="color:var(--red);font-size:12px">⚠</span>':'<span style="font-size:10px;color:var(--text4)">'+t.checkIn+'</span>')
+      +'<span style="flex:1;font-size:11px">'+t.name+' · '+t.area+'</span>'
+      +'<span style="font-size:10px;font-weight:600;color:'+(stC[t.status]||'var(--text4)')+'">'+t.status+'</span>'
+      +(t.status!=='已返回'?'<button class="btn btn-green btn-xs" onclick="rescueReturn('+i+');renderLOATab(\'rescue\')">返回</button>':'')
+      +'</div>';
+  });
+  html+='</div>';
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'rescue\')">↗ 搜救勘災頁</button>';
+  return html;
+}
+function renderLOARescueMember(){
+  var d=DATA.rescue;
+  var vid=LOA_MEMBER_VID;
+  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🔍 搜救組員</div>';
+  var missing=d.missing.filter(function(m){return m.searchStatus==='搜索中';});
+  if(missing.length){
+    html+='<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r-sm);padding:7px 10px;font-size:11px;color:var(--red);margin-bottom:8px">🔎 待尋獲 '+missing.length+' 人：'+missing.map(function(m){return m.name+'（'+m.addr+'）';}).join('、')+'</div>';
+  }
+  html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px">定時回報（每 2 小時一次）</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px">'
+    +'<button class="btn btn-green" style="font-size:11px;justify-content:center" onclick="loaRescueMemberSafe()">✅ 我安全，繼續</button>'
+    +'<button class="btn btn-red" style="font-size:11px;justify-content:center" onclick="loaRescueMemberSOS()">🆘 緊急求救</button>'
+    +'</div>';
+  html+='<div style="font-size:11px;font-weight:600;margin-bottom:6px">快速回報</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+    +'<button class="btn btn-green btn-xs" onclick="loaRescueMemberReport(\'搜索完畢，無發現\')">完搜，無發現</button>'
+    +'<button class="btn btn-amber btn-xs" onclick="loaRescueMemberReport(\'發現疑似被困者\')">⚠ 疑似被困者</button>'
+    +'<button class="btn btn-blue btn-xs" onclick="loaRescueMemberReport(\'建物危險，撤退中\')">撤退中</button>'
+    +'<button class="btn btn-amber btn-xs" onclick="loaRescueMemberReport(\'道路阻斷，需重機具\')">需重機具</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaRescueMemberReport(\'已完成現場評估\')">評估完成</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaRescueMemberReport(\'需要醫療人員支援\')">需醫療支援</button>'
+    +'</div>';
+  if(missing.length){
+    html+='<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px">'
+      +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">失聯回報</div>'
+      +'<div style="display:grid;gap:4px">';
+    missing.slice(0,3).forEach(function(m,i){
+      var idx=d.missing.indexOf(m);
+      html+='<div style="display:flex;align-items:center;gap:6px;padding:5px;background:var(--bg3);border-radius:var(--r-sm)">'
+        +'<span style="flex:1;font-size:11px">'+m.name+'</span>'
+        +'<button class="btn btn-green btn-xs" onclick="rescueFound('+idx+');renderLOATab(\'rescue\')">✓ 已尋獲</button>'
+        +'</div>';
+    });
+    html+='</div></div>';
+  }
+  html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'rescue\')">↗ 搜救勘災頁</button>';
+  return html;
+}
+// 搜救 LOA action functions
+function loaRescueBroadcast(){
+  var d=DATA.rescue;
+  var active=d.teams.filter(function(t){return t.status!=='已返回';});
+  loaLog('📡 [搜救組長] 廣播定時回報提醒：請全體出勤隊伍（'+active.length+'組）回報目前位置與安全狀況');
+  toast('📡 定時回報提醒已廣播');
+  rtAudit('loa_rescue_broadcast','廣播定時回報');
+}
+function loaRescueCallAll(){
+  loaLog('🚨 [搜救組長] 全隊緊急集合！請立即返回指揮站報到');
+  toast('🚨 全隊緊急集合命令已下達');
+  rtAudit('loa_rescue_muster','全隊緊急集合');
+}
+function loaRescuePushMissing(){
+  var d=DATA.rescue;
+  var missing=d.missing.filter(function(m){return m.searchStatus==='搜索中';});
+  if(!missing.length){ toast('✅ 目前無失聯待尋者'); return; }
+  var msg='🔎 協尋通知：'+missing.map(function(m){return m.name+'（最後位置：'+m.addr+'）';}).join(' / ')+' 發現者請立即回報組長';
+  loaLog('[搜救組長] 失聯協尋：'+msg.substring(0,60));
+  toast('🔎 失聯協尋通知已推播');
+  rtAudit('loa_rescue_missing','推播失聯協尋 '+missing.length+'人');
+}
+function loaRescuePushSafeRule(){
+  loaLog('⚠ [搜救組長] 安全規定提醒：① 最少 3 人一組 ② 每 2 小時回報 ③ 進入危建物前向組長確認 ④ 若逾期未回報，組長將觸發 SOS');
+  toast('⚠ 安全規定提醒已廣播');
+  rtAudit('loa_rescue_safety','廣播安全規定');
+}
+function loaRescueMemberSafe(){
+  loaLog('✅ [搜救組員] 定時回報：安全，繼續作業中');
+  toast('✅ 安全回報已送出');
+  rtAudit('loa_rescue_safe','組員定時安全回報');
+}
+function loaRescueMemberSOS(){
+  if(confirm('確定發出緊急求救？')){
+    triggerSOS('搜救組員','搜救組員緊急求救，需立即派遣救援！');
+    loaLog('🆘 [搜救組員] 緊急求救！SOS 已觸發');
+    toast('🆘 SOS 已發出');
+  }
+}
+function loaRescueMemberReport(msg){
+  loaLog('🔍 [搜救組員] 回報：'+msg);
+  toast('✓ 已回報：'+msg);
+  rtAudit('loa_rescue_member',msg);
 }
 
 // ── 組長 Action Functions ──
