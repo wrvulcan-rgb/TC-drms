@@ -1792,11 +1792,13 @@ background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans TC',-apple
   </div>
 
   <div class="views" id="arch-views">
-    <button class="vpill act" data-view="decider" onclick="arch_setView('decider')">👔 決策者<span class="vsub">救災怎麼跑</span></button>
-    <button class="vpill" data-view="volunteer" onclick="arch_setView('volunteer')">🙋 志工<span class="vsub">我的一條線</span></button>
-    <button class="vpill" data-view="tech" onclick="arch_setView('tech')">🔧 技術維運<span class="vsub">資料與待修</span></button>
-    <button class="vpill" data-view="health" onclick="arch_setView('health')">🩺 健檢<span class="vsub">補/整合/風險</span></button>
-    <button class="vpill" data-view="all" onclick="arch_setView('all')">◍ 全部</button>
+    <button class="vpill act" data-view="decider"   onclick="arch_setView('decider')">👔 決策者<span class="vsub">救災怎麼跑</span></button>
+    <button class="vpill" data-view="it_sec"        onclick="arch_setView('it_sec')">🔧 IT 志工<span class="vsub">資安·稽核·串接</span></button>
+    <button class="vpill" data-view="staff_flow"    onclick="arch_setView('staff_flow')">📋 行政組<span class="vsub">報到·個案·關懷</span></button>
+    <button class="vpill" data-view="logistics_flow" onclick="arch_setView('logistics_flow')">📦 物資組<span class="vsub">倉儲·配送·叫料</span></button>
+    <button class="vpill" data-view="volunteer"     onclick="arch_setView('volunteer')">🙋 現場志工<span class="vsub">我的一條線</span></button>
+    <button class="vpill" data-view="health"        onclick="arch_setView('health')">🩺 健檢<span class="vsub">補/整合/風險</span></button>
+    <button class="vpill" data-view="all"           onclick="arch_setView('all')">◍ 全部</button>
   </div>
 
   <div class="main-layout">
@@ -2080,6 +2082,194 @@ var VIEWS={
     ]
   }
 };
+
+// ── IT 志工視角：資安·資料串接·稽核鏈 ─────────────────────
+VIEWS.it_sec={
+  label:'IT 志工',
+  nodes:['sec_xss','sec_role','sec_ver','storage','sheets','gas_webhook','line_webhook','firebase','sysadmin','lineoa','story','drive_api','user'],
+  stories:[
+    {step:'入口安全',on:['user','sec_xss','sec_role'],
+      text:'所有使用者輸入（任務標題/姓名/批次來源）先過 esc() + sanitizeInput() 防 XSS 注入。角色依 P0~P4 動態遮蔽模組，但目前判斷在前端 JS，可被 console 竄改 → P1 待後端 token 驗證。'},
+    {step:'稽核鏈',on:['rtsync','storage','story'],
+      text:'每筆操作呼叫 rtAudit(action, detail) → 寫入 RTDB auditLog（localStorage drms_rtdb）→ 30秒 BroadcastChannel 廣播所有 tab → 故事線結案時串成完整時間軸。任何操作都有跡可查。'},
+    {step:'資料落盤',on:['storage','sheets','gas_webhook'],
+      text:'一線：localStorage drms_rtdb（即時 RTDB mock）+ drms_data（所有業務資料）+ drms_backup_1/2（流水號版控）。二線：GAS /exec doPost 同步 Google Sheets（需設 innerGasUrl）。三線：Firebase RTDB 介面預留，待正式部署後一鍵切換。'},
+    {step:'Line OA 串接',on:['lineoa','line_webhook','gas_webhook'],
+      text:'目前為前端模擬器（5 tabs：推播/報到/點名/任務/叫料）。真實架構：Line Webhook → GAS doPost 接 events → 解析 message/follow → 寫 Sheets Event_Logs → DRMS 30s 輪詢。反向推播：DRMS 操作 → gasPost() → GAS → Line Messaging API pushMessage。'},
+    {step:'版控與備份',on:['storage','sec_ver'],
+      text:'每次 saveData() 自動遞增版本流水號，備份前兩版（drms_backup_1/2）。可一鍵還原或 exportData() 匯出 JSON 離線封存。GAS 端建議設定每日自動備份 Sheets → Drive exports/。'},
+    {step:'資安待補',on:['sec_role','lineoa','gas_webhook'],warn:['sec_role','lineoa','gas_webhook'],
+      text:'⚠ P1 最高優先：① 個資（姓名/電話）明文存 localStorage/Sheets，僅前端遮蔽未加密；② role 判斷 console 可繞過，GAS doPost 需加 sessionToken 驗證；③ Line Webhook 真實後端 0%；④ GAS URL 硬編碼需改設定化。'}
+  ]
+};
+
+// ── 行政組視角：志工管理·個案·關懷 ──────────────────────────
+VIEWS.staff_flow={
+  label:'行政組',
+  nodes:['user','lineoa','reg','rtsync','fieldgroup','shelter','sheets','story'],
+  stories:[
+    {step:'志工報到',on:['user','lineoa','reg'],
+      text:'志工用 Line OA 傳「報到」或系統內掃 QR → GAS 寫 Event_Logs → 名冊更新。行政組在志工人力中心可手動補登、搜尋姓名/編號，完成報到確認。'},
+    {step:'任務分派',on:['reg','rtsync'],
+      text:'報到後志工進入可派清單。行政組在即時調度中台建立任務卡（標題/地點/優先序），rtDoAssign() 指派 → 志工 Line OA 收推播 → 狀態即時回寫。'},
+    {step:'個案建立',on:['rtsync','fieldgroup','shelter'],
+      text:'民眾求助（relief_req）→ 行政組轉派任務（reliefDispatch）→ 建立個案（case_mgt）→ 指定負責組員。個案含姓名/地址/需求分類/優先序。'},
+    {step:'關懷紀錄',on:['fieldgroup','shelter','sheets'],
+      text:'每次訪視填四大關懷面向（身心靈群）→ care_rec 新增紀錄 → GAS doPost 追加 Event_Logs。可設 Line OA 定期提醒推播，長期追蹤至重建完成。'},
+    {step:'結案存證',on:['story','sheets'],
+      text:'個案結案後 rtAudit 串完整時間軸 → 故事線生成結案報告 → 匯出 JSON/PDF → 上傳 Google Drive exports/，作為後續查閱依據。'}
+  ]
+};
+
+// ── 物資組視角：倉儲·配送·叫料 ───────────────────────────────
+VIEWS.logistics_flow={
+  label:'物資組',
+  nodes:['warehouse','shelter','rtsync','lineoa','gas_webhook','storage','drive_api'],
+  stories:[
+    {step:'叫料入口',on:['lineoa','rtsync'],
+      text:'前線志工在 Line OA supply tab 選「叫料」→ loaDispatch() → RTDB tasks.push 新任務（叫料配送 QID）→ 物資組在即時調度中台看到任務，確認派車。'},
+    {step:'庫存管理',on:['warehouse','storage'],
+      text:'物資三級分類造冊（類別/品名/數量），入庫登記 → 寫 localStorage drms_data.warehouse → 定期同步 GAS Sheets Warehouse 表。出庫須經調度中台媒合，避免重複發料。'},
+    {step:'整理站',on:['shelter','warehouse'],
+      text:'L3 物資整理站：依需求類型分類（糧食/衣物/清潔/醫療），登記發放對象，與個案記錄連動。庫存餘量即時更新，低庫存自動警示。'},
+    {step:'配送完成',on:['rtsync','lineoa','drive_api'],
+      text:'司機完成配送 → Line OA 回傳「完成任務 QID」→ GAS 寫 tasks update → rtReport() 更新 RTDB 任務狀態 → 物資組確認收貨，拍照上傳 Drive photos/。'},
+    {step:'庫存對帳',on:['warehouse','shelter','storage'],
+      text:'每日結算：盤點庫存 vs 出庫紀錄，比對差異 → 輸出 GAS Sheets Warehouse 日報。結案前需「確認同步」確保 localStorage 與 Sheets 資料一致，避免分歧。'}
+  ]
+};
+
+// ── 角色指引卡：每個視角展示給對應角色的重點摘要 ─────────────
+var ROLE_GUIDE={
+  decider:{
+    icon:'👔', title:'決策者 · 總控觀點',
+    color:'var(--accent)',
+    intro:'掌握救災大局：災情判斷 → 動員下令 → 資源調度 → 結案存證。',
+    sections:[
+      {icon:'📊',label:'你的核心工具',items:['總控儀表板 — KPI + 情境模擬（10 災型）','即時調度中台 — 派工 / 警報 / SOS / 結案','全域監控 — 決策大屏，不涉操作']},
+      {icon:'⚡',label:'關鍵流程',items:['平時→戰時 切換 → 儀表板亮起','發出任務 → 中台媒合 → Line OA 推播','SOS 緊急全員動員 → 解除 → 稽核記錄']},
+      {icon:'📖',label:'結案依據',items:['故事線自動串時間軸（誰做了什麼）','可匯出 JSON 演練劇本','每場次有錯誤聚合 + UX 卡頓遙測']}
+    ]
+  },
+  it_sec:{
+    icon:'🔧', title:'IT 志工 · 技術責任',
+    color:'#3b82f6',
+    intro:'系統維運、資安防護、資料串接、稽核鏈管理。',
+    sections:[
+      {icon:'🛡️',label:'資安防護層（Security Layer）',items:[
+        'esc() + sanitizeInput() — 所有輸入淨化，防 XSS 注入',
+        'ROLES 矩陣 P0~P4 — 依角色動態遮蔽個資欄位與模組',
+        '⚠ P1：role 判斷在前端 JS，console 可繞過 → 需 GAS sessionToken 驗證',
+        '⚠ P1：個資明文存 localStorage/Sheets → 待後端加密'
+      ]},
+      {icon:'🔗',label:'資料串接架構（Data Pipeline）',items:[
+        '① localStorage（drms_rtdb + drms_data）→ 即時 + 離線可用',
+        '② GAS /exec doPost/doGet → Google Sheets 6 張表',
+        '③ Firebase RTDB → 介面預留，待正式部署啟用',
+        'BroadcastChannel — 同裝置多 tab 即時同步',
+        '30s polling → fetchRegCount / fetchLatestEvents'
+      ]},
+      {icon:'📋',label:'稽核鏈（Audit Chain）',items:[
+        'rtAudit(action, detail) — 每筆操作必呼叫',
+        '寫 RTDB auditLog → 永久留存',
+        '故事線結案時讀 auditLog 串時間軸',
+        'loaLog() 同步 Line OA 控制台，可回查操作序列'
+      ]},
+      {icon:'🗄️',label:'備份與版控',items:[
+        'saveData() 自動遞增版本流水號',
+        'drms_backup_1 / drms_backup_2 雙版備份',
+        'exportData() 匯出 JSON 離線封存',
+        'GAS 建議每日自動備份 Sheets → Drive exports/'
+      ]},
+      {icon:'⚠️',label:'P1 待補強（需處理）',items:[
+        '① GAS doPost 加 sessionToken 驗證（防前端繞過）',
+        '② Line Webhook 真實後端目前 0%（模擬器）',
+        '③ 個資欄位加密（姓名/電話/身分字號）',
+        '④ GAS URL 由硬編碼改為設定化'
+      ]}
+    ]
+  },
+  staff_flow:{
+    icon:'📋', title:'行政組 · 志工與個案管理',
+    color:'#8b5cf6',
+    intro:'從志工報到到個案結案的完整行政流程。',
+    sections:[
+      {icon:'👥',label:'志工管理',items:[
+        '報名：GAS 表單 → Sheets Master_Profiles',
+        '報到：Line OA / QR / 手動搜尋 → 勾選出席',
+        '指派：志工人力中心 → 技能/組別配對 → 派工'
+      ]},
+      {icon:'🏠',label:'個案管理',items:[
+        '求助單 → 轉派任務 → 建立個案（case_mgt）',
+        '安置造冊 → 關懷紀錄（身心靈群四面向）',
+        '重建追蹤 → 定期 Line OA 提醒推播'
+      ]},
+      {icon:'📑',label:'後端連動（需設定 GAS URL）',items:[
+        '新建/更新個案 → GAS doPost → Sheets Cases',
+        '關懷紀錄 → 追加 Event_Logs',
+        '結案報告 → 上傳 Drive docs/'
+      ]}
+    ]
+  },
+  logistics_flow:{
+    icon:'📦', title:'物資組 · 倉儲配送鏈',
+    color:'#f59e0b',
+    intro:'物資從入庫到最後一哩送達受災戶的完整流程。',
+    sections:[
+      {icon:'📥',label:'入庫管理',items:[
+        '三級分類（類別/品名/數量）造冊入庫',
+        '低庫存警示（< 閾值自動紅標）',
+        '定期同步 GAS Sheets Warehouse 表'
+      ]},
+      {icon:'🚛',label:'配送流程',items:[
+        'Line OA 叫料 → loaDispatch() → RTDB 任務池',
+        '調度中台媒合司機 → Line OA 推播配送單',
+        '司機完成 → rtReport() → 庫存自動扣減'
+      ]},
+      {icon:'⚖️',label:'物資對帳',items:[
+        '每日盤點 vs 出庫紀錄 → GAS Sheets 日報',
+        '結案前「確認同步」避免 localStorage / Sheets 分歧',
+        '照片上傳 Drive photos/ 留存發放紀錄'
+      ]}
+    ]
+  },
+  volunteer:{
+    icon:'🙋', title:'現場志工 · 我的一條線',
+    color:'#10b981',
+    intro:'從報到到任務完成，志工只需看這條線。',
+    sections:[
+      {icon:'📱',label:'我的工具',items:['Line OA — 報到 / 收任務 / 叫料 / 回報','手機模式（手機開啟自動啟用）— 6 角色入口']},
+      {icon:'🗺️',label:'我的流程',items:['Line OA 報到 → 加入今日頻道','等待任務派發（Line OA 推播）','到達現場 → 執行 → 回報進度','完成 → rtReport() → 狀態釋回待命']},
+      {icon:'📷',label:'我能做的',items:['叫料（supply tab 3-tap）','拍照回傳進度','SOS 緊急求援（任何畫面都能按）']}
+    ]
+  }
+};
+
+function renderRoleGuide(view){
+  var g=ROLE_GUIDE[view];
+  if(!g){ detail.innerHTML='<div class="detail-empty"><div class="detail-placeholder-icon">🗺️</div>點擊任一節點或連線<br>查看設計說明與理念</div>'; return; }
+  var acol=g.color||'var(--accent)';
+  var html='<div style="padding:4px 0 10px">';
+  html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">';
+  html+='<div style="font-size:28px;line-height:1">'+g.icon+'</div>';
+  html+='<div><div style="font-size:14px;font-weight:800;color:var(--text)">'+g.title+'</div>';
+  html+='<div style="font-size:12px;color:var(--text3);margin-top:2px">'+g.intro+'</div></div></div>';
+  (g.sections||[]).forEach(function(sec){
+    html+='<div style="margin-bottom:14px">';
+    html+='<div style="font-size:11px;font-weight:700;color:'+acol+';letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px">'+sec.icon+' '+sec.label+'</div>';
+    html+='<ul style="margin:0;padding-left:16px;list-style:none">';
+    (sec.items||[]).forEach(function(item){
+      var isWarn=item.indexOf('⚠')===0||item.indexOf('P1')===0;
+      html+='<li style="font-size:12px;color:'+(isWarn?'var(--red)':'var(--text2)')+';margin-bottom:5px;line-height:1.55;padding-left:2px">'+
+        '<span style="color:'+(isWarn?'var(--red)':acol)+';margin-right:5px">'+(isWarn?'⚠':'›')+'</span>'+item+'</li>';
+    });
+    html+='</ul></div>';
+  });
+  html+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text4)">點擊節點查看詳細說明與現況示意</div>';
+  html+='</div>';
+  detail.innerHTML=html;
+}
+
 var curView='decider';
 // 相容舊變數：storyShow 用 activeStories()
 function activeStories(){return VIEWS[curView]?VIEWS[curView].stories:[];}
@@ -2188,7 +2378,7 @@ function selectEdge(i){if(storyOn)return;clearSel();var e=EDGES[i];var p=documen
 // ── 故事導覽 ──
 var storyOn=false,storyIdx=0;
 function storyStart(){storyOn=true;storyIdx=0;document.getElementById('arch-storyBar').classList.add('show');storyShow();}
-function storyEnd(){storyOn=false;document.getElementById('arch-storyBar').classList.remove('show','warn-bar');clearDim();clearSel();applyView();detail.innerHTML='<div class="detail-empty">▲ 拖曳排版 · 點節點或線看說明 · 或按 ▶ 故事導覽</div>';}
+function storyEnd(){storyOn=false;document.getElementById('arch-storyBar').classList.remove('show','warn-bar');clearDim();clearSel();applyView();renderRoleGuide(curView);}
 function storyPrev(){if(storyIdx>0){storyIdx--;storyShow();}}
 function storyNext(){var S=activeStories();if(storyIdx<S.length-1){storyIdx++;storyShow();}else{storyEnd();}}
 function clearDim(){var ds=root.querySelectorAll('.dim,.hot,.warn,.edge-active');for(var i=0;i<ds.length;i++){ds[i].classList.remove('dim','hot','warn','edge-active');}}
@@ -2215,12 +2405,14 @@ function storyShow(){
     if(lab)lab.classList.toggle('dim',!on);});
 }
 
-// ── 視角切換：過濾(淡出非視角節點) + 換腳本 ──
+// ── 視角切換：過濾(淡出非視角節點) + 換腳本 + role guide ──
 function setView(v){
   curView=v;storyEnd();
   var pills=root.querySelectorAll('.vpill');
   for(var i=0;i<pills.length;i++)pills[i].classList.toggle('act',pills[i].getAttribute('data-view')===v);
   applyView();
+  // 切視角時顯示角色指引卡（未選節點時）
+  if(!root.querySelector('.node.sel')) renderRoleGuide(v);
 }
 function clearHealth(){root.classList.remove('health-on');NODES.forEach(function(n){var el=document.getElementById('arch-node-'+n.id);if(el)el.classList.remove('h-done','h-todo','h-risk','h-merge');});}
 function applyView(){
@@ -2555,7 +2747,10 @@ function showArchNode(id){
   }
 }
 function renderArchDoc(){
-  // 架構心智圖已 inline 在 page-arch_doc，頁面切換時初始化
+  // 依目前系統角色自動切換對應視角
+  var roleViewMap={admin:'decider', it:'it_sec', staff:'staff_flow', logistics:'logistics_flow'};
+  var targetView = roleViewMap[role] || 'decider';
+  if(typeof arch_setView === 'function') arch_setView(targetView);
 }
 function toggleArchTodo(i){}
 // ─── Line OA 總控面板 ───
