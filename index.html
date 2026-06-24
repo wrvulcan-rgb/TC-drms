@@ -11762,6 +11762,32 @@ logSys('info','平時模式：總控 P0，IT 志工 P0，其他角色 P1。');
 startSyncTimer();
 loadSession();
 renderSessionBadge();
+// ── URL 演練連結解析 ──
+(function(){
+  try{
+    var p=new URLSearchParams(window.location.search);
+    var drillParam=p.get('drill');
+    var scenarioParam=p.get('scenario');
+    var orgParam=p.get('org');
+    var eventParam=p.get('event');
+    if(scenarioParam&&typeof setScenario==='function') setScenario(scenarioParam);
+    if(orgParam&&DATA.registry) DATA.registry.orgName=orgParam;
+    if(eventParam&&DATA.registry) DATA.registry.eventName=eventParam;
+    if(drillParam&&DRILL_ROLES[drillParam]){
+      setTimeout(function(){ enterDrill(drillParam); },300);
+    }
+  }catch(e){}
+})();
+function drillShareUrl(drillKey){
+  var u=new URL(window.location.href.split('?')[0]);
+  u.searchParams.set('drill',drillKey);
+  u.searchParams.set('scenario','quake');
+  var url=u.toString();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(function(){ toast('🔗 演練連結已複製！可直接傳給受訓者'); });
+  } else { prompt('複製此連結：',url); }
+  rtAudit('drill_share','分享演練連結 '+drillKey);
+}
 // ── 重複點擊偵測（UX 卡頓遙測）──
 document.addEventListener('click',function(e){
   var btn=e.target.closest('button');
@@ -13123,8 +13149,11 @@ function drillLaunchClose(){
     <div style="height:1px;background:var(--border);margin:10px 0"></div>
     <div class="drill-role-card" onclick="enterDrill('staff')">
       <div class="drill-role-ico">📋</div>
-      <div>
-        <div class="drill-role-lbl">行政幹部</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="drill-role-lbl" style="flex:1">行政幹部</div>
+          <button onclick="event.stopPropagation();drillShareUrl('staff')" style="border:none;background:var(--bg3);border-radius:6px;padding:2px 6px;font-size:9px;color:var(--text3);cursor:pointer">🔗 分享</button>
+        </div>
         <div class="drill-role-desc">練習完整的受災民眾服務流程：從求助收件、轉派任務、到個案追蹤與關懷記錄</div>
         <div class="drill-role-path">
           <span class="drill-role-step">🆘 求助通報</span><span class="drill-role-step">⚡ 協調中台</span><span class="drill-role-step">📋 個案管理</span><span class="drill-role-step">💚 關懷紀錄</span><span class="drill-role-step">🏠 收容所</span>
