@@ -1413,6 +1413,57 @@ body.mobile-mode #mobile-root { display:flex!important; }
   <div id="rebuild-content"></div>
 </div>
 
+<!-- ══ 廚房/餐食管理 ══ -->
+<div class="page" id="page-kitchen">
+  <div class="pg-hdr"><div><div class="pg-title">🍱 廚房/餐食管理</div><div class="pg-sub">熱食供應 · 特殊餐 · 配餐追蹤 · 廚房安全</div></div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-green" onclick="kitchenAddMeal()">＋ 新增餐次</button>
+      <button class="btn btn-amber" onclick="kitchenSafetyCheck()">🔥 廚房安全確認</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="ktab-demand"   onclick="setKitchenTab('demand')">📋 餐量需求</button>
+    <button class="btn btn-ghost" id="ktab-tasks"   onclick="setKitchenTab('tasks')">👨‍🍳 備餐任務</button>
+    <button class="btn btn-ghost" id="ktab-special" onclick="setKitchenTab('special')">🥗 特殊餐名冊</button>
+    <button class="btn btn-ghost" id="ktab-deliver" onclick="setKitchenTab('deliver')">🚗 配餐追蹤</button>
+  </div>
+  <div id="kitchen-content"></div>
+</div>
+
+<!-- ══ 醫療急救紀錄 ══ -->
+<div class="page" id="page-medical_aid">
+  <div class="pg-hdr"><div><div class="pg-title">🏥 醫療急救紀錄</div><div class="pg-sub">START 分診 · 急救紀錄 · 藥品管理 · 後送追蹤</div></div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-red" onclick="medNewPatient()">＋ 新傷患</button>
+      <button class="btn btn-amber" onclick="medTransport()">🚑 請求後送</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="mtab-triage"  onclick="setMedTab('triage')">🏷️ START 分診板</button>
+    <button class="btn btn-ghost" id="mtab-records" onclick="setMedTab('records')">📋 急救紀錄</button>
+    <button class="btn btn-ghost" id="mtab-meds"   onclick="setMedTab('meds')">💊 藥品管理</button>
+    <button class="btn btn-ghost" id="mtab-transport" onclick="setMedTab('transport')">🚑 後送記錄</button>
+  </div>
+  <div id="medical_aid-content"></div>
+</div>
+
+<!-- ══ 搜救/勘災紀錄 ══ -->
+<div class="page" id="page-rescue">
+  <div class="pg-hdr"><div><div class="pg-title">🔍 搜救/勘災紀錄</div><div class="pg-sub">安全入場 · 失聯追蹤 · 現場評估 · 班次交接</div></div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-red" onclick="rescueNewMission()">＋ 新任務</button>
+      <button class="btn btn-amber" onclick="rescueHandover()">📋 班次交接</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="rtab-team"    onclick="setRescueTab('team')">👷 隊員出勤</button>
+    <button class="btn btn-ghost" id="rtab-missing" onclick="setRescueTab('missing')">🔎 失聯人員</button>
+    <button class="btn btn-ghost" id="rtab-assess" onclick="setRescueTab('assess')">🗒️ 現場評估</button>
+    <button class="btn btn-ghost" id="rtab-log"    onclick="setRescueTab('log')">📜 任務日誌</button>
+  </div>
+  <div id="rescue-content"></div>
+</div>
+
 <!-- WARTIME SCENARIO OVERLAY -->
 <div class="wt-overlay" id="wt-overlay">
   <!-- Step 1: 選災型 -->
@@ -5921,6 +5972,82 @@ DATA.rebuild = {
     {caseId:'RB-003', name:'吳○○', addr:'竹崎鄉文峰村', phase:'重建完成', pct:100, lastVisit:'06-18', longCare:true, psych:'需持續關懷'},
   ]
 };
+DATA.kitchen = {
+  title: '廚房/餐食管理',
+  meals: [
+    {id:'M001', meal:'早餐', time:'07:00', location:'竹崎國小', qty:350, served:350, status:'已完成'},
+    {id:'M002', meal:'午餐', time:'12:00', location:'竹崎國小', qty:380, served:210, status:'進行中'},
+    {id:'M003', meal:'午餐', time:'12:00', location:'梅山活動中心', qty:200, served:0,  status:'備餐中'},
+    {id:'M004', meal:'晚餐', time:'18:00', location:'竹崎國小', qty:380, served:0,  status:'待備餐'},
+  ],
+  cookTasks: [
+    {id:'CT001', item:'白飯', qty:'50公斤', assignee:'陳師兄組', shift:'早班 05:00-09:00', status:'完成'},
+    {id:'CT002', item:'滷排骨', qty:'30公斤', assignee:'王師姐組', shift:'早班 05:00-09:00', status:'完成'},
+    {id:'CT003', item:'炒青菜', qty:'20公斤', assignee:'李師兄組', shift:'早班 05:00-09:00', status:'進行中'},
+    {id:'CT004', item:'白飯', qty:'55公斤', assignee:'張師兄組', shift:'午班 09:00-13:00', status:'待命'},
+    {id:'CT005', item:'素食滷味', qty:'15公斤', assignee:'林師姐組', shift:'午班 09:00-13:00', status:'待命'},
+  ],
+  specialDiets: [
+    {id:'SD001', name:'王○○', location:'竹崎國小-B區', type:'全素', note:'糖尿病，無加糖', count:1},
+    {id:'SD002', name:'李○○', location:'竹崎國小-A區', type:'軟食', note:'假牙鬆脫，需軟爛', count:1},
+    {id:'SD003', name:'梅山嬰幼兒', location:'梅山活動中心', type:'嬰兒副食品', note:'6-12個月3名、12-24月2名', count:5},
+    {id:'SD004', name:'洗腎患者群', location:'竹崎國小-C區', type:'低鉀低磷', note:'4人，禁香蕉/堅果/乳製品', count:4},
+  ],
+  deliveries: [
+    {id:'DV001', meal:'M002', route:'廚房→竹崎國小A區→B區', driver:'張師兄', vehicle:'小車', status:'配送中', eta:'12:30'},
+    {id:'DV002', meal:'M003', route:'廚房→梅山活動中心', driver:'林師兄', vehicle:'小車', status:'出發中', eta:'12:45'},
+  ],
+  safetyChecklist: [
+    {item:'滅火器確認', checked:true},
+    {item:'食材溫度記錄（冷鏈 ≤4°C）', checked:true},
+    {item:'廚工洗手/口罩確認', checked:true},
+    {item:'油鍋旁人員配置', checked:false},
+    {item:'垃圾分類桶設置', checked:false},
+    {item:'食品試吃記錄', checked:true},
+  ]
+};
+DATA.medical_aid = {
+  title: '醫療急救紀錄',
+  triage: [
+    {id:'P001', name:'張○○', age:72, color:'red',   complaint:'胸痛呼吸困難', action:'氧氣供給/AED待命', assignee:'張護理師', time:'10:22', status:'處置中'},
+    {id:'P002', name:'李○○', age:45, color:'yellow', complaint:'右手骨折疑似', action:'固定夾板/止痛', assignee:'陳醫師', time:'10:35', status:'處置中'},
+    {id:'P003', name:'王○○', age:8,  color:'green',  complaint:'腳踝扭傷', action:'冰敷/彈繃', assignee:'林護理師', time:'10:48', status:'已處置'},
+    {id:'P004', name:'黃○○', age:65, color:'yellow', complaint:'高血壓頭暈', action:'量血壓/休息', assignee:'張護理師', time:'11:02', status:'觀察中'},
+    {id:'P005', name:'吳○○', age:30, color:'green',  complaint:'輕微割傷', action:'清創包紮', assignee:'李護士', time:'11:15', status:'已處置'},
+  ],
+  meds: [
+    {name:'口服電解質', unit:'包', qty:200, used:45, threshold:50, storage:'常溫'},
+    {name:'普拿疼 500mg', unit:'顆', qty:500, used:120, threshold:100, storage:'常溫'},
+    {name:'降血壓藥(擬血壓定)', unit:'顆', qty:100, used:32, threshold:30, storage:'常溫'},
+    {name:'胰島素', unit:'瓶', qty:5, used:1, threshold:2, storage:'冷藏4°C'},
+    {name:'消毒紗布', unit:'包', qty:80, used:38, threshold:20, storage:'常溫'},
+    {name:'紗布口罩', unit:'個', qty:300, used:90, threshold:50, storage:'常溫'},
+  ],
+  transports: [
+    {id:'T001', patient:'P001', dest:'嘉義基督教醫院急診', method:'救護車', contact:'05-276-5041', dispatchTime:'10:30', status:'已後送'},
+    {id:'T002', patient:'P002', dest:'嘉義長庚醫院骨科', method:'救護車', contact:'05-362-1000', dispatchTime:'', status:'待後送'},
+  ]
+};
+DATA.rescue = {
+  title: '搜救/勘災紀錄',
+  teams: [
+    {id:'TM001', name:'甲隊', leader:'陳師兄', members:['陳師兄','王師兄','林師兄'], area:'竹崎鄉北區', checkIn:'06:00', checkOut:'', status:'搜救中', sosOverdue:false},
+    {id:'TM002', name:'乙隊', leader:'張師兄', members:['張師兄','李師兄','黃師兄'], area:'竹崎鄉南區', checkIn:'06:30', checkOut:'', status:'勘災中', sosOverdue:false},
+    {id:'TM003', name:'丙隊', leader:'吳師兄', members:['吳師兄','劉師兄','蔡師兄'], area:'梅山鄉西區', checkIn:'07:00', checkOut:'13:00', status:'已返回', sosOverdue:false},
+  ],
+  missing: [
+    {id:'MP001', name:'張○○', age:78, addr:'竹崎鄉中正路 50 號', lastSeen:'昨日 18:00', relation:'獨居長者', searchStatus:'搜索中', foundAt:''},
+    {id:'MP002', name:'李○○', age:12, addr:'梅山鄉太平村', lastSeen:'今日 08:00', relation:'學生/家長通報', searchStatus:'已尋獲', foundAt:'竹崎國小收容所'},
+  ],
+  assessments: [
+    {id:'AS001', site:'竹崎鄉中正路老屋群', assessor:'陳師兄', time:'07:30', danger:'高', structureOk:false, accessOk:true, note:'2棟3層樓承重柱斷裂，禁止入內，需工程確認', status:'已封鎖'},
+    {id:'AS002', site:'梅山國小操場', assessor:'張師兄', time:'08:15', danger:'低', structureOk:true, accessOk:true, note:'地面輕微隆起，適合設置臨時收容', status:'可使用'},
+    {id:'AS003', site:'大埔鄉和平橋', assessor:'丙隊勘查', time:'09:00', danger:'中', structureOk:false, accessOk:false, note:'橋墩出現裂縫，承重不明，限徒步單人通過', status:'限制通行'},
+  ],
+  handovers: [
+    {id:'HO001', from:'甲隊(早班)', to:'甲隊(午班)', time:'12:00', summary:'北區3棟建物已勘察，1棟封鎖。搜索張○○中，最後位置中正路50號附近。', outstanding:'張○○失聯追蹤', signed:false},
+  ]
+};
 // ── IT 待辦需求預設資料（從 UI 測試審計結果初始化）──
 DATA.devTasks = [
   // ── 需外部 GAS 部署才能完成 ──
@@ -6817,6 +6944,9 @@ const NAV_CFG=[
   {id:'case_mgt',   icon:'🗂️',label:'個案管理系統',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
   {id:'care_rec',   icon:'💚',label:'關懷行動紀錄',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
   {id:'rebuild',    icon:'🏠',label:'災後重建與陪伴',tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
+  {id:'kitchen',    icon:'🍱',label:'廚房/餐食管理',  tag:'limb', group:'L3 現場執行',roles:['admin','staff','logistics']},
+  {id:'medical_aid',icon:'🏥',label:'醫療急救紀錄',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
+  {id:'rescue',     icon:'🔍',label:'搜救/勘災紀錄', tag:'limb', group:'L3 現場執行',roles:['admin','it','staff']},
   {id:'assets',     icon:'🛏',label:'慈濟資產調度',  tag:'limb', group:'L3 現場執行',roles:['admin','logistics']},
   {id:'arch_doc',   icon:'🗺️',label:'系統架構說明',  tag:'doc',  group:'📐 架構文件',roles:['admin','it']},
 ];
@@ -6935,6 +7065,9 @@ function showPage(id){
   if(id==='relief_req') renderReliefReq();
   if(id==='coord') renderCoord();
   if(id==='rebuild') renderRebuild();
+  if(id==='kitchen') renderKitchen();
+  if(id==='medical_aid') renderMedicalAid();
+  if(id==='rescue') renderRescue();
   if(id==='line_oa') renderLineOA();
   if(id==='drive') renderDrive();
   if(id==='sorting') renderSorting();
@@ -9018,7 +9151,7 @@ function restoreFromRing(idx){
   setTimeout(function(){location.reload();},800);
 }
 // ── PERSIST DATA to localStorage ──
-var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','case_mgt','care_rec','shelter_mgt','registry','devTasks','relief_req','coord','rebuild'];
+var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','case_mgt','care_rec','shelter_mgt','registry','devTasks','relief_req','coord','rebuild','kitchen','medical_aid','rescue'];
 function saveData(){
   // ── 修正三：localStorage 容量監控 ──
   try{
@@ -9995,6 +10128,391 @@ function rebuildRefer(i){
   logSys('warn','【心理重建】'+h.caseId+' '+h.name+' 已轉介專業心理師，納入長期陪伴');
   toast('🩺 已轉介心理師：'+h.caseId); renderRebuild(); saveData();
 }
+
+// ══════════════════════════════════
+//  廚房/餐食管理
+// ══════════════════════════════════
+var kitchenTab='demand';
+function setKitchenTab(t){
+  kitchenTab=t;
+  ['demand','tasks','special','deliver'].forEach(function(x){
+    var b=document.getElementById('ktab-'+x);
+    if(b) b.className='btn '+(x===t?'btn-blue':'btn-ghost');
+  });
+  renderKitchenContent();
+}
+function renderKitchen(){
+  var el=document.getElementById('kitchen-content'); if(!el) return;
+  renderKitchenContent();
+}
+function renderKitchenContent(){
+  var el=document.getElementById('kitchen-content'); if(!el) return;
+  var d=DATA.kitchen;
+  if(kitchenTab==='demand') renderKitchenDemand(el,d);
+  else if(kitchenTab==='tasks') renderKitchenTasks(el,d);
+  else if(kitchenTab==='special') renderKitchenSpecial(el,d);
+  else if(kitchenTab==='deliver') renderKitchenDeliver(el,d);
+}
+function renderKitchenDemand(el,d){
+  var stColor={'已完成':'badge-green','進行中':'badge-blue','備餐中':'badge-amber','待備餐':'badge-purple'};
+  var totalServed=d.meals.reduce(function(s,m){return s+m.served;},0);
+  var totalQty=d.meals.reduce(function(s,m){return s+m.qty;},0);
+  var pct=totalQty?Math.round(totalServed/totalQty*100):0;
+  var h='<div class="card"><div class="card-title">📋 今日餐量總覽</div>'
+    +'<div class="stat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">'
+    +'<div class="stat-card" style="background:var(--bg2);padding:10px;border-radius:var(--r-sm);text-align:center"><div style="font-size:22px;font-weight:700;color:var(--green)">'+totalServed+'</div><div style="font-size:10px;color:var(--text4)">已配餐份數</div></div>'
+    +'<div class="stat-card" style="background:var(--bg2);padding:10px;border-radius:var(--r-sm);text-align:center"><div style="font-size:22px;font-weight:700;color:var(--blue)">'+totalQty+'</div><div style="font-size:10px;color:var(--text4)">今日總需求</div></div>'
+    +'<div class="stat-card" style="background:var(--bg2);padding:10px;border-radius:var(--r-sm);text-align:center"><div style="font-size:22px;font-weight:700;color:var(--amber)">'+pct+'%</div><div style="font-size:10px;color:var(--text4)">完成率</div></div>'
+    +'</div><table class="tbl"><thead><tr><th>餐次</th><th>時間</th><th>地點</th><th>需求份</th><th>已供</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  for(var i=0;i<d.meals.length;i++){
+    var m=d.meals[i];
+    var bar=m.qty?Math.round(m.served/m.qty*100):0;
+    h+='<tr><td style="font-weight:500">'+m.meal+'</td><td class="sh-time">'+m.time+'</td><td style="font-size:11px">'+m.location+'</td>'
+      +'<td style="text-align:right">'+m.qty+'</td>'
+      +'<td><div style="display:flex;align-items:center;gap:4px"><div style="flex:1;height:6px;background:var(--bg3);border-radius:3px"><div style="width:'+bar+'%;height:6px;background:var(--green);border-radius:3px"></div></div><span style="font-size:10px;white-space:nowrap">'+m.served+'/'+m.qty+'</span></div></td>'
+      +'<td><span class="badge '+(stColor[m.status]||'badge-blue')+'">'+m.status+'</span></td>'
+      +'<td>'+(m.status==='待備餐'?'<button class="btn btn-amber btn-xs" onclick="kitchenStartMeal('+i+')">▶ 開始備餐</button>'
+        :m.status==='備餐中'?'<button class="btn btn-blue btn-xs" onclick="kitchenStartDeliver('+i+')">🚗 開始配送</button>'
+        :m.status==='進行中'?'<button class="btn btn-green btn-xs" onclick="kitchenCompleteMeal('+i+')">✓ 完成</button>':'<span style="font-size:9px;color:var(--text4)">✓</span>')+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  var safe=d.safetyChecklist;
+  var doneCount=safe.filter(function(x){return x.checked;}).length;
+  h+='<div class="card"><div class="card-title">🔥 廚房安全清單 ('+doneCount+'/'+safe.length+')</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+  for(var j=0;j<safe.length;j++){
+    var sc=safe[j];
+    h+='<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--bg2);border-radius:var(--r-sm);cursor:pointer" onclick="kitchenToggleSafety('+j+')">'
+      +'<span style="font-size:16px">'+(sc.checked?'✅':'⬜')+'</span>'
+      +'<span style="font-size:11px;'+(sc.checked?'color:var(--text4)':'color:var(--text1);font-weight:500')+'">'+sc.item+'</span></div>';
+  }
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+function renderKitchenTasks(el,d){
+  var stColor={'完成':'badge-green','進行中':'badge-blue','待命':'badge-purple'};
+  var h='<div class="card"><div class="card-title">👨‍🍳 備餐任務分配</div>'
+    +'<table class="tbl"><thead><tr><th>項目</th><th>數量</th><th>負責組</th><th>班次</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  for(var i=0;i<d.cookTasks.length;i++){
+    var t=d.cookTasks[i];
+    h+='<tr><td style="font-weight:500">'+t.item+'</td><td>'+t.qty+'</td><td>'+t.assignee+'</td>'
+      +'<td style="font-size:10px;color:var(--text4)">'+t.shift+'</td>'
+      +'<td><span class="badge '+(stColor[t.status]||'badge-blue')+'">'+t.status+'</span></td>'
+      +'<td>'+(t.status==='待命'?'<button class="btn btn-amber btn-xs" onclick="kitchenActivateTask('+i+')">▶ 開始</button>'
+        :t.status==='進行中'?'<button class="btn btn-green btn-xs" onclick="kitchenFinishTask('+i+')">✓ 完成</button>':'<span style="font-size:9px;color:var(--text4)">✓</span>')+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+function renderKitchenSpecial(el,d){
+  var typeColor={'全素':'badge-green','軟食':'badge-blue','嬰兒副食品':'badge-amber','低鉀低磷':'badge-purple'};
+  var total=d.specialDiets.reduce(function(s,x){return s+x.count;},0);
+  var h='<div class="card"><div class="card-title">🥗 特殊餐需求名冊 <span class="badge badge-red" style="margin-left:6px">共 '+total+' 份</span></div>'
+    +'<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);padding:8px 12px;font-size:11px;color:var(--amber);margin-bottom:12px">⚠ 特殊餐需提前 2 小時備妥，務必貼標籤標示姓名與類型，由專人配送核對</div>'
+    +'<table class="tbl"><thead><tr><th>識別</th><th>姓名/群體</th><th>地點</th><th>類型</th><th>份數</th><th>備注</th></tr></thead><tbody>';
+  for(var i=0;i<d.specialDiets.length;i++){
+    var s=d.specialDiets[i];
+    h+='<tr><td class="sh-time">'+s.id+'</td><td style="font-weight:500">'+s.name+'</td><td style="font-size:11px">'+s.location+'</td>'
+      +'<td><span class="badge '+(typeColor[s.type]||'badge-blue')+'">'+s.type+'</span></td>'
+      +'<td style="text-align:center;font-weight:600">'+s.count+'</td>'
+      +'<td style="font-size:10px;color:var(--text4)">'+s.note+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+function renderKitchenDeliver(el,d){
+  var stColor={'配送中':'badge-blue','出發中':'badge-amber','待配送':'badge-purple','已完成':'badge-green'};
+  var h='<div class="card"><div class="card-title">🚗 配餐追蹤</div>'
+    +'<table class="tbl"><thead><tr><th>配送單</th><th>餐次</th><th>路線</th><th>司機</th><th>車種</th><th>ETA</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  for(var i=0;i<d.deliveries.length;i++){
+    var dv=d.deliveries[i];
+    h+='<tr><td class="sh-time">'+dv.id+'</td><td>'+dv.meal+'</td><td style="font-size:10px">'+dv.route+'</td>'
+      +'<td>'+dv.driver+'</td><td>'+dv.vehicle+'</td><td style="font-weight:500;color:var(--green)">'+dv.eta+'</td>'
+      +'<td><span class="badge '+(stColor[dv.status]||'badge-blue')+'">'+dv.status+'</span></td>'
+      +'<td>'+(dv.status!=='已完成'?'<button class="btn btn-green btn-xs" onclick="kitchenDeliverDone('+i+')">✓ 送達</button>':'<span style="font-size:9px;color:var(--text4)">✓</span>')+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+function kitchenStartMeal(i){ DATA.kitchen.meals[i].status='備餐中'; saveData(); renderKitchenContent(); toast('▶ 開始備餐：'+DATA.kitchen.meals[i].meal+' '+DATA.kitchen.meals[i].location); rtAudit('kitchen_start','開始備餐 '+DATA.kitchen.meals[i].id); }
+function kitchenStartDeliver(i){ DATA.kitchen.meals[i].status='進行中'; saveData(); renderKitchenContent(); toast('🚗 開始配送：'+DATA.kitchen.meals[i].location); rtAudit('kitchen_deliver','開始配送 '+DATA.kitchen.meals[i].id); }
+function kitchenCompleteMeal(i){ var m=DATA.kitchen.meals[i]; m.status='已完成'; m.served=m.qty; saveData(); renderKitchenContent(); toast('✅ 配餐完成：'+m.meal+' '+m.location); rtAudit('kitchen_done','配餐完成 '+m.id); }
+function kitchenActivateTask(i){ DATA.kitchen.cookTasks[i].status='進行中'; saveData(); renderKitchenContent(); toast('▶ 開始備料：'+DATA.kitchen.cookTasks[i].item); }
+function kitchenFinishTask(i){ DATA.kitchen.cookTasks[i].status='完成'; saveData(); renderKitchenContent(); toast('✅ 備料完成：'+DATA.kitchen.cookTasks[i].item); }
+function kitchenToggleSafety(i){ DATA.kitchen.safetyChecklist[i].checked=!DATA.kitchen.safetyChecklist[i].checked; saveData(); renderKitchenContent(); }
+function kitchenDeliverDone(i){ DATA.kitchen.deliveries[i].status='已完成'; saveData(); renderKitchenContent(); toast('✅ 送達確認：'+DATA.kitchen.deliveries[i].id); rtAudit('kitchen_delivered','配送抵達 '+DATA.kitchen.deliveries[i].id); }
+function kitchenAddMeal(){ var loc=prompt('收容所名稱？'); if(!loc) return; var meal=prompt('餐次？（早/午/晚餐）'); if(!meal) return; var qty=parseInt(prompt('份數？')||'0'); if(!qty) return; var id='M'+String(DATA.kitchen.meals.length+1).padStart(3,'0'); DATA.kitchen.meals.push({id:id,meal:meal,time:'--:--',location:loc,qty:qty,served:0,status:'待備餐'}); saveData(); renderKitchenContent(); toast('＋ 新增餐次 '+id); rtAudit('kitchen_add','新增餐次 '+id+' '+loc+' '+qty+'份'); }
+function kitchenSafetyCheck(){ var safe=DATA.kitchen.safetyChecklist; var undone=safe.filter(function(x){return !x.checked;}); if(undone.length===0){ toast('✅ 廚房安全確認完畢'); rtAudit('kitchen_safe','廚房安全清單全部完成'); }else{ toast('⚠ 還有 '+undone.length+' 項未完成：'+undone[0].item); } }
+
+// ══════════════════════════════════
+//  醫療急救紀錄
+// ══════════════════════════════════
+var medTab='triage';
+function setMedTab(t){
+  medTab=t;
+  ['triage','records','meds','transport'].forEach(function(x){
+    var b=document.getElementById('mtab-'+x);
+    if(b) b.className='btn '+(x===t?'btn-blue':'btn-ghost');
+  });
+  renderMedicalAidContent();
+}
+function renderMedicalAid(){
+  var el=document.getElementById('medical_aid-content'); if(!el) return;
+  renderMedicalAidContent();
+}
+function renderMedicalAidContent(){
+  var el=document.getElementById('medical_aid-content'); if(!el) return;
+  var d=DATA.medical_aid;
+  if(medTab==='triage') renderMedTriage(el,d);
+  else if(medTab==='records') renderMedRecords(el,d);
+  else if(medTab==='meds') renderMedMeds(el,d);
+  else if(medTab==='transport') renderMedTransport(el,d);
+}
+function renderMedTriage(el,d){
+  var colors=['red','yellow','green','black'];
+  var colorLabel={'red':'紅（立即）','yellow':'黃（緊急）','green':'綠（輕傷）','black':'黑（死亡/不治）'};
+  var colorCss={'red':'var(--red)','yellow':'var(--amber)','green':'var(--green)','black':'#4B5563'};
+  var counts={red:0,yellow:0,green:0,black:0};
+  d.triage.forEach(function(p){if(counts[p.color]!==undefined)counts[p.color]++;});
+  var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">';
+  colors.forEach(function(c){
+    h+='<div style="background:var(--bg2);border:2px solid '+colorCss[c]+';border-radius:var(--r-sm);padding:10px;text-align:center">'
+      +'<div style="font-size:28px;font-weight:700;color:'+colorCss[c]+'">'+counts[c]+'</div>'
+      +'<div style="font-size:10px;color:var(--text4)">'+colorLabel[c]+'</div></div>';
+  });
+  h+='</div>';
+  var stColor={'處置中':'badge-blue','已處置':'badge-green','後送中':'badge-amber','觀察中':'badge-purple'};
+  h+='<div class="card"><div class="card-title">🏷️ START 分診板</div>'
+    +'<table class="tbl"><thead><tr><th>ID</th><th>姓名</th><th>年齡</th><th>分類</th><th>主訴</th><th>處置</th><th>負責人</th><th>時間</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  var sortOrder={red:0,yellow:1,green:2,black:3};
+  var sorted=d.triage.slice().sort(function(a,b){return (sortOrder[a.color]||0)-(sortOrder[b.color]||0);});
+  sorted.forEach(function(p,idx){
+    var origIdx=d.triage.indexOf(p);
+    h+='<tr style="border-left:3px solid '+colorCss[p.color]+'">'
+      +'<td class="sh-time">'+p.id+'</td>'
+      +'<td style="font-weight:500">'+p.name+'</td>'
+      +'<td style="text-align:center">'+p.age+'</td>'
+      +'<td><span style="background:'+colorCss[p.color]+'22;color:'+colorCss[p.color]+';border:1px solid '+colorCss[p.color]+'44;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600">'+p.color.toUpperCase()+'</span></td>'
+      +'<td style="font-size:11px">'+p.complaint+'</td>'
+      +'<td style="font-size:10px;color:var(--text4)">'+p.action+'</td>'
+      +'<td style="font-size:11px">'+p.assignee+'</td>'
+      +'<td class="sh-time">'+p.time+'</td>'
+      +'<td><span class="badge '+(stColor[p.status]||'badge-blue')+'">'+p.status+'</span></td>'
+      +'<td style="white-space:nowrap">'+(p.status==='處置中'?'<button class="btn btn-green btn-xs" onclick="medComplete('+origIdx+')">✓ 處置完</button> '
+        :'')+(p.color==='red'||p.color==='yellow'?'<button class="btn btn-amber btn-xs" onclick="medRequestTransport('+origIdx+')">🚑 後送</button>':'')+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+function renderMedRecords(el,d){
+  var h='<div class="card"><div class="card-title">📋 急救紀錄 <span style="font-size:11px;color:var(--text4);font-weight:400">（共 '+d.triage.length+' 人）</span></div>';
+  h+='<div style="display:grid;gap:8px">';
+  d.triage.forEach(function(p,i){
+    h+='<div style="background:var(--bg2);border-radius:var(--r-sm);padding:10px 12px;display:flex;gap:12px;align-items:flex-start">'
+      +'<div style="font-size:24px">'+(p.color==='red'?'🔴':p.color==='yellow'?'🟡':p.color==='green'?'🟢':'⚫')+'</div>'
+      +'<div style="flex:1"><div style="font-weight:600;margin-bottom:4px">'+p.name+'（'+p.age+'歲）— '+p.complaint+'</div>'
+      +'<div style="font-size:11px;color:var(--text4)">處置：'+p.action+' ／ 負責：'+p.assignee+' ／ 時間：'+p.time+'</div></div>'
+      +'<span class="badge '+(p.status==='已處置'?'badge-green':p.status==='後送中'?'badge-amber':'badge-blue')+'">'+p.status+'</span></div>';
+  });
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+function renderMedMeds(el,d){
+  var h='<div class="card"><div class="card-title">💊 藥品耗材管理</div>'
+    +'<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r-sm);padding:6px 12px;font-size:11px;color:var(--red);margin-bottom:12px">🔴 庫存低於閾值項目將顯示警告，需立即補充</div>'
+    +'<table class="tbl"><thead><tr><th>藥品/耗材</th><th>單位</th><th>現有</th><th>已用</th><th>閾值</th><th>儲存</th><th>狀態</th></tr></thead><tbody>';
+  for(var i=0;i<d.meds.length;i++){
+    var m=d.meds[i];
+    var remaining=m.qty-m.used;
+    var isLow=remaining<=m.threshold;
+    h+='<tr '+(isLow?'style="background:var(--red-bg)"':'')+'>'
+      +'<td style="font-weight:500'+(isLow?';color:var(--red)':'')+'">'+m.name+(isLow?' ⚠':'')+'</td>'
+      +'<td>'+m.unit+'</td>'
+      +'<td style="text-align:right;font-weight:600;color:'+(isLow?'var(--red)':'var(--green)')+'">'+remaining+'</td>'
+      +'<td style="text-align:right;color:var(--text4)">'+m.used+'</td>'
+      +'<td style="text-align:right;color:var(--amber)">'+m.threshold+'</td>'
+      +'<td><span class="badge '+(m.storage.includes('冷藏')?'badge-blue':'badge-purple')+'">'+m.storage+'</span></td>'
+      +'<td>'+(isLow?'<button class="btn btn-red btn-xs" onclick="medRestock('+i+')">⚡ 緊急補充</button>':'<span style="font-size:9px;color:var(--text4)">充足</span>')+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+function renderMedTransport(el,d){
+  var stColor={'已後送':'badge-green','待後送':'badge-amber','後送中':'badge-blue'};
+  var h='<div class="card"><div class="card-title">🚑 後送記錄</div>'
+    +'<table class="tbl"><thead><tr><th>後送單</th><th>傷患ID</th><th>目的地</th><th>方式</th><th>聯絡</th><th>派遣時間</th><th>狀態</th></tr></thead><tbody>';
+  for(var i=0;i<d.transports.length;i++){
+    var t=d.transports[i];
+    h+='<tr><td class="sh-time">'+t.id+'</td><td>'+t.patient+'</td><td style="font-size:11px">'+t.dest+'</td>'
+      +'<td>'+t.method+'</td><td style="font-size:11px;font-family:monospace">'+t.contact+'</td>'
+      +'<td class="sh-time">'+(t.dispatchTime||'—')+'</td>'
+      +'<td><span class="badge '+(stColor[t.status]||'badge-blue')+'">'+t.status+'</span></td></tr>';
+  }
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+function medComplete(i){ DATA.medical_aid.triage[i].status='已處置'; saveData(); renderMedicalAidContent(); toast('✅ 處置完成：'+DATA.medical_aid.triage[i].name); rtAudit('med_complete','處置完成 '+DATA.medical_aid.triage[i].id); }
+function medRequestTransport(i){
+  var p=DATA.medical_aid.triage[i];
+  p.status='後送中';
+  var id='T'+String(DATA.medical_aid.transports.length+1).padStart(3,'0');
+  var dest=prompt('後送醫院？','嘉義基督教醫院急診'); if(!dest) return;
+  DATA.medical_aid.transports.push({id:id,patient:p.id,dest:dest,method:'救護車',contact:'119',dispatchTime:new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),status:'後送中'});
+  saveData(); setMedTab('transport'); toast('🚑 後送請求送出：'+p.name+' → '+dest); rtAudit('med_transport','後送 '+p.id+' 至 '+dest);
+}
+function medNewPatient(){
+  var name=prompt('傷患姓名（匿名可填○）？'); if(!name) return;
+  var age=parseInt(prompt('年齡？')||'0');
+  var colorOpt=prompt('分診顏色？(red/yellow/green/black)','green'); if(!colorOpt) return;
+  var complaint=prompt('主訴？'); if(!complaint) return;
+  var id='P'+String(DATA.medical_aid.triage.length+1).padStart(3,'0');
+  DATA.medical_aid.triage.push({id:id,name:name,age:age,color:colorOpt,complaint:complaint,action:'待評估',assignee:'待分配',time:new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),status:'處置中'});
+  saveData(); setMedTab('triage'); toast('＋ 新增傷患：'+name+' ('+colorOpt.toUpperCase()+')'); rtAudit('med_new','新增傷患 '+id+' '+name);
+}
+function medTransport(){ setMedTab('transport'); }
+function medRestock(i){ var m=DATA.medical_aid.meds[i]; var qty=parseInt(prompt('補充數量（現有：'+(m.qty-m.used)+'）？')||'0'); if(!qty||qty<0) return; m.qty+=qty; saveData(); renderMedicalAidContent(); toast('＋ 補充 '+m.name+' '+qty+m.unit); rtAudit('med_restock','補充藥品 '+m.name+' '+qty+m.unit); }
+
+// ══════════════════════════════════
+//  搜救/勘災紀錄
+// ══════════════════════════════════
+var rescueTab='team';
+function setRescueTab(t){
+  rescueTab=t;
+  ['team','missing','assess','log'].forEach(function(x){
+    var b=document.getElementById('rtab-'+x);
+    if(b) b.className='btn '+(x===t?'btn-blue':'btn-ghost');
+  });
+  renderRescueContent();
+}
+function renderRescue(){
+  var el=document.getElementById('rescue-content'); if(!el) return;
+  renderRescueContent();
+}
+function renderRescueContent(){
+  var el=document.getElementById('rescue-content'); if(!el) return;
+  var d=DATA.rescue;
+  if(rescueTab==='team') renderRescueTeam(el,d);
+  else if(rescueTab==='missing') renderRescueMissing(el,d);
+  else if(rescueTab==='assess') renderRescueAssess(el,d);
+  else if(rescueTab==='log') renderRescueLog(el,d);
+}
+function renderRescueTeam(el,d){
+  var stColor={'搜救中':'badge-red','勘災中':'badge-amber','已返回':'badge-green','待命':'badge-purple'};
+  var h='<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r-sm);padding:8px 12px;font-size:11px;color:var(--red);margin-bottom:12px;font-weight:500">'
+    +'🚨 安全規定：入場最少 3 人一組，每 2 小時回報一次，超時未回報自動觸發 SOS</div>';
+  var activeTeams=d.teams.filter(function(t){return t.status!=='已返回';}).length;
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">'
+    +'<div style="background:var(--bg2);padding:10px;border-radius:var(--r-sm);text-align:center"><div style="font-size:24px;font-weight:700;color:var(--red)">'+activeTeams+'</div><div style="font-size:10px;color:var(--text4)">出勤中隊伍</div></div>'
+    +'<div style="background:var(--bg2);padding:10px;border-radius:var(--r-sm);text-align:center"><div style="font-size:24px;font-weight:700;color:var(--blue)">'+d.teams.length+'</div><div style="font-size:10px;color:var(--text4)">總隊伍</div></div>'
+    +'<div style="background:var(--bg2);padding:10px;border-radius:var(--r-sm);text-align:center"><div style="font-size:24px;font-weight:700;color:var(--amber)">'+d.missing.filter(function(m){return m.searchStatus==='搜索中';}).length+'</div><div style="font-size:10px;color:var(--text4)">失聯待尋</div></div>'
+    +'</div>';
+  h+='<div class="card"><div class="card-title">👷 出勤隊伍</div><div style="display:grid;gap:8px">';
+  for(var i=0;i<d.teams.length;i++){
+    var t=d.teams[i];
+    var overdue=t.sosOverdue;
+    h+='<div style="background:var(--bg2);border-radius:var(--r-sm);padding:10px 12px;border-left:3px solid '+(overdue?'var(--red)':t.status==='已返回'?'var(--green)':'var(--amber)')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+      +'<span style="font-weight:600">'+t.name+'（隊長：'+t.leader+'）</span>'
+      +'<span class="badge '+(stColor[t.status]||'badge-blue')+'">'+t.status+'</span></div>'
+      +'<div style="font-size:11px;color:var(--text4);margin-bottom:6px">區域：'+t.area+' ／ 成員：'+t.members.join('、')+'</div>'
+      +'<div style="font-size:10px;color:var(--text4);margin-bottom:6px">入場：'+t.checkIn+(t.checkOut?' ／ 返回：'+t.checkOut:'')+'</div>'
+      +'<div style="display:flex;gap:6px">'
+      +(t.status!=='已返回'?'<button class="btn btn-green btn-xs" onclick="rescueReturn('+i+')">✓ 安全返回</button> '
+        +'<button class="btn btn-amber btn-xs" onclick="rescueCheckIn('+i+')">📡 回報</button>':'')
+      +(overdue?'<button class="btn btn-red btn-xs" onclick="rescueSOS('+i+')">🆘 SOS</button>':'')
+      +'</div></div>';
+  }
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+function renderRescueMissing(el,d){
+  var stColor={'搜索中':'badge-red','已尋獲':'badge-green','協尋中':'badge-amber'};
+  var h='<div class="card"><div class="card-title">🔎 失聯人員追蹤</div>';
+  var searching=d.missing.filter(function(m){return m.searchStatus==='搜索中';}).length;
+  if(searching>0) h+='<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r-sm);padding:6px 12px;font-size:11px;color:var(--red);margin-bottom:10px">🔴 仍有 '+searching+' 名失聯者待尋獲，請優先安排隊伍搜索</div>';
+  h+='<table class="tbl"><thead><tr><th>ID</th><th>姓名</th><th>年齡</th><th>最後位置</th><th>最後目擊</th><th>關係</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  for(var i=0;i<d.missing.length;i++){
+    var m=d.missing[i];
+    h+='<tr><td class="sh-time">'+m.id+'</td><td style="font-weight:500">'+m.name+'</td><td>'+m.age+'</td>'
+      +'<td style="font-size:11px">'+m.addr+'</td><td style="font-size:11px;color:var(--text4)">'+m.lastSeen+'</td>'
+      +'<td style="font-size:11px">'+m.relation+'</td>'
+      +'<td><span class="badge '+(stColor[m.searchStatus]||'badge-blue')+'">'+m.searchStatus+'</span></td>'
+      +'<td>'+(m.searchStatus!=='已尋獲'?'<button class="btn btn-green btn-xs" onclick="rescueFound('+i+')">✓ 已尋獲</button>':'<span style="font-size:9px;color:var(--text4)">'+m.foundAt+'</span>')+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+function renderRescueAssess(el,d){
+  var dangerColor={'高':'badge-red','中':'badge-amber','低':'badge-green'};
+  var stColor={'已封鎖':'badge-red','可使用':'badge-green','限制通行':'badge-amber','評估中':'badge-purple'};
+  var h='<div class="card"><div class="card-title">🗒️ 現場評估紀錄</div>'
+    +'<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);padding:6px 12px;font-size:11px;color:var(--amber);margin-bottom:10px">評估格式：地點 ／ 危險等級（高中低）／ 結構是否完整 ／ 通行性 ／ 備注 ／ 建議處置</div>'
+    +'<div style="display:grid;gap:8px">';
+  for(var i=0;i<d.assessments.length;i++){
+    var a=d.assessments[i];
+    h+='<div style="background:var(--bg2);border-radius:var(--r-sm);padding:10px 12px;border-left:3px solid '+(a.danger==='高'?'var(--red)':a.danger==='中'?'var(--amber)':'var(--green)')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+      +'<span style="font-weight:600">'+a.site+'</span>'
+      +'<div style="display:flex;gap:4px"><span class="badge '+(dangerColor[a.danger]||'badge-blue')+'">危險:'+a.danger+'</span><span class="badge '+(stColor[a.status]||'badge-blue')+'">'+a.status+'</span></div></div>'
+      +'<div style="font-size:11px;color:var(--text4);margin-bottom:4px">評估員：'+a.assessor+' ／ 時間：'+a.time+'</div>'
+      +'<div style="font-size:11px;display:flex;gap:8px;margin-bottom:6px">'
+      +'<span>'+(a.structureOk?'✅':'❌')+' 結構</span><span>'+(a.accessOk?'✅':'❌')+' 通行</span></div>'
+      +'<div style="font-size:11px;color:var(--text2)">'+a.note+'</div></div>';
+  }
+  h+='</div><button class="btn btn-blue" style="margin-top:10px" onclick="rescueNewAssess()">＋ 新增評估</button></div>';
+  el.innerHTML=h;
+}
+function renderRescueLog(el,d){
+  var h='<div class="card"><div class="card-title">📜 班次交接紀錄</div>';
+  if(d.handovers.length===0){ h+='<div class="no-acc">暫無交接紀錄</div></div>'; el.innerHTML=h; return; }
+  h+='<div style="display:grid;gap:8px">';
+  for(var i=0;i<d.handovers.length;i++){
+    var hv=d.handovers[i];
+    h+='<div style="background:var(--bg2);border-radius:var(--r-sm);padding:10px 12px">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
+      +'<span style="font-weight:600">'+hv.from+' → '+hv.to+'</span>'
+      +'<span class="badge '+(hv.signed?'badge-green':'badge-amber')+'">'+(hv.signed?'已簽核':'待簽核')+'</span></div>'
+      +'<div style="font-size:11px;color:var(--text4);margin-bottom:4px">時間：'+hv.time+'</div>'
+      +'<div style="font-size:11px;margin-bottom:4px">'+hv.summary+'</div>'
+      +'<div style="font-size:11px;color:var(--amber)">⚠ 未竟事項：'+hv.outstanding+'</div>'
+      +(hv.signed?'':'<button class="btn btn-green btn-xs" style="margin-top:6px" onclick="rescueSignHandover('+i+')">✓ 簽核確認</button>')+'</div>';
+  }
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+function rescueReturn(i){ var t=DATA.rescue.teams[i]; t.status='已返回'; t.checkOut=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}); saveData(); renderRescueContent(); toast('✅ '+t.name+' 安全返回'); rtAudit('rescue_return',t.name+' 返回'); }
+function rescueCheckIn(i){ var t=DATA.rescue.teams[i]; toast('📡 '+t.name+' 回報：位置安全，繼續作業'); rtAudit('rescue_checkin',t.name+' 定時回報 '+new Date().toLocaleTimeString('zh-TW')); loaLog('[搜救回報] '+t.name+' 定時回報正常'); }
+function rescueSOS(i){ var t=DATA.rescue.teams[i]; if(confirm(t.name+' 發出 SOS？')){triggerSOS(t.name,'搜救隊逾時未回報'); toast('🆘 SOS 已發出：'+t.name);} }
+function rescueFound(i){ var m=DATA.rescue.missing[i]; var loc=prompt('在哪裡找到？','現場'); if(!loc) return; m.searchStatus='已尋獲'; m.foundAt=loc; saveData(); renderRescueContent(); toast('✅ 尋獲 '+m.name+'：'+loc); rtAudit('rescue_found',m.name+' 已尋獲於 '+loc); }
+function rescueNewMission(){
+  var area=prompt('任務區域？'); if(!area) return;
+  var leader=prompt('隊長姓名？'); if(!leader) return;
+  var id='TM'+String(DATA.rescue.teams.length+1).padStart(3,'0');
+  DATA.rescue.teams.push({id:id,name:'臨時隊'+String(DATA.rescue.teams.length+1),leader:leader,members:[leader],area:area,checkIn:new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),checkOut:'',status:'搜救中',sosOverdue:false});
+  saveData(); setRescueTab('team'); toast('＋ 新任務：'+id+' 前往 '+area); rtAudit('rescue_new','新任務 '+id+' 區域 '+area);
+}
+function rescueHandover(){
+  var d=DATA.rescue;
+  var from=prompt('交班組？'); if(!from) return;
+  var to=prompt('接班組？'); if(!to) return;
+  var summary=prompt('本班摘要？'); if(!summary) return;
+  var outstanding=prompt('未竟事項？','無'); if(outstanding===null) return;
+  var id='HO'+String(d.handovers.length+1).padStart(3,'0');
+  d.handovers.push({id:id,from:from,to:to,time:new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),summary:summary,outstanding:outstanding,signed:false});
+  saveData(); setRescueTab('log'); toast('📋 交接紀錄已建立：'+id); rtAudit('rescue_handover','班次交接 '+from+'→'+to);
+}
+function rescueNewAssess(){
+  var site=prompt('地點名稱？'); if(!site) return;
+  var danger=prompt('危險等級？(高/中/低)','中'); if(!danger) return;
+  var note=prompt('評估備注？'); if(!note) return;
+  var structOk=confirm('結構完整？');
+  var accOk=confirm('可通行？');
+  var statusStr=structOk&&accOk?'可使用':!structOk?'已封鎖':'限制通行';
+  var id='AS'+String(DATA.rescue.assessments.length+1).padStart(3,'0');
+  DATA.rescue.assessments.push({id:id,site:site,assessor:'現場評估員',time:new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),danger:danger,structureOk:structOk,accessOk:accOk,note:note,status:statusStr});
+  saveData(); setRescueTab('assess'); toast('＋ 新增評估：'+site); rtAudit('rescue_assess','新增現場評估 '+site+' 危險:'+danger);
+}
+function rescueSignHandover(i){ DATA.rescue.handovers[i].signed=true; saveData(); renderRescueContent(); toast('✅ 班次交接已簽核'); rtAudit('rescue_sign','交接簽核 '+DATA.rescue.handovers[i].id); }
 
 function renderCaseMgt(){
   var el=document.getElementById('case-mgt-content'); if(!el) return;
