@@ -3552,6 +3552,30 @@ function loaDispatch(i){
 function setLOAGroup(gid){ LOA_GROUP=gid; renderLOATab(LOA_ACTIVE_TAB); }
 function setLOAMode(mode){ LOA_MODE=mode; renderLOATab(LOA_ACTIVE_TAB); }
 function setLOAMemberVid(vid){ LOA_MEMBER_VID=vid; renderLOATab(LOA_ACTIVE_TAB); }
+var LOA_ROLE_MAP=[
+  {id:'commander', icon:'🏛', lbl:'指揮官', mode:'commander', tab:'push'},
+  {id:'staff',     icon:'📋', lbl:'行政組', mode:'leader',    tab:'task'},
+  {id:'logistics', icon:'📦', lbl:'物資組', mode:'leader',    tab:'supply'},
+  {id:'kitchen',   icon:'🍱', lbl:'廚房組', mode:'leader',    tab:'kitchen'},
+  {id:'medical',   icon:'🏥', lbl:'醫療急救',mode:'leader',   tab:'medical'},
+  {id:'rescue',    icon:'🔍', lbl:'搜救勘災',mode:'leader',   tab:'rescue'},
+  {id:'care',      icon:'💙', lbl:'人文關懷',mode:'leader',   tab:'care'},
+  {id:'transport', icon:'🚗', lbl:'交通運輸',mode:'leader',   tab:'transport'},
+  {id:'member',    icon:'🙋', lbl:'一般志工',mode:'member',   tab:'task'},
+];
+var LOA_ACTIVE_ROLE='commander';
+function setLOARole(roleId){
+  var r=LOA_ROLE_MAP.find(function(x){return x.id===roleId;}); if(!r) return;
+  LOA_ACTIVE_ROLE=roleId;
+  LOA_MODE=r.mode;
+  LOA_ACTIVE_TAB=r.tab;
+  document.querySelectorAll('.loa-tab').forEach(function(b){b.classList.remove('act-loa');});
+  document.querySelectorAll('.loa-tab').forEach(function(b){
+    if(b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf("'"+r.tab+"'")>-1) b.classList.add('act-loa');
+  });
+  renderLOAGroupBar();
+  renderLOATab(r.tab);
+}
 
 // ── helpers ──
 function getGroupVolunteers(){
@@ -3588,6 +3612,14 @@ function renderLOAGroupBar(){
   var groups=typeof GROUPS!=='undefined'?GROUPS:[];
   var mC={commander:'btn-primary',leader:'btn-blue',member:'btn-green'};
   var mL={commander:'⌘ 指揮官',leader:'👥 組長',member:'🙋 組員'};
+  // Row 1: role shortcut chips
+  var roleRow='<div style="display:flex;gap:3px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;-ms-overflow-style:none">';
+  LOA_ROLE_MAP.forEach(function(r){
+    var active=LOA_ACTIVE_ROLE===r.id;
+    roleRow+='<button onclick="setLOARole(\''+r.id+'\')" style="flex-shrink:0;border:1px solid '+(active?'#06C755':'var(--border)')+';background:'+(active?'rgba(6,199,85,.15)':'var(--bg3)')+';color:'+(active?'#06C755':'var(--text3)')+';border-radius:12px;font-size:9px;padding:2px 7px;cursor:pointer;white-space:nowrap;font-weight:'+(active?'700':'400')+'">'+r.icon+' '+r.lbl+'</button>';
+  });
+  roleRow+='</div>';
+  // Row 2: group selector + mode pills
   var gSel='<select id="loa-group-sel" class="inp" style="flex:1;font-size:11px;padding:3px 6px;height:26px;min-width:0" onchange="setLOAGroup(this.value)">'
     +'<option value="all"'+(LOA_GROUP==='all'?' selected':'')+'>📡 全部組別</option>';
   groups.forEach(function(g){
@@ -3613,7 +3645,7 @@ function renderLOAGroupBar(){
     });
     memRow+='</select></div>';
   }
-  el.innerHTML='<div style="display:flex;gap:6px;align-items:center">'+gSel+mPills+'</div>'+memRow;
+  el.innerHTML=roleRow+'<div style="display:flex;gap:6px;align-items:center">'+gSel+mPills+'</div>'+memRow;
 }
 
 // ── 組長推播 ──
