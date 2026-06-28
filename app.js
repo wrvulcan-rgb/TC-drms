@@ -196,7 +196,7 @@ function toggleArchTodo(i){}
 // ─── Line OA 總控面板 ───
 var LOA_ACTIVE_TAB='push';
 function loaLog(msg){
-  var el=document.getElementById('loa-log'); if(!el) return;
+  var el=document.getElementById('rt-loa-log')||document.getElementById('loa-log'); if(!el) return;
   var t=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   if(el.innerHTML.includes('等待操作')) el.innerHTML='';
   el.innerHTML='<div style="font-size:9px;color:#94A3B8;font-family:monospace"><span style="color:#475569">'+t+'</span> <span style="color:#4ADE80">✓</span> '+msg+'</div>'+el.innerHTML;
@@ -215,10 +215,20 @@ function switchLOATab(tab,btn){
   LOA_ACTIVE_TAB=tab;
   document.querySelectorAll('.loa-tab').forEach(function(b){b.classList.remove('act-loa');});
   if(btn) btn.classList.add('act-loa');
-  renderLOATab(tab);
+  if(document.getElementById('rt-loa-body')) renderLOATabInRT(tab);
+  else renderLOATab(tab);
 }
 function renderLOATab(tab){
   var el=document.getElementById('loa-body'); if(!el) return;
+  if(tab==='push')     el.innerHTML=renderLOAPush();
+  else if(tab==='checkin')  el.innerHTML=renderLOACheckin();
+  else if(tab==='rollcall') el.innerHTML=renderLOARollcall();
+  else if(tab==='task')     el.innerHTML=renderLOATask();
+  else if(tab==='supply')   el.innerHTML=renderLOASupply();
+  else if(tab==='summary')  el.innerHTML=renderLOASummary();
+}
+function renderLOATabInRT(tab){
+  var el=document.getElementById('rt-loa-body'); if(!el) return;
   if(tab==='push')     el.innerHTML=renderLOAPush();
   else if(tab==='checkin')  el.innerHTML=renderLOACheckin();
   else if(tab==='rollcall') el.innerHTML=renderLOARollcall();
@@ -2273,16 +2283,16 @@ function renderRTLoa(){
   var html='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+btnHtml+'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">'
     +'<div class="card"><div class="card-title">📱 Line OA 操作</div>'
-    +'<div id="loa-body" style="font-size:12px"></div></div>'
+    +'<div id="rt-loa-body" style="font-size:12px"></div></div>'
     +'<div class="card"><div class="card-title"><span class="dot blink" style="background:var(--green)"></span>推播紀錄</div>'
-    +'<div id="loa-log" style="font-size:10px;line-height:1.8;min-height:60px;color:var(--text3)">等待操作...</div>'
+    +'<div id="rt-loa-log" style="font-size:10px;line-height:1.8;min-height:60px;color:var(--text3)">等待操作...</div>'
     +'<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">'
     +'<div class="card-title" style="font-size:11px">📱 志工端模擬</div>'
     +'<div id="rt-loa-content" style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap"></div>'
     +'</div></div>'
     +'</div>';
   setTimeout(function(){
-    renderLOATab(LOA_TAB);
+    renderLOATabInRT(LOA_TAB);
     renderLineOA('rt-loa-content');
   },0);
   return html;
