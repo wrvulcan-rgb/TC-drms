@@ -6675,8 +6675,15 @@ function renderPersonsCases(){
     +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
   return html;
 }
+var CASE_TRANSITIONS = {
+  '待訪視': ['訪視中'],
+  '訪視中': ['已完成'],
+  '已完成': []
+};
 function advancePersonCase(i){
   var c=DATA.persons.cases[i], now=new Date(), ds=(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2);
+  var allowed=CASE_TRANSITIONS[c.visitStatus];
+  if(!allowed||allowed.length===0){ toast('⚠ 個案 '+c.caseId+' 狀態「'+c.visitStatus+'」無法再推進'); return; }
   if(c.visitStatus==='待訪視'){
     c.visitStatus='訪視中';
     logSys('info','【個案】'+c.caseId+' '+c.name+' 開始訪視，GPS 簽到記錄');
