@@ -5364,15 +5364,15 @@ var RT_SIMPLE=(function(){try{return localStorage.getItem('drms_rt_simple')==='1
 var RT_WIZ={open:false,step:1,tpl:null,tplLabel:'',prio:null};
 var RT_ASSIGN_FOR=null;
 var RT_TEMPLATES=[
-  {id:'meal', ico:'🍱',label:'送餐'},
-  {id:'water',ico:'💧',label:'送水'},
-  {id:'med',  ico:'🏥',label:'送醫'},
-  {id:'clean',ico:'🧹',label:'清理'},
-  {id:'move', ico:'🚚',label:'搬運'},
-  {id:'other',ico:'✏️',label:'其他'}
+  {id:'meal', ico:'🍱',label:'送餐',  unit:'kitchen'},
+  {id:'water',ico:'💧',label:'送水',  unit:'logistics'},
+  {id:'med',  ico:'🏥',label:'送醫',  unit:'medical'},
+  {id:'clean',ico:'🧹',label:'清理',  unit:'staff'},
+  {id:'move', ico:'🚚',label:'搬運',  unit:'transport'},
+  {id:'other',ico:'✏️',label:'其他', unit:'all'}
 ];
 function toggleRTSimple(){ RT_SIMPLE=!RT_SIMPLE; try{localStorage.setItem('drms_rt_simple',RT_SIMPLE?'1':'0');}catch(e){} renderRTSync(); }
-function rtWizOpen(){ RT_WIZ={open:true,step:1,tpl:null,tplLabel:'',prio:null,reliefId:null}; RT_ASSIGN_FOR=null; renderRTSync(); }
+function rtWizOpen(){ RT_WIZ={open:true,step:1,tpl:null,tplLabel:'',prio:null,reliefId:null,required_unit:'all',slots:1}; RT_ASSIGN_FOR=null; renderRTSync(); }
 // 從「待處理民眾求助」帶入：自動填內容+優先級，直接跳第③步派人
 function rtWizPickRelief(id){
   var list=(DATA.relief_req&&DATA.relief_req.requests)||[];
@@ -5388,6 +5388,8 @@ function rtWizCancel(){ RT_WIZ.open=false; renderRTSync(); }
 function rtWizBack(s){ RT_WIZ.step=s; renderRTSync(); }
 function rtWizPickTpl(id,label){
   RT_WIZ.tpl=id;
+  var tp=RT_TEMPLATES.filter(function(t){return t.id===id;})[0];
+  if(tp) RT_WIZ.required_unit=tp.unit||'all';
   if(id==='other'){ RT_WIZ.step=1.5; } else { RT_WIZ.tplLabel=label; RT_WIZ.step=2; }
   renderRTSync();
 }
@@ -5396,14 +5398,19 @@ function rtWizConfirmOther(){
   if(!v){ toast('⚠ 請先輸入任務內容'); return; }
   RT_WIZ.tplLabel=sanitizeInput(v); RT_WIZ.step=2; renderRTSync();
 }
-function rtWizPickPrio(p){ RT_WIZ.prio=p; RT_WIZ.step=3; renderRTSync(); }
+function rtWizPickPrio(p){
+  RT_WIZ.prio=p;
+  var uEl=document.getElementById('rt-wiz-unit'); if(uEl) RT_WIZ.required_unit=uEl.value;
+  var sEl=document.getElementById('rt-wiz-slots'); if(sEl) RT_WIZ.slots=parseInt(sEl.value,10)||1;
+  RT_WIZ.step=3; renderRTSync();
+}
 function rtWizAssign(vid){
   var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  var id=RTDB.ref('tasks').push({title:RT_WIZ.tplLabel,priority:RT_WIZ.prio||'P2',status:'待派工',assignee:'',lockedBy:'',created:time});
+  var id=RTDB.ref('tasks').push({title:RT_WIZ.tplLabel,priority:RT_WIZ.prio||'P2',status:'待派工',assignee:'',lockedBy:'',created:time,required_unit:RT_WIZ.required_unit||'all',slots:RT_WIZ.slots||1});
   if(vid){
     var v=rtGet('volunteers/'+vid);
     RTDB.ref('tasks/'+id).update({assignee:vid,status:'進行中'});
-    RTDB.ref('volunteers/'+vid).update({task:id,status:'任務中',workStart:String(Date.now())});
+    RTDB.ref('volunteers/'+vid).update({task:id,status:'任務中',taskState:'assigned',workStart:String(Date.now())});
     rtAudit('任務派發',id+' '+RT_WIZ.tplLabel+' → '+vid+' '+v.name);
     logSys('ok','【派工精靈】'+RT_WIZ.tplLabel+' → '+v.name);
     toast('✅ 已派給 '+v.name);
@@ -5426,7 +5433,7 @@ function rtDoAssign(k,vid){
   if(v.fatigue){ showFatigueReplacement(vid,k); return; }
   var t=rtGet('tasks/'+k);
   RTDB.ref('tasks/'+k).update({assignee:vid,status:'進行中'});
-  RTDB.ref('volunteers/'+vid).update({task:k,status:'任務中',workStart:String(Date.now())});
+  RTDB.ref('volunteers/'+vid).update({task:k,status:'任務中',taskState:'assigned',workStart:String(Date.now())});
   rtAudit('任務派發',k+' '+t.title+' → '+vid+' '+v.name);
   logSys('ok','【即時任務】'+k+' 派工給 '+vid);
   toast('✅ 已派給 '+v.name);
@@ -5473,7 +5480,7 @@ function rtDoAssignReplacement(tk,vid,btn){
   var v=rtGet('volunteers/'+vid);
   var t=rtGet('tasks/'+tk);
   RTDB.ref('tasks/'+tk).update({assignee:vid,status:'進行中'});
-  RTDB.ref('volunteers/'+vid).update({task:tk,status:'任務中',workStart:String(Date.now())});
+  RTDB.ref('volunteers/'+vid).update({task:tk,status:'任務中',taskState:'assigned',workStart:String(Date.now())});
   rtAudit('任務派發（替手）',tk+' '+t.title+' → '+vid+' '+v.name);
   logSys('ok','【替手派工】'+tk+' 派給替手 '+v.name);
   toast('✅ 已派給替手 '+v.name);
@@ -5546,6 +5553,18 @@ function rtWizHtml(){
         +'<div style="font-size:'+f1+';font-weight:700;margin-top:4px">'+p[2]+'</div></button>';
     });
     html+='</div>';
+    html+='<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center">'
+      +'<div style="flex:1;min-width:120px"><div style="font-size:10px;color:var(--text4);margin-bottom:4px">需求組別</div>'
+      +'<select class="inp" id="rt-wiz-unit" style="font-size:'+(big?'15px':'12px')+'">'
+      +[['all','🔓 任何組別'],['kitchen','🍱 廚房餐食'],['medical','🏥 醫療救護'],['rescue','🚒 搜索救援'],['care','💛 關懷陪伴'],['transport','🚛 運輸後勤'],['logistics','📦 物資倉管'],['staff','🏢 行政協調']]
+        .map(function(u){return '<option value="'+u[0]+'"'+(RT_WIZ.required_unit===u[0]?' selected':'')+'>'+u[1]+'</option>';}).join('')
+      +'</select></div>'
+      +'<div><div style="font-size:10px;color:var(--text4);margin-bottom:4px">人數需求</div>'
+      +'<select class="inp" id="rt-wiz-slots" style="font-size:'+(big?'15px':'12px')+'">'
+      +'<option value="1"'+(RT_WIZ.slots===1?' selected':'')+'>👤 1 人</option>'
+      +'<option value="2"'+(RT_WIZ.slots===2?' selected':'')+'>👥 2 人（搭檔）</option>'
+      +'</select></div>'
+      +'</div>';
     html+='<button class="btn btn-ghost btn-xs" style="margin-top:12px" onclick="rtWizBack(1)">← 返回</button>';
   } else if(RT_WIZ.step===3){
     html+='<div style="font-size:'+f1+';font-weight:600;margin-bottom:4px">③「'+RT_WIZ.tplLabel+'」派給誰？</div>';
@@ -5840,7 +5859,7 @@ function rtReport(k,result){
     RTDB.ref('tasks/'+k).update({status:'已完成',lockedBy:''});
     // 釋放志工回待命
     if(t.assignee){
-      RTDB.ref('volunteers/'+t.assignee).update({task:'',status:'待命'});
+      RTDB.ref('volunteers/'+t.assignee).update({task:'',status:'待命',taskState:'idle'});
     }
     // 推入完成動態 feed（派工台看板用）
     RTDB.ref('completionFeed').push({taskId:k,title:t.title,who:who,time:time});
@@ -6928,7 +6947,7 @@ function renderVolManage(){
   d.innerMembers.forEach(function(m){ all.push({id:m.code,name:m.name,group:m.group,type:'慈誠',status:m.checkin?'待命':'未報到',checkin:m.checkin,checkinTime:m.checkinTime||''}); });
   d.volunteers.forEach(function(v){ all.push({id:v.id||v.name,name:v.name,group:v.group||'社區志工',type:'社區',status:v.checkin?'待命':'未報到',checkin:v.checkin,checkinTime:v.checkinTime||''}); });
   var rtVols=rtGet('volunteers')||{};
-  all.forEach(function(a){ var rv=rtVols[a.id]; if(rv){ if(rv.status) a.status=rv.status; a.task=rv.task||''; a.fatigue=rv.fatigue; } });
+  all.forEach(function(a){ var rv=rtVols[a.id]; if(rv){ if(rv.status) a.status=rv.status; a.task=rv.task||''; a.fatigue=rv.fatigue; a.taskState=rv.taskState||''; } });
   var groups=['全部組別'].concat(all.map(function(a){return a.group;}).filter(function(g,i,arr){return arr.indexOf(g)===i;}));
   var filtered=all.filter(function(a){
     if(q && a.name.toLowerCase().indexOf(q)<0) return false;
@@ -6939,6 +6958,7 @@ function renderVolManage(){
     return true;
   });
   var sColor={待命:'badge-green',任務中:'badge-purple',未報到:'badge-amber',疲勞:'badge-red'};
+  var tsIco={idle:'⚪',assigned:'🔵',fatigued:'😴',evacuated:'🔴'};
   var html='<div class="card">'
     +'<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">'
     +'<input class="inp" id="vm-search" placeholder="🔍 姓名" style="max-width:140px" oninput="renderVolManage()" value="'+q+'">'
@@ -6956,7 +6976,7 @@ function renderVolManage(){
       +'<td><span class="badge badge-blue" style="font-size:9px">'+a.group+'</span></td>'
       +'<td style="font-size:11px;color:var(--text4)">'+a.type+'</td>'
       +'<td style="font-size:10px;font-family:monospace">'+(a.checkinTime||'—')+'</td>'
-      +'<td><span class="badge '+(sColor[st]||'badge-amber')+'">'+st+'</span>'+(a.task?'<div style="font-size:9px;color:var(--text4)">→'+a.task+'</div>':'')+'</td>'
+      +'<td><span class="badge '+(sColor[st]||'badge-amber')+'">'+st+'</span>'+(a.taskState&&tsIco[a.taskState]?'<span title="LOA狀態:'+a.taskState+'" style="margin-left:4px;font-size:10px">'+tsIco[a.taskState]+'</span>':'')+(a.task?'<div style="font-size:9px;color:var(--text4)">→'+a.task+'</div>':'')+'</td>'
       +'<td>';
     if(!a.checkin){
       html+='<button class="btn btn-green btn-xs" onclick="checkIn(\''+a.id+'\')">✓ 報到</button>';
@@ -6973,15 +6993,15 @@ function renderVolManage(){
 function vmAssignTask(vid,vname){
   var title=prompt('派任務給 '+vname+'（輸入任務名稱）：'); if(!title) return;
   var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  var taskId=RTDB.ref('tasks').push({title:title,priority:'P2',status:'進行中',assignee:vid,lockedBy:'',created:time});
-  RTDB.ref('volunteers/'+vid).update({task:taskId,status:'任務中',workStart:String(Date.now())});
+  var taskId=RTDB.ref('tasks').push({title:title,priority:'P2',status:'進行中',assignee:vid,lockedBy:'',created:time,required_unit:'all',slots:1});
+  RTDB.ref('volunteers/'+vid).update({task:taskId,status:'任務中',taskState:'assigned',workStart:String(Date.now())});
   loaSendTask(vid,title,''); rtAudit('管理指派',taskId+' '+title+' → '+vid+' '+vname);
   toast('✅ 已派給 '+vname); renderVolManage();
 }
 function vmEndTask(vid){
   var rv=rtGet('volunteers/'+vid)||{};
   if(rv.task) RTDB.ref('tasks/'+rv.task).update({status:'已完成',assignee:''});
-  RTDB.ref('volunteers/'+vid).update({task:'',status:'待命'});
+  RTDB.ref('volunteers/'+vid).update({task:'',status:'待命',taskState:'idle'});
   toast('✅ 任務完成'); renderVolManage();
 }
 function renderMonitor(){
