@@ -492,5 +492,5 @@ window.arch_fbT=fbT;
 window.arch_fbGenCode=fbGenCode;
 window.arch_fbCopy=fbCopy;
 window.arch_fbDownload=fbDownload;
-window.arch_fbBuildNodeOptions_inner=fbBuildNodeOptions;
+
 })();
