@@ -7148,7 +7148,7 @@ function renderWarehouse(targetId){
       +'<td class="sh-time">'+rq.id+'</td>'
       +'<td style="font-weight:500">'+rq.item+' '+rq.qty+'</td>'
       +'<td style="font-size:11px">'+rq.site+'</td>'
-      +'<td style="font-size:11px;color:'+(rq.due.includes('1 小時')?'var(--red)':'var(--text3)')+'">'+rq.due+'</td>'
+      +'<td style="font-size:11px;color:'+((rq.due&&rq.due.includes('1 小時'))?'var(--red)':'var(--text3)')+'">'+( rq.due||'—')+'</td>'
       +'<td><span class="badge '+qC[rq.status]+'">'+rq.status+'</span>'+(rq.driver?'<div style="font-size:9px;color:var(--text4)">'+rq.driver+'</div>':'')+'</td>'
       +'<td>'+(rq.status==='待派案'?'<button class="btn btn-amber btn-xs" onclick="dispatchReq(\''+rq.id+'\')">🚛 派案</button>':'')+'</td>'
       +'</tr>';
