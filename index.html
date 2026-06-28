@@ -841,6 +841,13 @@
 </div>
 
 <div class="page" id="page-line_oa">
+  <div class="pg-hdr"><div><div class="pg-title">📱 Line OA 手機模擬</div><div class="pg-sub">不同角色看到的 Line 畫面 · 真實 Webhook 串接規格預覽</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue"  id="loatab-vol"    onclick="setLOARole('vol')">🧑 志工端</button>
+    <button class="btn btn-ghost" id="loatab-staff"  onclick="setLOARole('staff')">📋 幹部端</button>
+    <button class="btn btn-ghost" id="loatab-driver" onclick="setLOARole('driver')">🚛 物流端</button>
+    <button class="btn btn-ghost" id="loatab-flow"   onclick="setLOARole('flow')">🔗 資料流說明</button>
+  </div>
   <div id="line-oa-content"></div>
 </div>
 
@@ -880,6 +887,7 @@
     <button class="btn btn-ghost" id="rttab-report"   onclick="setRTTab('report')">📡 看進度</button>
     <button class="btn btn-ghost" id="rttab-close"    onclick="setRTTab('close')">📋 結案</button>
     <button class="btn btn-ghost" id="rttab-emergency" onclick="setRTTab('emergency')" style="border-color:var(--red-border);color:var(--red)">🚨 緊急</button>
+    <button class="btn btn-ghost" id="rttab-loa"       onclick="setRTTab('loa')">📱 Line 串接</button>
     <button class="btn btn-ghost" style="margin-left:auto" onclick="resetRTDB()">↺ 重置</button>
   </div>
   <div id="rtsync-content"></div>

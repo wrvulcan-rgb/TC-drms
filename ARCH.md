@@ -35,7 +35,7 @@ TC-drms/
 | `coord` | 跨單位資源協調 | 1303 | `renderCoord()` |
 | `rebuild` | 災後重建（舊，待移除） | 1314 | `renderRebuild()` |
 | `persons` | **個案全程陪伴（整合）** | 1325 | `renderPersons()` |
-| `line_oa` | Line OA 模擬 | 1439 | `renderLineOA()` |
+| `line_oa` | Line OA 手機模擬（角色視角 + 資料流說明） | 1439 | `renderLineOA()` / `setLOARole()` |
 | `drive` | 照片回報與分類 | 1443 | `renderDrive()` |
 | `sorting` | 物資整理站 | 1449 | `renderSorting()` |
 | `assets` | 慈濟資產調度 | 1461 | `renderAssets()` |
@@ -83,7 +83,8 @@ TC-drms/
 | 函數 | 行 | 說明 |
 |---|---|---|
 | `renderRTSync()` | 2767 | 主 render |
-| `setRTTab(t)` | 2748 | 切分頁（tasks/interact/close/emergency） |
+| `setRTTab(t)` | 2748 | 切分頁（tasks/report/close/emergency/**loa**） |
+| `renderRTLoa()` | app.js ~1931 | Line 串接 tab，包含 LOA 操作面板 + 推播 log |
 | `renderRTTasks()` | 2974 | 任務池 |
 | `rtWizOpen()` | 2811 | 新增任務精靈 |
 | `triggerSOS()` | 2675 | SOS 觸發 |

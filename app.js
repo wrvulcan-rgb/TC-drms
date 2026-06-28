@@ -457,7 +457,7 @@ var RT_TAB='tasks';
 var rtBound=false;
 function setRTTab(t){
   RT_TAB=t;
-  ['tasks','report','close','emergency'].forEach(function(x){
+  ['tasks','report','close','emergency','loa'].forEach(function(x){
     var b=document.getElementById('rttab-'+x);
     if(b){
       b.className=(x===t)?'btn btn-blue':'btn btn-ghost';
@@ -480,6 +480,7 @@ function renderRTSync(){
   else if(RT_TAB==='report')    el.innerHTML=renderRTReport();
   else if(RT_TAB==='close')     el.innerHTML=renderRTClose();
   else if(RT_TAB==='emergency') el.innerHTML=renderRTEmergency();
+  else if(RT_TAB==='loa')       el.innerHTML=renderRTLoa();
 }
 function resetRTDB(){
   RTDB.reset(JSON.parse(JSON.stringify(RTDB_SEED)));
@@ -1928,16 +1929,170 @@ function renderMonitor(){
     cctv.innerHTML=ch;
   }
 }
+// ── Line OA 手機模擬頁（page-line_oa）──
+var LOA_ROLE='vol';
+function setLOARole(r){
+  LOA_ROLE=r;
+  ['vol','staff','driver','flow'].forEach(function(k){
+    var b=document.getElementById('loatab-'+k);
+    if(b) b.className='btn '+(k===r?'btn-blue':'btn-ghost');
+  });
+  renderLineOA();
+}
 function renderLineOA(){
   var el=document.getElementById('line-oa-content'); if(!el) return;
-  if(el.innerHTML.trim()) return;
+  if(LOA_ROLE==='flow'){
+    el.innerHTML=renderLOAFlowDiagram();
+    return;
+  }
+  // 手機框 + iframe
+  var roleLabel={'vol':'🧑 志工端','staff':'📋 幹部端','driver':'🚛 物流端'};
+  var roleHint={
+    vol:'志工透過 Line 完成：掃碼報到 · 三步驟叫料 · 勘災照片上傳 · SOS 求救 · 安全點名回報',
+    staff:'幹部透過 Line 收到：任務派工通知 · 組員點名 · 廣播訊息 · 物資派送確認',
+    driver:'物流志工透過 Line 收到：配送單 · 到貨確認請求 · 大車調度指令'
+  };
   var simHtml=decodeURIComponent(escape(atob(LINE_OA_SIM_B64)));
-  var ifr=document.createElement('iframe');
-  ifr.id='loa-iframe';
-  ifr.title='Line OA 模擬器';
-  ifr.srcdoc=simHtml;
+  var wrapper=document.createElement('div');
+  wrapper.style.cssText='display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap';
+
+  // 左欄：說明
+  var info=document.createElement('div');
+  info.style.cssText='flex:1;min-width:220px;max-width:320px';
+  info.innerHTML='<div class="card" style="margin-bottom:12px">'
+    +'<div class="card-title">'+roleLabel[LOA_ROLE]+'</div>'
+    +'<div style="font-size:12px;color:var(--text3);line-height:1.7">'+roleHint[LOA_ROLE]+'</div>'
+    +'</div>'
+    +'<div class="card">'
+    +'<div class="card-title" style="font-size:11px">📡 此角色送出 → 中台</div>'
+    +renderLOARoleInbound(LOA_ROLE)
+    +'<div class="card-title" style="font-size:11px;margin-top:12px">📲 中台推播 → 此角色</div>'
+    +renderLOARoleOutbound(LOA_ROLE)
+    +'</div>';
+
+  // 右欄：手機模擬器
+  var phone=document.createElement('div');
+  phone.style.cssText='flex:0 0 auto';
+  phone.innerHTML='<div style="background:#1a1a2e;border-radius:36px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);display:inline-block">'
+    +'<div style="background:#000;border-radius:28px;overflow:hidden;width:300px;height:580px">'
+    +'<iframe id="loa-iframe" title="Line OA 模擬器（'+roleLabel[LOA_ROLE]+'）" '
+    +'style="width:100%;height:100%;border:none" srcdoc=""></iframe>'
+    +'</div></div>';
+
   el.innerHTML='';
-  el.appendChild(ifr);
+  el.appendChild(wrapper);
+  wrapper.appendChild(info);
+  wrapper.appendChild(phone);
+
+  // 把 srcdoc 設進去（避免 XSS innerHTML 限制）
+  document.getElementById('loa-iframe').srcdoc=simHtml;
+}
+function renderLOARoleInbound(role){
+  var rows={
+    vol:['掃碼報到 → vol_hub 名冊','叫料需求 → warehouse 任務派案','勘災照片 → drive 分類','SOS → rtsync 緊急','安全點名 → SAFETY 統計'],
+    staff:['任務完工確認 → rtsync 任務狀態','物資收到確認 → warehouse 狀態','點名回報 → SAFETY 統計'],
+    driver:['到貨確認 → warehouse REQ 狀態','大車申請 → rtsync 任務池']
+  };
+  return (rows[role]||[]).map(function(r){
+    var parts=r.split(' → ');
+    return '<div style="font-size:10px;padding:4px 0;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">'
+      +'<span style="color:var(--text3)">'+parts[0]+'</span>'
+      +'<span style="color:var(--text4)">→</span>'
+      +'<span style="color:var(--blue);font-family:monospace">'+parts[1]+'</span></div>';
+  }).join('');
+}
+function renderLOARoleOutbound(role){
+  var rows={
+    vol:['報到確認訊息','派工任務卡（Flex）','廣播通知','SOS 緊急廣播'],
+    staff:['新任務指派（Flex）','點名廣播','警報通知','人力調度指令'],
+    driver:['配送單（Flex）','物資到貨確認請求','大車調度指令']
+  };
+  return (rows[role]||[]).map(function(r){
+    return '<div style="font-size:10px;padding:4px 0;border-bottom:1px solid var(--border);color:var(--text3)">📲 '+r+'</div>';
+  }).join('');
+}
+function renderLOAFlowDiagram(){
+  var rows=[
+    {from:'志工掃碼報到',     via:'Webhook → GAS',       to:'vol_hub',       detail:'姓名/編號 → 名冊打勾，自動回傳確認'},
+    {from:'三步驟叫料',       via:'Webhook → GAS',       to:'warehouse.reqs',detail:'品項/數量/地點 → 進入供需派案台'},
+    {from:'勘災照片上傳',     via:'Message API',          to:'drive',         detail:'自動對應個案/任務，寫入 Google Drive'},
+    {from:'SOS 求救',         via:'Postback → RTDB',      to:'rtsync 緊急',   detail:'觸發 SOS overlay + 全員緊急廣播'},
+    {from:'安全點名回報',     via:'Postback → GAS',       to:'SAFETY 統計',   detail:'已回/未回/求救 即時更新漏斗'},
+    {from:'任務完工確認',     via:'Postback → GAS',       to:'rtsync 任務池', detail:'任務狀態 → done，結案紀錄寫入'},
+    {from:'到貨確認（物流）', via:'Postback',             to:'warehouse',     detail:'REQ 狀態 → 已送達'},
+  ];
+  var outRows=[
+    {trigger:'新任務建立',   target:'指定組長',     type:'任務 Flex 卡'},
+    {trigger:'供需派案',     target:'司機',         type:'配送單 Flex'},
+    {trigger:'報到 QR 推播', target:'全員 / 分組',  type:'QR Code 圖片'},
+    {trigger:'發起點名',     target:'全員',         type:'安全點名廣播'},
+    {trigger:'緊急警報',     target:'全員',         type:'警報 Flex + 聲音'},
+  ];
+  var html='<div class="card" style="margin-bottom:14px">'
+    +'<div class="card-title">🔽 Line → 中台（志工送出，系統接收）</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:10px">真實串接需 Line Webhook URL 填入系統管理 → Line OA 設定</div>'
+    +'<table class="tbl"><thead><tr><th>Line 動作</th><th>傳輸方式</th><th>寫入模組</th><th>效果</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    html+='<tr>'
+      +'<td style="font-weight:500">'+r.from+'</td>'
+      +'<td style="font-family:monospace;font-size:10px;color:var(--text3)">'+r.via+'</td>'
+      +'<td><span class="badge badge-blue" style="font-family:monospace;font-size:9px">'+r.to+'</span></td>'
+      +'<td style="font-size:10px;color:var(--text3)">'+r.detail+'</td>'
+      +'</tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='<div class="card">'
+    +'<div class="card-title">🔼 中台 → Line（系統觸發，推播給志工）</div>'
+    +'<table class="tbl"><thead><tr><th>觸發條件</th><th>推播對象</th><th>訊息類型</th></tr></thead><tbody>';
+  outRows.forEach(function(r){
+    html+='<tr>'
+      +'<td style="font-weight:500">'+r.trigger+'</td>'
+      +'<td>'+r.target+'</td>'
+      +'<td><span class="badge badge-green">'+r.type+'</span></td>'
+      +'</tr>';
+  });
+  html+='</tbody></table>'
+    +'<div style="margin-top:12px;padding:10px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);font-size:11px;color:var(--amber)">'
+    +'⚠ 目前狀態：Webhook 端點 0% 實作（純模擬）。下一里程碑：GAS doPost() 接收 Webhook，寫入 Firebase RTDB，中台即時同步。'
+    +'</div></div>';
+  return html;
+}
+
+// ── Line OA 串接 tab（在 rtsync 中台內）──
+function renderRTLoa(){
+  var LOA_TAB=LOA_ACTIVE_TAB||'push';
+  var tabBtns=[
+    {id:'push',    label:'📢 廣播推播'},
+    {id:'checkin', label:'✅ 報到管理'},
+    {id:'rollcall',label:'📡 安全點名'},
+    {id:'task',    label:'🎯 任務推播'},
+    {id:'supply',  label:'🚛 叫料/供需'},
+  ];
+  var btnHtml=tabBtns.map(function(t){
+    return '<button class="btn '+(LOA_TAB===t.id?'btn-blue':'btn-ghost')+' btn-xs" '
+      +'onclick="switchLOATab(\''+t.id+'\',this)">'+t.label+'</button>';
+  }).join('');
+  var html='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+btnHtml+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">'
+    // 左：操作面板
+    +'<div class="card"><div class="card-title">📱 Line OA 操作介面</div>'
+    +'<div id="loa-body" style="font-size:12px"></div></div>'
+    // 右：推播 log
+    +'<div><div class="card" style="margin-bottom:12px">'
+    +'<div class="card-title"><span class="dot blink" style="background:var(--green)"></span>推播紀錄</div>'
+    +'<div id="loa-log" style="font-size:10px;line-height:1.8;min-height:60px;color:var(--text3)">等待操作...</div>'
+    +'</div>'
+    +'<div class="card">'
+    +'<div class="card-title" style="font-size:11px">🔗 快速跳轉</div>'
+    +'<div style="display:flex;flex-direction:column;gap:6px">'
+    +'<button class="btn btn-ghost btn-xs" onclick="showPage(\'line_oa\')">📱 手機模擬畫面 ↗</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="showPage(\'vol_hub\');setVolHubTab(\'checkin\')">名冊管理 ↗</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="showPage(\'warehouse\')">物資倉儲 ↗</button>'
+    +'</div></div></div>'
+    +'</div>';
+  // 渲染完後再填入 loa-body
+  setTimeout(function(){ renderLOATab(LOA_TAB); },0);
+  return html;
 }
 function sendBroadcast(){
   var tgt=document.getElementById('bc-target');
