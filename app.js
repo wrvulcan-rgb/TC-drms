@@ -5959,10 +5959,23 @@ function importBackupFile(input){
   };
   reader.readAsText(file);
 }
+function renderSysStatusBar(){
+  var lsOk=true;
+  try{ localStorage.setItem('__drms_test','1'); localStorage.removeItem('__drms_test'); }catch(e){ lsOk=false; }
+  var lsLabel=lsOk?'正常':'不可用';
+  var lsColor=lsOk?'var(--green)':'var(--red)';
+  return '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;border-radius:var(--r-sm);background:var(--bg2);border:1px solid var(--border)">'
+    +'<span style="font-size:11px;font-weight:700;color:var(--text3)">系統狀態</span>'
+    +'<span style="font-size:11px">💬 Line OA：<b style="color:var(--amber)">模擬中</b></span>'
+    +'<span style="font-size:11px">⚡ GAS：<b style="color:var(--red)">未連線</b></span>'
+    +'<span style="font-size:11px">💾 localStorage：<b style="color:'+lsColor+'">'+lsLabel+'</b></span>'
+    +'</div>';
+}
 function renderVersionPanel(){
   var el=document.getElementById('version-panel'); if(!el) return;
   var info=getVersionInfo();
-  var html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">';
+  var html=renderSysStatusBar();
+  html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">';
   html+='<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r-sm);padding:8px 14px">';
   html+='<div style="font-size:9px;color:var(--text4);font-weight:700;letter-spacing:.05em">目前版本</div>';
   html+='<div style="font-size:18px;font-weight:800;color:var(--green);font-family:monospace">v'+info.current.ver+'</div>';
