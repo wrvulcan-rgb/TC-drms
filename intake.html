@@ -214,7 +214,8 @@ function genCode(){
   var req=document.getElementById("f-req").value.trim();
   if(!nick) return flash("請填暱稱",true);
   if(!debate && !req) return flash("對話與需求書至少填一項",true);
-  var code=encodeEntry({nick:nick,debate:debate,req:req,ts:Date.now()});
+  var now=new Date();
+  var code=encodeEntry({nick:nick,debate:debate,req:req,ts:now.getTime(),iso:now.toISOString()});
   document.getElementById("code-area").innerHTML=
     '<div class="raw-label" style="margin-top:16px">你的提交碼（複製後傳給管理者）</div>'+
     '<div class="code-out" id="the-code">'+esc(code)+'</div>'+
