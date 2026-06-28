@@ -4633,9 +4633,12 @@ function showModal(title,body,detail){
 }
 function closeModal(){document.getElementById('modal').classList.remove('show');}
 let toastT;
-function toast(msg){
+function toast(msg,type){
   const el=document.getElementById('toast');
-  el.textContent=msg;el.style.display='block';
+  el.textContent=msg;
+  var bg={'error':'#dc2626','warn':'#d97706','ok':'#16a34a'}[type]||'';
+  el.style.background=bg||'';
+  el.style.display='block';
   clearTimeout(toastT);toastT=setTimeout(()=>el.style.display='none',3000);
 }
 
