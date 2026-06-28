@@ -3456,9 +3456,6 @@ const NAV_CFG=[
   {id:'resources',  icon:'🗄️',label:'資源台帳',      tag:'limb', group:'L3 現場執行',roles:['admin','logistics','staff']},
   {id:'shelter_mgt',icon:'🏕️',label:'安置收容管理',  tag:'limb', group:'L3 現場執行',roles:['admin','staff','logistics']},
   {id:'persons',    icon:'🫂',label:'個案全程陪伴',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
-  {id:'relief_req', icon:'🆘',label:'民眾求助通報(舊)',tag:'limb',group:'L3 現場執行',roles:['admin']},
-  {id:'warehouse',  icon:'📦',label:'物資倉儲(舊)',   tag:'limb', group:'L3 現場執行',roles:['admin']},
-  {id:'assets',     icon:'🛏',label:'資產調度(舊)',   tag:'limb', group:'L3 現場執行',roles:['admin']},
   {id:'arch_doc',   icon:'🗺️',label:'系統架構說明',  tag:'doc',  group:'📐 架構文件',roles:['admin','it']},
 ];
 const GROUPS=[
@@ -4670,81 +4667,81 @@ var WAR_MODULE_DEFAULTS = {
   quake: {
     label:'地震', emoji:'🏚️',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','persons','shelter_mgt','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','resources','rtsync'], hidden:['resources','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','drive'], hidden:['resources','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   wind: {
     label:'風災', emoji:'🌀',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','rtsync'], hidden:['persons','shelter_mgt','assets','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','resources','rtsync'], hidden:['persons','shelter_mgt','resources','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','drive'], hidden:['line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   flood: {
     label:'水災', emoji:'🌊',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','persons','shelter_mgt','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','resources','rtsync'], hidden:['resources','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','drive'], hidden:['resources','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   fire: {
     label:'火災/爆炸', emoji:'🔥',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','persons','shelter_mgt','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['sorting','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','resources','rtsync'], hidden:['resources','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','drive'], hidden:['resources','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','line_oa','drive'], hidden:['resources','admin'] }
     }
   },
   landslide: {
     label:'土石流/山崩', emoji:'⛰️',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','persons','shelter_mgt','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','resources','rtsync'], hidden:['resources','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','drive'], hidden:['resources','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   compound: {
     label:'複合型災害', emoji:'🌐',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','shelter_mgt','assets','rtsync'], hidden:['sorting','persons','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','resources','shelter_mgt','rtsync'], hidden:['resources','persons','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','drive'], hidden:['resources','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   drought: {
     label:'乾旱/缺水', emoji:'🏜️',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','persons','shelter_mgt','assets','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','persons','shelter_mgt','line_oa','drive','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','assets','rtsync','line_oa'], hidden:['shelter_mgt','drive','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','resources','rtsync'], hidden:['resources','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','resources','rtsync'], hidden:['resources','persons','shelter_mgt','line_oa','drive','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','resources','rtsync','line_oa'], hidden:['shelter_mgt','drive','admin'] }
     }
   },
   epidemic: {
     label:'疫情/傳染病', emoji:'🦠',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','persons','shelter_mgt','assets','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','assets','rtsync','drive'], hidden:['sorting','shelter_mgt','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','assets','rtsync','line_oa','drive'], hidden:['sorting','shelter_mgt','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','resources','rtsync'], hidden:['resources','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','resources','persons','rtsync','drive'], hidden:['resources','shelter_mgt','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','resources','persons','rtsync','line_oa','drive'], hidden:['resources','shelter_mgt','admin'] }
     }
   },
   tsunami: {
     label:'海嘯', emoji:'🌊',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','shelter_mgt','assets','rtsync'], hidden:['sorting','persons','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','resources','shelter_mgt','rtsync'], hidden:['resources','persons','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','drive'], hidden:['resources','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   war_s: {
     label:'動亂', emoji:'⚔️',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','persons','shelter_mgt','assets','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync'], hidden:['sorting','line_oa','drive','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync'], hidden:['line_oa','drive','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','resources','rtsync'], hidden:['resources','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync'], hidden:['resources','line_oa','drive','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','resources','persons','shelter_mgt','rtsync'], hidden:['line_oa','drive','admin'] }
     }
   }
 };
