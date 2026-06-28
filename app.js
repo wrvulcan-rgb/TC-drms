@@ -5768,9 +5768,39 @@ function saveSimEdit(){
 // ── PERSIST DATA to localStorage ──
 var STORAGE_VERSION = 1;
 var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','persons','shelter_mgt','registry','devTasks','relief_req','coord'];
+function saveSensitiveFields(){
+  try{
+    var list=(DATA.registry&&DATA.registry.list)||[];
+    var sensitive=list.map(function(r){ return {idno:r.idno||'',phone:r.phone||''}; });
+    sessionStorage.setItem('drms_sensitive', JSON.stringify(sensitive));
+  }catch(e){}
+}
+function loadSensitiveFields(){
+  try{
+    var raw=sessionStorage.getItem('drms_sensitive'); if(!raw) return;
+    var sensitive=JSON.parse(raw);
+    var list=(DATA.registry&&DATA.registry.list)||[];
+    for(var i=0;i<sensitive.length&&i<list.length;i++){
+      if(sensitive[i].idno) list[i].idno=sensitive[i].idno;
+      if(sensitive[i].phone) list[i].phone=sensitive[i].phone;
+    }
+  }catch(e){}
+}
 function saveData(){
+  saveSensitiveFields();
   var payload = {_storageVersion: STORAGE_VERSION};
-  for(var i=0;i<DATA_KEYS.length;i++) payload[DATA_KEYS[i]] = DATA[DATA_KEYS[i]];
+  var registryClean=null;
+  for(var i=0;i<DATA_KEYS.length;i++){
+    if(DATA_KEYS[i]==='registry'&&DATA.registry&&DATA.registry.list){
+      registryClean=JSON.parse(JSON.stringify(DATA.registry));
+      registryClean.list=registryClean.list.map(function(r){
+        var c=Object.assign({},r); delete c.idno; delete c.phone; return c;
+      });
+      payload['registry']=registryClean;
+    } else {
+      payload[DATA_KEYS[i]] = DATA[DATA_KEYS[i]];
+    }
+  }
   try{
     // 寫入前先把「目前版本」推入備份輪替（雙檔：backup_1 為前一版、backup_2 為前兩版）
     var prev = localStorage.getItem('drms_data');
@@ -6248,6 +6278,7 @@ function loadData(){
     for(var i=0;i<DATA_KEYS.length;i++){
       if(saved[DATA_KEYS[i]]) DATA[DATA_KEYS[i]] = saved[DATA_KEYS[i]];
     }
+    loadSensitiveFields();
   }catch(e){}
 }
 function resetAll(){
