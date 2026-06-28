@@ -2308,38 +2308,49 @@ var LOA_PHONE_BTNS={
   ]
 };
 function makeLoaPhoneShell(role, chatId){
+  var W=220;
   var labels={vol:'🧑 志工端',staff:'📋 幹部端',driver:'🚛 物流端'};
   var roleNames={vol:'陳建宏（志工）',staff:'林師姐（幹部）',driver:'王師兄（物流）'};
   if(!LOA_CHAT[role]||!LOA_CHAT[role].length) loaInitChat(role);
   var msgs=LOA_CHAT[role]||[];
   var chatHtml=msgs.map(function(m){return m.from==='oa'?loaChatBubbleOA(m):loaChatBubbleUser(m);}).join('');
-  var actionId='loa-act-'+role;
-  var statusId='loa-sts-'+role;
-  var btns=(LOA_PHONE_BTNS[role]||[]).map(function(b){
-    return '<button onclick="LOA_ROLE=\''+role+'\';'+b.fn+'" class="btn '+b.cls+'" style="font-size:11px;justify-content:center;padding:5px 8px">'+b.label+'</button>';
+  // LIFF 底部按鈕（嵌在手機殼內）
+  var liffBtns=(LOA_PHONE_BTNS[role]||[]).map(function(b){
+    var isRed=b.cls.indexOf('red')>=0;
+    return '<div onclick="LOA_ROLE=\''+role+'\';'+b.fn+'" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 2px;border-radius:6px;'+(isRed?'background:rgba(239,68,68,.12)':'')+'">'
+      +'<div style="font-size:14px">'+b.label.split(' ')[0]+'</div>'
+      +'<div style="font-size:8px;color:'+(isRed?'#ef4444':'#555')+';line-height:1.2;text-align:center">'+b.label.replace(/^.\s/,'')+'</div>'
+      +'</div>';
   }).join('');
-  return '<div style="text-align:center;margin-bottom:6px;font-size:11px;color:var(--text3);font-weight:600">'+labels[role]+'</div>'
-    // 操作按鈕區（手機上方）
-    +'<div id="'+actionId+'" style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">'+btns+'</div>'
+  return '<div style="text-align:center;margin-bottom:8px">'
+    +'<span style="font-size:11px;font-weight:600;color:var(--text3)">'+labels[role]+'</span>'
+    +'</div>'
     // 手機殼
-    +'<div style="background:#1a1a2e;border-radius:36px;padding:10px 10px 16px;box-shadow:0 8px 32px rgba(0,0,0,.45);display:inline-block">'
-    +'<div style="background:#000;width:260px;height:28px;border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:center">'
-    +'<div style="width:60px;height:5px;background:#333;border-radius:3px"></div></div>'
-    +'<div style="background:#06C755;width:260px;padding:8px 12px;display:flex;align-items:center;gap:8px">'
-    +'<div style="width:28px;height:28px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">🏥</div>'
-    +'<div style="color:#fff;font-size:12px;font-weight:600;flex:1">慈濟 DRMS</div>'
-    +'<div style="color:rgba(255,255,255,.8);font-size:10px">OA</div>'
+    +'<div style="background:#1a1a2e;border-radius:32px;padding:8px 8px 10px;box-shadow:0 8px 28px rgba(0,0,0,.5);display:inline-block">'
+    // 瀏海
+    +'<div style="background:#000;width:'+W+'px;height:22px;border-radius:18px 18px 0 0;display:flex;align-items:center;justify-content:center">'
+    +'<div style="width:48px;height:4px;background:#333;border-radius:2px"></div></div>'
+    // Line 頂欄
+    +'<div style="background:#06C755;width:'+W+'px;padding:6px 10px;display:flex;align-items:center;gap:6px">'
+    +'<div style="width:24px;height:24px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px">🏥</div>'
+    +'<div style="color:#fff;font-size:11px;font-weight:600;flex:1">慈濟 DRMS</div>'
+    +'<div style="color:rgba(255,255,255,.7);font-size:9px">OA</div>'
     +'</div>'
-    +'<div id="'+chatId+'" style="background:#c8d9c2;width:260px;height:360px;overflow-y:auto;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">'+chatHtml+'</div>'
-    +'<div style="background:#fff;width:260px;padding:6px 10px;display:flex;gap:6px;align-items:center;box-sizing:border-box;border-top:1px solid #e0e0e0">'
-    +'<div style="flex:1;background:#f0f0f0;border-radius:16px;padding:6px 10px;font-size:11px;color:#999">'+roleNames[role]+'</div>'
-    +'<div style="font-size:18px">😊</div>'
+    // 聊天區
+    +'<div id="'+chatId+'" style="background:#c8d9c2;width:'+W+'px;height:300px;overflow-y:auto;padding:8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">'+chatHtml+'</div>'
+    // LIFF 選單（底部，嵌在手機內）
+    +(liffBtns
+      ? '<div style="background:#f8f8f8;width:'+W+'px;padding:6px 4px;display:flex;gap:2px;box-sizing:border-box;border-top:1px solid #ddd">'+liffBtns+'</div>'
+      : '')
+    // 輸入列
+    +'<div style="background:#fff;width:'+W+'px;padding:5px 8px;display:flex;gap:5px;align-items:center;box-sizing:border-box;border-top:1px solid #e0e0e0">'
+    +'<div style="flex:1;background:#f0f0f0;border-radius:14px;padding:5px 8px;font-size:10px;color:#aaa">'+roleNames[role]+'</div>'
+    +'<span style="font-size:16px">😊</span>'
     +'</div>'
-    +'<div style="background:#000;width:260px;height:20px;border-radius:0 0 20px 20px;display:flex;align-items:center;justify-content:center">'
-    +'<div style="width:80px;height:4px;background:#333;border-radius:2px"></div></div>'
-    +'</div>'
-    // 狀態列（手機下方）
-    +'<div id="'+statusId+'" style="font-size:10px;color:var(--text4);margin-top:6px;text-align:center"></div>';
+    // 底部
+    +'<div style="background:#000;width:'+W+'px;height:16px;border-radius:0 0 18px 18px;display:flex;align-items:center;justify-content:center">'
+    +'<div style="width:60px;height:3px;background:#333;border-radius:2px"></div></div>'
+    +'</div>';
 }
 function loaRefreshPhones(){
   ['vol','staff','driver'].forEach(function(role){
@@ -2377,10 +2388,10 @@ function renderRTLoa(){
     // ── 頂部 tab bar ──
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">'
     +'<span style="font-size:11px;color:var(--text4);margin-right:4px">Line OA 操作：</span>'+btnHtml+'</div>'
-    // ── 主體：橫向捲動，左控台 + 右雙手機並排 ──
-    +'<div style="display:flex;gap:16px;align-items:start;overflow-x:auto;padding-bottom:8px">'
-    // 左：控台（固定寬）
-    +'<div style="flex:0 0 340px;min-width:340px">'
+    // ── 主體：3 欄 grid（控台 + 志工手機 + 幹部手機），不需橫捲 ──
+    +'<div style="display:grid;grid-template-columns:minmax(240px,1fr) 248px 248px;gap:14px;align-items:start">'
+    // 左：控台
+    +'<div>'
     +'<div class="card" style="margin-bottom:10px">'
     +'<div class="card-title" style="margin-bottom:10px">Line OA 中控台</div>'
     +'<div id="rt-loa-body" style="font-size:12px"></div>'
@@ -2390,11 +2401,10 @@ function renderRTLoa(){
     +'<div id="rt-loa-log" style="font-size:10px;line-height:1.9;min-height:50px;color:var(--text3);max-height:140px;overflow-y:auto">等待操作...</div>'
     +'</div>'
     +'</div>'
-    // 右：兩支手機並排（不 wrap）
-    +'<div style="display:flex;gap:20px;flex-shrink:0">'
-    +'<div>'+makeLoaPhoneShell('vol','rt-phone-vol')+'</div>'
-    +'<div>'+makeLoaPhoneShell('staff','rt-phone-staff')+'</div>'
-    +'</div>'
+    // 中：志工手機
+    +'<div style="display:flex;justify-content:center">'+makeLoaPhoneShell('vol','rt-phone-vol')+'</div>'
+    // 右：幹部手機
+    +'<div style="display:flex;justify-content:center">'+makeLoaPhoneShell('staff','rt-phone-staff')+'</div>'
     +'</div>';
   setTimeout(function(){ renderLOATabInRT(LOA_TAB); },0);
   return html;
