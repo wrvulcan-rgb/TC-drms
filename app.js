@@ -2308,7 +2308,7 @@ var LOA_PHONE_BTNS={
   ]
 };
 function makeLoaPhoneShell(role, chatId){
-  var W=220;
+  var W=200;
   var labels={vol:'🧑 志工端',staff:'📋 幹部端',driver:'🚛 物流端'};
   var roleNames={vol:'陳建宏（志工）',staff:'林師姐（幹部）',driver:'王師兄（物流）'};
   if(!LOA_CHAT[role]||!LOA_CHAT[role].length) loaInitChat(role);
@@ -2389,7 +2389,7 @@ function renderRTLoa(){
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">'
     +'<span style="font-size:11px;color:var(--text4);margin-right:4px">Line OA 操作：</span>'+btnHtml+'</div>'
     // ── 主體：3 欄 grid（控台 + 志工手機 + 幹部手機），不需橫捲 ──
-    +'<div style="display:grid;grid-template-columns:minmax(240px,1fr) 248px 248px;gap:14px;align-items:start">'
+    +'<div style="display:grid;grid-template-columns:1fr 216px 216px;gap:10px;align-items:start">'
     // 左：控台
     +'<div>'
     +'<div class="card" style="margin-bottom:10px">'
