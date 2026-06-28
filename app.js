@@ -1894,75 +1894,199 @@ function renderSheetReg(){
 }
 function setSheetTab(tab){ DATA.registry._sheetTab=tab; renderSheetReg(); }
 function renderMonitor(){
-  // 高層 KPI
+  // ── 注入「情資雷達」區塊（首次進入時）──
+  if(!document.getElementById('monitor-radar')){
+    var kpiEl=document.getElementById('monitor-kpi');
+    if(kpiEl){
+      var radar=document.createElement('div');
+      radar.id='monitor-radar';
+      radar.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px';
+      radar.innerHTML=
+        '<div class="m-r-card"><div class="m-r-hdr"><span>🌏 地震監測</span><span class="m-live-tag">LIVE</span></div><div id="r-quake-body" class="m-r-body"><span style="color:#475569;font-size:11px">連線中…</span></div></div>'
+        +'<div class="m-r-card"><div class="m-r-hdr"><span>🌀 氣象警特報</span><span class="m-live-tag">LIVE</span></div><div id="r-wx-body" class="m-r-body"></div></div>'
+        +'<div class="m-r-card"><div class="m-r-hdr"><span>🚦 道路交通</span><span class="m-sim-tag">模擬</span></div><div id="r-traffic-body" class="m-r-body"></div></div>';
+      kpiEl.parentNode.insertBefore(radar, kpiEl);
+    }
+  }
+  monitorFetchQuake();
+  monitorRenderWx();
+  monitorRenderTraffic();
+
+  // ── KPI ──
   var kpi=document.getElementById('monitor-kpi');
   if(kpi){
     var d=DATA.registry;
     var sg=d.signups||{today:[],tomorrow:[]};
-    var todaySignup=(sg.today?sg.today.length:0)+(d.volunteers?d.volunteers.length:0);
-    var tmrSignup=sg.tomorrow?sg.tomorrow.length:0;
-    var lowSupply=DATA.field.supplies.filter(function(x){return x.status==='red';}).length;
-    var pendReq=DATA.warehouse.reqs.filter(function(x){return x.status==='待派案';}).length;
-    kpi.innerHTML=makeStatGrid([
-      {lbl:'今日報名',val:todaySignup,sub:'總人數',color:'blue'},
-      {lbl:'明日預約',val:tmrSignup,sub:'已報名',color:'purple'},
-      {lbl:'物資告急',val:lowSupply,sub:'項需補',color:lowSupply?'red':'green'},
-      {lbl:'待派需求',val:pendReq,sub:'張需求單',color:pendReq?'amber':'green'},
-    ]);
+    var todayV=(sg.today?sg.today.length:0)+(d.volunteers?d.volunteers.length:0);
+    var tmrV=sg.tomorrow?sg.tomorrow.length:0;
+    var lowS=DATA.field.supplies.filter(function(x){return x.status==='red';}).length;
+    var pendR=DATA.warehouse.reqs.filter(function(x){return x.status==='待派案';}).length;
+    function mkpi(icon,lbl,val,sub,accent){
+      return '<div class="m-kpi-card" style="border-top:2px solid '+accent+'">'
+        +'<div style="font-size:22px;margin-bottom:6px">'+icon+'</div>'
+        +'<div style="font-size:30px;font-weight:800;font-family:var(--mono);color:'+accent+';line-height:1">'+val+'</div>'
+        +'<div style="font-size:11px;font-weight:600;color:#CBD5E1;margin-top:5px">'+lbl+'</div>'
+        +'<div style="font-size:10px;color:#475569;margin-top:2px">'+sub+'</div>'
+        +'</div>';
+    }
+    kpi.innerHTML=
+      mkpi('👥','今日到位',todayV,'志工人數','#4ADE80')
+      +mkpi('📅','明日預約',tmrV,'已報名','#818CF8')
+      +mkpi('📦','物資告急',lowS,'項需補',lowS?'#F87171':'#4ADE80')
+      +mkpi('📋','待派需求',pendR,'張需求單',pendR?'#FBBF24':'#4ADE80');
   }
-  // 即時情資彙整（取 datasrc feed）
+
+  // ── 即時情資 Feed ──
   var feed=document.getElementById('monitor-feed');
   if(feed){
-    var typeMap={gov:'ft-gov',news:'ft-news',cmd:'ft-cmd',api:'ft-api'};
-    var typeLabel={gov:'政府',news:'新聞',cmd:'指令',api:'API'};
+    var TC={gov:'60,160,250',news:'248,113,113',cmd:'74,222,128',api:'251,191,36'};
+    var TL={gov:'政府',news:'新聞',cmd:'指令',api:'API'};
     var fh='';
-    var feeds=DATA.datasrc.feeds.slice(0,6);
-    for(var i=0;i<feeds.length;i++){
-      var f=feeds[i];
-      fh+='<div class="feed-item'+(f.status==='urgent'?' urgent':'')+'">'
-        +'<span class="feed-type '+typeMap[f.type]+'">'+typeLabel[f.type]+'</span>'
-        +'<div class="feed-body"><div class="feed-source">'+f.icon+' '+f.source+'</div>'
-        +'<div class="feed-title">'+f.title+'</div><div class="feed-time">'+f.time+'</div></div></div>';
-    }
-    feed.innerHTML=fh;
+    (DATA.datasrc.feeds||[]).slice(0,7).forEach(function(f){
+      var rgb=TC[f.type]||'148,163,184';
+      var urgent=f.status==='urgent';
+      fh+='<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(148,163,184,0.1);align-items:flex-start'+(urgent?';border-left:2px solid #F87171;padding-left:8px;margin-left:-10px':'')+'">'
+        +'<div style="width:32px;height:32px;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba('+rgb+',0.12);border:1px solid rgba('+rgb+',0.2)">'+f.icon+'</div>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">'
+          +'<span style="font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;background:rgba('+rgb+',0.15);color:rgb('+rgb+');border:1px solid rgba('+rgb+',0.3)">'+TL[f.type]+'</span>'
+          +(urgent?'<span style="font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;background:rgba(248,113,113,0.2);color:#F87171;border:1px solid rgba(248,113,113,0.4);animation:blink 1.5s infinite">緊急</span>':'')
+          +'<span style="font-size:10px;color:#475569;font-family:var(--mono);margin-left:auto">'+f.time+'</span>'
+          +'</div>'
+          +'<div style="font-size:10px;font-weight:500;color:#64748B;margin-bottom:1px">'+f.source+'</div>'
+          +'<div style="font-size:12px;color:#CBD5E1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+f.title+'</div>'
+        +'</div>'
+      +'</div>';
+    });
+    feed.innerHTML=fh||'<div style="color:#475569;font-size:12px;padding:16px 0;text-align:center">暫無情資更新</div>';
   }
-  // 前線需求大方向
+
+  // ── 前線需求 ──
   var needs=document.getElementById('monitor-needs');
   if(needs){
     var nh='';
-    var reqs=DATA.warehouse.reqs.filter(function(x){return x.status==='待派案';});
-    var pC={P1:'red',P2:'amber',P3:'green'};
-    if(reqs.length){
-      for(var j=0;j<reqs.length;j++){
-        var r=reqs[j];
-        nh+='<div class="alert-item '+(r.prio==='P1'?'red':'amber')+'"><div class="alert-dot"></div><div>'
-          +'<div style="font-size:12px;font-weight:600">'+r.item+' '+r.qty+' → '+r.site+'</div>'
-          +'<div style="font-size:11px;color:var(--text2)">'+r.due+' · 優先級 '+r.prio+'</div></div></div>';
-      }
-    }
-    var lowSup=DATA.field.supplies.filter(function(x){return x.status!=='green';});
-    for(var k=0;k<lowSup.length;k++){
-      var s=lowSup[k];
-      nh+='<div class="alert-item '+(s.status==='red'?'red':'amber')+'"><div class="alert-dot"></div><div>'
-        +'<div style="font-size:12px;font-weight:600">'+s.item+' 庫存偏低</div>'
-        +'<div style="font-size:11px;color:var(--text2)">'+s.stock+' / '+s.need+' '+s.unit+'</div></div></div>';
-    }
-    if(!nh) nh='<div style="font-size:12px;color:var(--text4);padding:12px 0;text-align:center">✓ 目前無緊急前線需求</div>';
+    var PC={P1:'248,113,113',P2:'251,191,36',P3:'74,222,128'};
+    DATA.warehouse.reqs.filter(function(x){return x.status==='待派案';}).forEach(function(r){
+      var rgb=PC[r.prio]||'148,163,184';
+      nh+='<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(148,163,184,0.1)">'
+        +'<div style="width:6px;height:6px;border-radius:50%;background:rgb('+rgb+');margin-top:5px;flex-shrink:0;box-shadow:0 0 6px rgba('+rgb+',0.7)"></div>'
+        +'<div style="flex:1">'
+          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
+          +'<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:rgba('+rgb+',0.15);color:rgb('+rgb+');border:1px solid rgba('+rgb+',0.3);font-weight:700">'+(r.prio||'P2')+'</span>'
+          +(r.due?'<span style="font-size:9px;color:#475569;font-family:var(--mono)">'+r.due+'</span>':'')
+          +'</div>'
+          +'<div style="font-size:12px;font-weight:600;color:#E2E8F0">'+r.item+' <span style="color:#64748B;font-weight:400">×'+r.qty+'</span></div>'
+          +'<div style="font-size:10px;color:#475569">→ '+r.site+'</div>'
+        +'</div>'
+      +'</div>';
+    });
+    DATA.field.supplies.filter(function(x){return x.status!=='green';}).forEach(function(s){
+      var rgb=s.status==='red'?'248,113,113':'251,191,36';
+      nh+='<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(148,163,184,0.1)">'
+        +'<div style="width:6px;height:6px;border-radius:50%;background:rgb('+rgb+');margin-top:5px;flex-shrink:0;box-shadow:0 0 6px rgba('+rgb+',0.7)"></div>'
+        +'<div style="flex:1">'
+          +'<div style="font-size:12px;font-weight:600;color:#E2E8F0">'+s.item+' 庫存偏低</div>'
+          +'<div style="font-size:10px;color:#475569">庫存 '+s.stock+' / 需求 '+s.need+' '+s.unit+'</div>'
+        +'</div>'
+      +'</div>';
+    });
+    if(!nh) nh='<div style="color:#475569;font-size:12px;padding:16px 0;text-align:center">✓ 目前無緊急前線需求</div>';
     needs.innerHTML=nh;
   }
-  // 即時影像（模擬畫面）
+
+  // ── CCTV 現場影像 ──
   var cctv=document.getElementById('monitor-cctv');
   if(cctv){
-    var sites=['竹崎國小','梅山國小','大埔活動中心','竹崎倉儲'];
-    var ch='';
-    for(var m=0;m<sites.length;m++){
-      ch+='<div class="cctv-cell" style="aspect-ratio:16/10;background:linear-gradient(135deg,#1E293B,#0F172A);border-radius:var(--r-sm);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center">'
-        +'<span style="font-size:24px;opacity:.3">📹</span>'
-        +'<div style="position:absolute;top:6px;left:8px;font-size:9px;color:#4ADE80;font-family:monospace;display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:blink 1.5s infinite"></span>LIVE</div>'
-        +'<div style="position:absolute;bottom:6px;left:8px;font-size:10px;color:#94A3B8;font-weight:500">'+sites[m]+'</div></div>';
-    }
-    cctv.innerHTML=ch;
+    var sites=[
+      {name:'竹崎國小',detail:'資源站 A',id:'CAM-01'},
+      {name:'梅山國小',detail:'收容所 1',id:'CAM-02'},
+      {name:'大埔活動中心',detail:'物資站 B',id:'CAM-03'},
+      {name:'竹崎倉儲',detail:'倉儲中心',id:'CAM-04'},
+    ];
+    var now=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+    cctv.innerHTML=sites.map(function(s){
+      return '<div style="aspect-ratio:16/10;background:linear-gradient(135deg,#0B1120 0%,#1E293B 100%);border-radius:8px;position:relative;overflow:hidden;border:1px solid rgba(100,116,139,0.2)">'
+        +'<div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px);pointer-events:none"></div>'
+        +'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px">'
+          +'<span style="font-size:26px;opacity:.15">📹</span>'
+          +'<span style="font-size:9px;color:#1E3A5F;font-family:monospace;letter-spacing:.1em">'+s.id+'</span>'
+        +'</div>'
+        +'<div style="position:absolute;top:7px;left:8px;display:flex;align-items:center;gap:4px">'
+          +'<span style="width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:blink 1.5s infinite;box-shadow:0 0 8px #4ADE80"></span>'
+          +'<span style="font-size:9px;color:#4ADE80;font-family:monospace;font-weight:700;letter-spacing:.05em">LIVE</span>'
+        +'</div>'
+        +'<div style="position:absolute;top:7px;right:8px;font-size:9px;color:#334155;font-family:monospace">'+now+'</div>'
+        +'<div style="position:absolute;bottom:0;left:0;right:0;padding:7px 10px;background:linear-gradient(transparent,rgba(0,0,0,0.75))">'
+          +'<div style="font-size:11px;color:#E2E8F0;font-weight:600">'+s.name+'</div>'
+          +'<div style="font-size:9px;color:#64748B;margin-top:1px">'+s.detail+'</div>'
+        +'</div>'
+      +'</div>';
+    }).join('');
   }
+}
+
+function monitorFetchQuake(){
+  var el=document.getElementById('r-quake-body');
+  if(!el) return;
+  fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var quakes=(data.features||[]).slice(0,4);
+      if(!quakes.length){el.innerHTML='<div style="color:#475569;font-size:11px;padding:4px 0">近48小時無 M2.5+ 地震</div>';return;}
+      el.innerHTML=quakes.map(function(q){
+        var mag=q.properties.mag||0;
+        var place=(q.properties.place||'').replace(/^\d+km \w+ of /,'');
+        var t=new Date(q.properties.time);
+        var rgb=mag>=5?'248,113,113':mag>=4?'251,191,36':'74,222,128';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(148,163,184,0.08)">'
+          +'<div style="width:34px;height:34px;flex-shrink:0;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:rgba('+rgb+',0.15);color:rgb('+rgb+');border:1px solid rgba('+rgb+',0.3);font-family:var(--mono)">'+mag.toFixed(1)+'</div>'
+          +'<div style="flex:1;min-width:0">'
+            +'<div style="font-size:11px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+place+'</div>'
+            +'<div style="font-size:9px;color:#475569;font-family:var(--mono)">'+t.toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</div>'
+          +'</div>'
+        +'</div>';
+      }).join('');
+    })
+    .catch(function(){el.innerHTML='<div style="color:#475569;font-size:11px;padding:4px 0">⚠ 無法連線 USGS</div>';});
+}
+
+function monitorRenderWx(){
+  var el=document.getElementById('r-wx-body');
+  if(!el) return;
+  var alerts=[
+    {icon:'🌀',title:'颱風警報解除',area:'全台',rgb:'74,222,128',lv:'解除'},
+    {icon:'⛈',title:'大雨特報',area:'嘉義、南投山區',rgb:'251,191,36',lv:'特報'},
+    {icon:'🌡',title:'高溫資訊',area:'西部平地',rgb:'148,163,184',lv:'資訊'},
+  ];
+  el.innerHTML=alerts.map(function(a){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(148,163,184,0.08)">'
+      +'<span style="font-size:15px;width:20px;text-align:center">'+a.icon+'</span>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:11px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+a.title+'</div>'
+        +'<div style="font-size:9px;color:#475569">'+a.area+'</div>'
+      +'</div>'
+      +'<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba('+a.rgb+',0.15);color:rgb('+a.rgb+');border:1px solid rgba('+a.rgb+',0.3);white-space:nowrap">'+a.lv+'</span>'
+    +'</div>';
+  }).join('');
+}
+
+function monitorRenderTraffic(){
+  var el=document.getElementById('r-traffic-body');
+  if(!el) return;
+  var items=[
+    {icon:'🚫',title:'台18線 石棹段封閉',detail:'土石流影響',rgb:'248,113,113'},
+    {icon:'⚠️',title:'台3線 竹崎段單向通行',detail:'道路搶修中',rgb:'251,191,36'},
+    {icon:'✅',title:'縣道166 梅山段恢復通行',detail:'昨日 18:00 恢復',rgb:'74,222,128'},
+  ];
+  el.innerHTML=items.map(function(a){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(148,163,184,0.08)">'
+      +'<span style="font-size:14px;width:20px;text-align:center">'+a.icon+'</span>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:11px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+a.title+'</div>'
+        +'<div style="font-size:9px;color:#475569">'+a.detail+'</div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
 }
 // ══ Line OA 手機互動模擬（page-line_oa）══
 // 完全 inline，不用 iframe，按鈕直接呼叫主系統函數
