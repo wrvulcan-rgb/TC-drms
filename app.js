@@ -6569,19 +6569,22 @@ function setRebuildTab(t){
 var PERSONS_TAB='cases';
 function setPersonsTab(t){
   PERSONS_TAB=t;
-  ['cases','care','rebuild','shelter','welfare'].forEach(function(k){
-    var b=document.getElementById('prtab-'+k);
-    if(b) b.className='btn '+(k===t?'btn-blue':'btn-ghost');
-  });
   renderPersons();
 }
 function renderPersons(){
   var el=document.getElementById('persons-content'); if(!el) return;
-  if(PERSONS_TAB==='care')    el.innerHTML=renderPersonsCare();
-  else if(PERSONS_TAB==='rebuild') el.innerHTML=renderPersonsRebuild();
-  else if(PERSONS_TAB==='shelter'){ el.innerHTML='<div id="pers-shelter"></div>'; renderShelterMgt('pers-shelter'); }
-  else if(PERSONS_TAB==='welfare') el.innerHTML=renderWelfare();
-  else el.innerHTML=renderPersonsCases();
+  var bar=subTabBar([
+    {id:'cases',  btnId:'prtab-cases',  label:'🗂️ 個案名單',  fn:"setPersonsTab('cases')"},
+    {id:'care',   btnId:'prtab-care',   label:'💚 關懷紀錄',  fn:"setPersonsTab('care')"},
+    {id:'rebuild',btnId:'prtab-rebuild',label:'🏗️ 重建追蹤',  fn:"setPersonsTab('rebuild')"},
+    {id:'shelter',btnId:'prtab-shelter',label:'🏕️ 安置收容',  fn:"setPersonsTab('shelter')"},
+    {id:'welfare',btnId:'prtab-welfare',label:'💰 祝福金',    fn:"setPersonsTab('welfare')"},
+  ], PERSONS_TAB);
+  if(PERSONS_TAB==='care')    el.innerHTML=bar+renderPersonsCare();
+  else if(PERSONS_TAB==='rebuild'){ el.innerHTML=bar+renderPersonsRebuild(); }
+  else if(PERSONS_TAB==='shelter'){ el.innerHTML=bar+'<div id="pers-shelter"></div>'; renderShelterMgt('pers-shelter'); }
+  else if(PERSONS_TAB==='welfare'){ el.innerHTML=bar+renderWelfare(); }
+  else el.innerHTML=bar+renderPersonsCases();
 }
 function renderWelfare(){
   var d=DATA.persons;
@@ -6916,33 +6919,46 @@ function setResourcesTab(t){
   });
   renderResources();
 }
+// 次層 tab bar：視覺上明顯區別於母層
+function subTabBar(tabs, activeId){
+  var bar='<div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px;background:transparent">';
+  tabs.forEach(function(t){
+    var active=t.id===activeId;
+    bar+='<button id="'+t.btnId+'" onclick="'+t.fn+'" style="'
+      +'background:none;border:none;cursor:pointer;padding:7px 14px;font-size:12px;font-weight:'+(active?'600':'400')+';'
+      +'color:'+(active?'var(--blue)':'var(--text3)')+';'
+      +'border-bottom:'+(active?'2px solid var(--blue)':'2px solid transparent')+';'
+      +'margin-bottom:-2px;white-space:nowrap;transition:color .15s">'+t.label+'</button>';
+  });
+  return bar+'</div>';
+}
 function renderResources(){
   var el=document.getElementById('resources-content'); if(!el) return;
   if(RES_TAB==='warehouse'){
     el.innerHTML='<div id="res-wh"></div>';
     renderWarehouse('res-wh');
   } else if(RES_TAB==='assets'){
-    el.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
-      +'<button class="btn btn-blue" id="atab-overview" onclick="setAssetTab(\'overview\')">📋 資產總覽</button>'
-      +'<button class="btn btn-ghost" id="atab-loan" onclick="setAssetTab(\'loan\')">📤 前線調用</button>'
-      +'<button class="btn btn-ghost" id="atab-transit" onclick="setAssetTab(\'transit\')">🚚 運送追蹤</button>'
-      +'<button class="btn btn-ghost" id="atab-return" onclick="setAssetTab(\'return\')">↩️ 歸還盤點</button>'
-      +'</div><div id="res-assets"></div>';
+    el.innerHTML=subTabBar([
+      {id:'overview',btnId:'atab-overview',label:'📋 資產總覽',fn:"setAssetTab('overview')"},
+      {id:'loan',    btnId:'atab-loan',    label:'📤 前線調用',fn:"setAssetTab('loan')"},
+      {id:'transit', btnId:'atab-transit', label:'🚚 運送追蹤',fn:"setAssetTab('transit')"},
+      {id:'return',  btnId:'atab-return',  label:'↩️ 歸還盤點',fn:"setAssetTab('return')"},
+    ], ASSET_TAB)+'<div id="res-assets"></div>';
     renderAssets('res-assets');
   } else if(RES_TAB==='sorting'){
-    el.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="sort-tabs">'
-      +'<button class="btn btn-blue" id="stab-board" onclick="setSortTab(\'board\')">📊 作業看板</button>'
-      +'<button class="btn btn-ghost" id="stab-intake" onclick="setSortTab(\'intake\')">📥 收件登記</button>'
-      +'<button class="btn btn-ghost" id="stab-sort" onclick="setSortTab(\'sort\')">✂️ 拆箱分類台</button>'
-      +'<button class="btn btn-ghost" id="stab-discard" onclick="setSortTab(\'discard\')">🗑 報廢/覆核</button>'
-      +'</div><div id="res-sorting"></div>';
+    el.innerHTML=subTabBar([
+      {id:'board',  btnId:'stab-board',  label:'📊 作業看板',  fn:"setSortTab('board')"},
+      {id:'intake', btnId:'stab-intake', label:'📥 收件登記',  fn:"setSortTab('intake')"},
+      {id:'sort',   btnId:'stab-sort',   label:'✂️ 拆箱分類台',fn:"setSortTab('sort')"},
+      {id:'discard',btnId:'stab-discard',label:'🗑 報廢/覆核', fn:"setSortTab('discard')"},
+    ], SORT_TAB)+'<div id="res-sorting"></div>';
     renderSorting('res-sorting');
   } else if(RES_TAB==='coord'){
-    el.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
-      +'<button class="btn btn-blue" id="cotab-match" onclick="setCoordTab(\'match\')">🔗 缺口媒合</button>'
-      +'<button class="btn btn-ghost" id="cotab-partner" onclick="setCoordTab(\'partner\')">🏢 外部單位</button>'
-      +'<button class="btn btn-ghost" id="cotab-zone" onclick="setCoordTab(\'zone\')">📍 責任分區</button>'
-      +'</div><div id="res-coord"></div>';
+    el.innerHTML=subTabBar([
+      {id:'match',  btnId:'cotab-match',  label:'🔗 缺口媒合',fn:"setCoordTab('match')"},
+      {id:'partner',btnId:'cotab-partner',label:'🏢 外部單位',fn:"setCoordTab('partner')"},
+      {id:'zone',   btnId:'cotab-zone',   label:'📍 責任分區',fn:"setCoordTab('zone')"},
+    ], COORD_TAB)+'<div id="res-coord"></div>';
     renderCoord('res-coord');
   } else if(RES_TAB==='kitchen'){
     el.innerHTML=renderKitchen();
@@ -7003,8 +7019,11 @@ function renderNeeds(){
   var el=document.getElementById('needs-content'); if(!el) return;
   var loa='<div style="font-size:11px;color:var(--text4);background:var(--bg3);border-radius:6px;padding:6px 10px;margin-bottom:12px">📱 入口：志工透過 <strong>Line OA</strong> 回報 → 自動進入對應通報池 → 幹部收件 → 轉派即時調度中台</div>';
   if(NEEDS_TAB==='people'){
-    // 複用既有 relief_req 渲染邏輯
-    el.innerHTML=loa+'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-blue" id="rrtab-inbox" onclick="setReliefTab(\'inbox\')">📥 收件匣</button><button class="btn btn-ghost" id="rrtab-map" onclick="setReliefTab(\'map\')">🗺️ 分佈圖</button><button class="btn btn-ghost" id="rrtab-form" onclick="setReliefTab(\'form\')">📱 填報預覽</button></div><div id="needs-relief-content"></div>';
+    el.innerHTML=loa+subTabBar([
+      {id:'inbox',btnId:'rrtab-inbox',label:'📥 收件匣',  fn:"setReliefTab('inbox')"},
+      {id:'map',  btnId:'rrtab-map',  label:'🗺️ 分佈圖', fn:"setReliefTab('map')"},
+      {id:'form', btnId:'rrtab-form', label:'📱 填報預覽',fn:"setReliefTab('form')"},
+    ], RELIEF_TAB||'inbox')+'<div id="needs-relief-content"></div>';
     renderReliefReq('needs-relief-content');
   } else if(NEEDS_TAB==='kitchen'){
     el.innerHTML=loa+renderNeedsKitchen();
