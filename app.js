@@ -5763,9 +5763,10 @@ function saveSimEdit(){
 
 
 // ── PERSIST DATA to localStorage ──
+var STORAGE_VERSION = 1;
 var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','persons','shelter_mgt','registry','devTasks','relief_req','coord'];
 function saveData(){
-  var payload = {};
+  var payload = {_storageVersion: STORAGE_VERSION};
   for(var i=0;i<DATA_KEYS.length;i++) payload[DATA_KEYS[i]] = DATA[DATA_KEYS[i]];
   try{
     // 寫入前先把「目前版本」推入備份輪替（雙檔：backup_1 為前一版、backup_2 為前兩版）
@@ -6224,6 +6225,10 @@ function loadData(){
   if(!raw) return;
   try{
     var saved = JSON.parse(raw);
+    if(saved._storageVersion !== STORAGE_VERSION){
+      console.warn('[DRMS] localStorage 版本不符（期望 v'+STORAGE_VERSION+'，實際 v'+(saved._storageVersion||0)+'），略過還原');
+      return;
+    }
     for(var i=0;i<DATA_KEYS.length;i++){
       if(saved[DATA_KEYS[i]]) DATA[DATA_KEYS[i]] = saved[DATA_KEYS[i]];
     }
