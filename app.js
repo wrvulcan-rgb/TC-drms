@@ -5005,6 +5005,9 @@ function wtBackToLevel(){
 }
 function wtConfirmAndLaunch(){
   var def=WAR_MODULE_DEFAULTS[_wtPendingScenario]||WAR_MODULE_DEFAULTS['quake'];
+  var scenLabel=def?def.label:_wtPendingScenario;
+  var lvlLabel={L1:'L1 輕度',L2:'L2 中度',L3:'L3 重度',manual:'全手動'}[_wtPendingLevel]||'';
+  if(!confirm('⚡ 確認啟動戰時模式？\n\n災型：'+scenLabel+'\n等級：'+lvlLabel+'\n\n此操作將變更模組開放清單並進入戰時狀態。')) return;
   var ALL_IDS=['monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive','admin'];
   var enabled=['dashboard'];
   var toHide=[];
