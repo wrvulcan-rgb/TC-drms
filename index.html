@@ -241,6 +241,34 @@ body.nav-collapsed .main{margin-left:0}
 .loa-flex-btn{border:1px solid #06C755;background:none;color:#06C755;border-radius:6px;padding:6px 4px;font-size:11px;cursor:pointer;text-align:center}
 .loa-flex-btn:hover{background:#06C75520}
 
+/* ── LINE OA Chat Simulation ── */
+.loa-cb-out{display:flex;justify-content:flex-end;margin:3px 0}
+.loa-cb-in{display:flex;justify-content:flex-start;margin:3px 0;gap:6px;align-items:flex-end}
+.loa-cb-wrap{display:flex;flex-direction:column}
+.loa-cb{padding:7px 11px;border-radius:16px;font-size:11px;line-height:1.45;max-width:83%;word-break:break-word}
+.loa-cb-out .loa-cb{background:#06C755;color:#fff;border-bottom-right-radius:3px;margin-left:auto}
+.loa-cb-in .loa-cb{background:var(--bg4);color:var(--text);border-bottom-left-radius:3px;border:1px solid var(--border)}
+.loa-cb-meta{font-size:8px;color:var(--text4);font-family:'JetBrains Mono',monospace;margin-top:1px}
+.loa-cb-out .loa-cb-meta{text-align:right}
+.loa-cb-avatar{width:22px;height:22px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.loa-typing-row{display:flex;align-items:center;gap:3px;padding:2px 0}
+.loa-typing-dot{width:5px;height:5px;border-radius:50%;background:var(--text4);animation:loa-dot .8s infinite;flex-shrink:0}
+.loa-typing-dot:nth-child(2){animation-delay:.16s}.loa-typing-dot:nth-child(3){animation-delay:.32s}
+@keyframes loa-dot{0%,80%,100%{transform:scale(.6);opacity:.3}40%{transform:scale(1);opacity:1}}
+.loa-impact-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:5px 12px;background:var(--blue-bg);border-bottom:1px solid var(--blue-border);font-size:10px;animation:fin .2s ease}
+.loa-impact-chip{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 7px;border-radius:8px;background:var(--bg2);border:1px solid var(--blue-border);color:var(--blue);font-weight:600;cursor:pointer;white-space:nowrap;transition:background .12s}
+.loa-impact-chip:hover{background:var(--blue-light)}
+.loa-sim-badge{background:rgba(6,199,85,.12);border:1px solid rgba(6,199,85,.35);color:#059669;border-radius:5px;padding:1px 6px;font-size:8px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.loa-api-dot{width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0}
+.loa-api-dot.connected{background:#06C755;animation:loa-dot .8s infinite}
+.loa-chat-panel{flex-shrink:0;border-top:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:max-height .25s ease;max-height:220px}
+.loa-chat-panel.collapsed{max-height:28px}
+.loa-chat-hdr{display:flex;align-items:center;gap:6px;padding:5px 12px;cursor:pointer;flex-shrink:0;background:var(--bg3);border-bottom:1px solid var(--border)}
+.loa-chat-hdr:hover{background:var(--bg4)}
+.loa-chat-feed{flex:1;overflow-y:auto;padding:8px 12px;background:var(--bg);min-height:0}
+.loa-sys-msg{text-align:center;margin:4px 0}
+.loa-sys-msg span{font-size:9px;color:var(--text4);background:var(--bg3);border-radius:6px;padding:1px 8px}
+
 /* INPUT */
 .inp{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r-sm);padding:8px 12px;color:var(--text);font-family:'Noto Sans TC','Inter',sans-serif;font-size:12px;width:100%;outline:none;transition:border-color .15s;box-shadow:var(--shadow)}
 .inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
@@ -1605,13 +1633,20 @@ body.drill-on .main{padding-bottom:66px}
 
 <div id="line-oa-panel" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);align-items:flex-start;justify-content:flex-end">
   <div style="width:420px;max-width:100vw;height:100vh;background:var(--bg2);border-left:1px solid var(--border);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;overflow:hidden">
-    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0">
-      <div style="width:36px;height:36px;background:#06C755;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px">💬</div>
-      <div style="flex:1"><div style="font-size:14px;font-weight:700">Line OA 總控</div><div style="font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace">慈濟 DRMS · 官方帳號</div></div>
-      <button onclick="closeLineOAPanel()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text4);padding:4px">✕</button>
+    <div style="padding:12px 16px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div style="width:36px;height:36px;background:#06C755;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💬</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          Line OA 總控
+          <span id="loa-api-status-badge" class="loa-sim-badge">模擬模式</span>
+        </div>
+        <div style="font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace">慈濟 DRMS · 官方帳號</div>
+      </div>
+      <button onclick="closeLineOAPanel()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text4);padding:4px;flex-shrink:0">✕</button>
     </div>
+    <div id="loa-impact-bar"></div>
     <div id="loa-group-bar" style="padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:5px"></div>
-    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none">
       <button class="loa-tab act-loa" onclick="switchLOATab('push',this)" id="loa-tb-push">📤 推播</button>
       <button class="loa-tab" onclick="switchLOATab('checkin',this)" id="loa-tb-checkin">✅ 報到</button>
       <button class="loa-tab" onclick="switchLOATab('rollcall',this)" id="loa-tb-rollcall">🚨 點名</button>
@@ -1625,8 +1660,20 @@ body.drill-on .main{padding-bottom:66px}
     </div>
     <div id="loa-body" style="flex:1;overflow-y:auto;padding:14px"></div>
     <div id="loa-rich-menu" style="border-top:1px solid var(--border);flex-shrink:0;display:none"></div>
-    <div style="border-top:1px solid var(--border);padding:8px 12px;flex-shrink:0;max-height:72px;overflow-y:auto;background:#0F172A" id="loa-log">
-      <div style="font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace">等待操作…</div>
+    <!-- LINE 對話模擬區 -->
+    <div id="loa-chat-panel" class="loa-chat-panel">
+      <div class="loa-chat-hdr" onclick="toggleLOAChat()">
+        <div class="loa-api-dot" id="loa-api-dot"></div>
+        <span style="font-size:10px;font-weight:600;color:var(--text2)">💬 LINE 對話模擬</span>
+        <span class="loa-sim-badge" style="margin-left:2px">API 串接後效果</span>
+        <span id="loa-chat-togbtn" style="margin-left:auto;font-size:10px;color:var(--text4)">▲</span>
+      </div>
+      <div id="loa-chat-feed" class="loa-chat-feed">
+        <div style="font-size:11px;color:var(--text4);text-align:center;padding:18px 8px;line-height:1.7">💬 操作推播、報到、派工等功能後<br>此處顯示志工 LINE 的實際互動畫面</div>
+      </div>
+      <div id="loa-log" style="background:#0F172A;padding:4px 12px;max-height:36px;overflow-y:auto;border-top:1px solid #1e293b;flex-shrink:0">
+        <div style="font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace">等待操作…</div>
+      </div>
     </div>
   </div>
 </div>
@@ -3210,6 +3257,102 @@ function renderArchDoc(){
   if(typeof arch_setView === 'function') arch_setView(targetView);
 }
 function toggleArchTodo(i){}
+// ─── LINE OA 對話模擬系統 ────────────────────────────────────────────────────
+var LOA_CHAT=[];
+var LOA_CHAT_COLLAPSED=false;
+var LOA_SIM_NAMES=['林師兄','陳師姐','王師兄','黃志工','李組長','吳師姐','張師兄'];
+
+function loaSimRandName(){return LOA_SIM_NAMES[Math.floor(Math.random()*LOA_SIM_NAMES.length)];}
+
+function loaSimFlexCard(title,rows,color){
+  var c=color||'#06C755';
+  var rowHtml=rows.map(function(r){return '<div style="display:flex;justify-content:space-between;font-size:9px;padding:2px 0"><span style="color:#6b7280">'+r[0]+'</span><span style="font-weight:600">'+r[1]+'</span></div>';}).join('');
+  return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;min-width:160px;overflow:hidden;font-size:11px">'
+    +'<div style="background:'+c+';color:#fff;padding:6px 10px;font-size:10px;font-weight:700">'+title+'</div>'
+    +'<div style="padding:8px 10px">'+rowHtml+'</div></div>';
+}
+
+function loaChatAdd(dir,who,content,opts){
+  var ts=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  LOA_CHAT.push({dir:dir,who:who,content:content,ts:ts,opts:opts||{}});
+  _renderLOAChatFeed();
+}
+
+function _renderLOAChatFeed(){
+  var feed=document.getElementById('loa-chat-feed'); if(!feed) return;
+  if(!LOA_CHAT.length){
+    feed.innerHTML='<div style="font-size:11px;color:var(--text4);text-align:center;padding:18px 8px;line-height:1.7">💬 操作推播、報到、派工等功能後<br>此處顯示志工 LINE 的實際互動畫面</div>';
+    return;
+  }
+  var html=LOA_CHAT.map(function(c){
+    if(c.dir==='sys') return '<div class="loa-sys-msg"><span>'+c.content+'</span></div>';
+    if(c.dir==='out'){
+      return '<div class="loa-cb-out"><div class="loa-cb-wrap"><div class="loa-cb">'+c.content+'</div>'
+        +'<div class="loa-cb-meta">'+c.ts+(c.opts&&c.opts.read?' · 已讀'+c.opts.read:'')+'</div></div></div>';
+    }
+    var initials=(c.who||'?').charAt(0);
+    return '<div class="loa-cb-in"><div class="loa-cb-avatar">'+initials+'</div>'
+      +'<div class="loa-cb-wrap"><div style="font-size:8px;color:var(--text4);margin-bottom:1px">'+c.who+'</div>'
+      +'<div class="loa-cb">'+c.content+'</div>'
+      +'<div class="loa-cb-meta">'+c.ts+'</div></div></div>';
+  }).join('');
+  feed.innerHTML=html;
+  feed.scrollTop=feed.scrollHeight;
+  var panel=document.getElementById('loa-chat-panel');
+  if(panel) panel.classList.remove('collapsed');
+  var btn=document.getElementById('loa-chat-togbtn'); if(btn) btn.textContent='▲';
+  LOA_CHAT_COLLAPSED=false;
+}
+
+function loaChatSys(msg){
+  loaChatAdd('sys','',msg,{});
+}
+
+function loaSimTypingThen(who,msg,delay,opts){
+  var feed=document.getElementById('loa-chat-feed'); if(!feed) return;
+  var tid='loa-typing-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+  var initials=(who||'?').charAt(0);
+  var typRow='<div id="'+tid+'" class="loa-cb-in"><div class="loa-cb-avatar">'+initials+'</div>'
+    +'<div class="loa-cb-wrap"><div style="font-size:8px;color:var(--text4);margin-bottom:1px">'+who+'</div>'
+    +'<div class="loa-cb"><div class="loa-typing-row"><div class="loa-typing-dot"></div><div class="loa-typing-dot"></div><div class="loa-typing-dot"></div></div></div></div></div>';
+  feed.insertAdjacentHTML('beforeend',typRow);
+  feed.scrollTop=feed.scrollHeight;
+  setTimeout(function(){
+    var el=document.getElementById(tid); if(el) el.remove();
+    loaChatAdd('in',who,msg,opts||{});
+  },delay||1200);
+}
+
+function loaSimIncoming(who,msg,delay,opts){
+  setTimeout(function(){loaSimTypingThen(who,msg,900,opts);},delay||0);
+}
+
+function loaSimReadReceipt(count,delay){
+  setTimeout(function(){
+    if(!LOA_CHAT.length) return;
+    for(var i=LOA_CHAT.length-1;i>=0;i--){
+      if(LOA_CHAT[i].dir==='out'){LOA_CHAT[i].opts=LOA_CHAT[i].opts||{};LOA_CHAT[i].opts.read=count||1;break;}
+    }
+    _renderLOAChatFeed();
+  },delay||1500);
+}
+
+function loaShowImpact(pages,action){
+  var bar=document.getElementById('loa-impact-bar'); if(!bar) return;
+  var chips=pages.map(function(p){
+    return '<span class="loa-impact-chip" onclick="showPage(\''+p.id+'\')">'+p.icon+' '+p.lbl+' <b>'+p.delta+'</b></span>';
+  }).join('');
+  bar.innerHTML='<div class="loa-impact-row"><span style="font-size:9px;color:var(--text4);white-space:nowrap">↕ 影響：</span>'+chips+'<span style="margin-left:auto;font-size:9px;color:var(--text4)">'+esc(action)+'</span></div>';
+  loaCrossNotify(pages.map(function(p){return p.id;}),1);
+}
+
+function toggleLOAChat(){
+  LOA_CHAT_COLLAPSED=!LOA_CHAT_COLLAPSED;
+  var panel=document.getElementById('loa-chat-panel');
+  var btn=document.getElementById('loa-chat-togbtn');
+  if(panel) panel.classList.toggle('collapsed',LOA_CHAT_COLLAPSED);
+  if(btn) btn.textContent=LOA_CHAT_COLLAPSED?'▼':'▲';
+}
 // ─── Line OA 總控面板 ───
 var LOA_ACTIVE_TAB='push';
 var LOA_GROUP='all';      // 'all' | GROUPS[n].id
@@ -3854,10 +3997,17 @@ function loaManualCheckin(src,idx){
   rtAudit('人工報到','LOA 人工報到：'+m.name+' ('+src+')');
   loaLog('🖊 人工報到：'+m.name+' ['+src+'] ✓');
   toast('✅ '+m.name+' 報到完成');
-  // re-render checkin tab to refresh counts
   renderLOATab('checkin');
-  // clear search box
   var q=document.getElementById('loa-manual-ci-q'); if(q) q.value='';
+  // 模擬：系統確認訊息 → 志工回覆已收到
+  loaChatSys('── 人工報到確認（模擬）──');
+  loaChatAdd('out','我','✅ '+m.name+' 已完成人工報到登記，歡迎加入！',{});
+  loaSimIncoming(m.name,'謝謝！我已到場，請問集合點在哪裡？',1800);
+  loaSimIncoming(m.name,'📍 我在入口處',3200);
+  loaShowImpact([
+    {id:'checkin',icon:'✅',lbl:'報到管理',delta:'+1人'},
+    {id:'ics',icon:'🏛',lbl:'ICS',delta:'+人力'}
+  ],'人工報到：'+m.name);
 }
 function renderLOARollcall(){
   var s=SAFETY.sent, sf=SAFETY.safe, so=SAFETY.sos;
@@ -3908,14 +4058,35 @@ function loaPushRtTask(k){
   var t=rtGet('tasks/'+k); if(!t) return;
   var vols=rtGet('volunteers')||{};
   if(t.assignee&&vols[t.assignee]){
+    var vName=vols[t.assignee].name;
     loaSendTask(t.assignee, t.title, '');
-    loaLog('任務推播 → '+vols[t.assignee].name+' ['+k+']'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
-    toast('📲 任務 '+k+' 已推播給 '+vols[t.assignee].name);
+    loaLog('任務推播 → '+vName+' ['+k+']'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+    toast('📲 任務 '+k+' 已推播給 '+vName);
+    // 模擬：Flex Card + 志工回應
+    loaChatSys('── 任務推播（模擬）──');
+    loaChatAdd('out','我',loaSimFlexCard('📌 任務 '+k,
+      [['任務',t.title.substring(0,20)],['優先級',t.priority||'P3'],['派工',vName]],
+      t.priority==='P1'?'#ef4444':t.priority==='P2'?'#f59e0b':'#06C755'),{});
+    loaSimReadReceipt(1,1200);
+    loaSimIncoming(vName,'收到！我馬上去',2000);
+    loaSimIncoming(vName,'預計 10 分鐘後到達現場 🏃',3500);
+    loaShowImpact([
+      {id:'rtSync',icon:'📡',lbl:'即時協調',delta:'進行中'},
+      {id:'ics',icon:'🏛',lbl:'ICS',delta:'+任務'}
+    ],'任務推播 → '+vName);
   } else {
-    if(!checkGASReady('廣播未指派任務')) return;
+    function doSim(){
+      loaChatSys('── 廣播未指派任務（模擬）──');
+      loaChatAdd('out','我','📌 任務 ['+k+'] 需要志工承接：'+t.title,{});
+      loaSimReadReceipt('待命志工',1400);
+      loaSimIncoming(loaSimRandName(),'我可以接這個任務！',2200);
+      loaShowImpact([{id:'rtSync',icon:'📡',lbl:'即時協調',delta:'+廣播'}],'廣播未指派任務');
+    }
+    if(!checkGASReady('廣播未指派任務',doSim)) return;
     gasPost({action:'broadcast',message:'📌 任務 ['+k+'] 需要志工承接：'+t.title,role:role},function(){});
     loaLog('廣播未指派任務 ['+k+'] → 全體待命志工');
     toast('📲 任務廣播已送出');
+    doSim();
   }
 }
 function renderLOASupply(){
@@ -3961,9 +4132,11 @@ function loaPreviewBroadcast(){
   showModal('💬 Flex Message 預覽','推播至志工 Line 的格式：','{\n  type: "bubble",\n  body: "'+msg.substring(0,40)+'"\n}');
 }
 // ── 修正一：GAS 未設定時封鎖假推播 ──
-function checkGASReady(label){
+var _loaSimCb=null;
+function checkGASReady(label,onSim){
   var u=DATA.registry.innerGasUrl||DATA.registry.gasUrl;
   if(!u){
+    _loaSimCb=onSim||null;
     var mod=document.createElement('div');
     mod.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
     mod.innerHTML='<div style="background:var(--bg);border-radius:12px;padding:24px 28px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.4)">'
@@ -3971,7 +4144,7 @@ function checkGASReady(label){
       +'<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px">「<b>'+label+'</b>」目前只是模擬，<b>不會真正發送</b>。<br><br>請先到 <b>系統管理 → API 設定</b> 填入 GAS URL，才能啟用真實 Line 推播。</div>'
       +'<div style="display:flex;gap:8px">'
       +'<button class="btn btn-primary" style="flex:1;justify-content:center" onclick="this.closest(\'div[style]\').remove();showPage(\'admin\')">前往設定</button>'
-      +'<button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="this.closest(\'div[style]\').remove()">僅模擬（繼續）</button>'
+      +'<button class="btn btn-green" style="flex:1;justify-content:center" onclick="this.closest(\'div[style]\').remove();if(window._loaSimCb){var f=window._loaSimCb;window._loaSimCb=null;f();}">▶ 模擬效果</button>'
       +'</div></div>';
     document.body.appendChild(mod);
     return false;
@@ -3984,7 +4157,20 @@ function loaSendBroadcast(){
   var t=tgt?tgt.value:'全部志工';
   var m=msg?(msg.value.trim()):'';
   if(!m){toast('⚠ 請輸入推播內容');return;}
-  if(!checkGASReady('Line 群發推播')) return; // GAS 未設定 → modal 已彈出，不繼續
+  function doSim(){
+    loaChatSys('── 群發推播（模擬）──');
+    loaChatAdd('out','我',m,{});
+    loaSimReadReceipt('142',1600);
+    var names=[loaSimRandName(),loaSimRandName(),loaSimRandName()];
+    loaSimIncoming(names[0],'收到，謝謝！',2200);
+    loaSimIncoming(names[1],'了解 👍',3500);
+    loaSimIncoming(names[2],'收到，我這邊沒問題',5000);
+    loaShowImpact([
+      {id:'rtSync',icon:'📡',lbl:'即時協調',delta:'+通知'},
+      {id:'ics',icon:'🏛',lbl:'ICS 指揮',delta:'+推播記錄'}
+    ],'群發推播 → '+t);
+  }
+  if(!checkGASReady('Line 群發推播',doSim)) return;
   gasPost({action:'broadcast',target:t,message:m,role:role,time:new Date().toLocaleTimeString('zh-TW')},function(r,err){
     if(!err){
       loaLog('Broadcast ✓ → '+t+'：'+m.substring(0,25)+(m.length>25?'…':''));
@@ -3992,6 +4178,7 @@ function loaSendBroadcast(){
       rtAudit('LOA 推播',t+'：'+m.substring(0,40));
       toast('📤 推播已發送至 '+t);
       if(msg) msg.value='';
+      doSim();
     } else {
       logSys('err','【LOA 推播失敗】'+err);
       toast('❌ 推播失敗：'+err);
@@ -4008,6 +4195,19 @@ function loaFireRollcall(){
   fireRollCall();
   loaLog('安全點名已從 Line OA 總控觸發 → 廣播 142 位');
   renderLOATab('rollcall');
+  // 模擬：點名廣播 → 志工陸續回報
+  loaChatSys('── 安全點名（模擬）──');
+  loaChatAdd('out','我','📡 【安全點名】請各位志工立即回覆：「安全」或「求救」，謝謝！',{});
+  loaSimReadReceipt('142',1000);
+  var replies=['安全 ✅','安全，正在執行任務','安全！','沒問題 👍','安全，需要補給','安全，稍後回報'];
+  var names=[loaSimRandName(),loaSimRandName(),loaSimRandName(),loaSimRandName()];
+  for(var i=0;i<4;i++){
+    loaSimIncoming(names[i],replies[i%replies.length],(i+1)*1400);
+  }
+  loaShowImpact([
+    {id:'rollcall',icon:'📡',lbl:'安全點名',delta:'回報中'},
+    {id:'rtSync',icon:'📡',lbl:'即時協調',delta:'+點名'}
+  ],'點名廣播 → 142位');
 }
 function loaPushTask(i){
   var tk=DATA.tasks.items[i]; if(!tk) return;
@@ -4020,7 +4220,6 @@ function loaDispatch(i){
   var pend=DATA.warehouse.reqs.filter(function(r){return r.status==='待派案';});
   var q=pend[i]; if(!q) return;
   dispatchReq(q.id);
-  // 叫料同步進即時協調中台任務池，建一筆「叫料配送」派工任務（沿用叫料本身急迫度，無則 P3）
   try{
     if(typeof RTDB!=='undefined'&&RTDB.ref){
       var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
@@ -4030,6 +4229,18 @@ function loaDispatch(i){
   }catch(e){}
   loaLog('派案 '+q.id+' 已執行，司機 Line 已收配送單');
   renderLOATab('supply');
+  // 模擬：發送 Flex 配送單 → 司機回報
+  loaChatSys('── 叫料派案（模擬）──');
+  loaChatAdd('out','我',loaSimFlexCard('🚛 配送單 '+q.id,
+    [['品項',q.item],['數量',q.qty],['地點',q.site],['急迫',q.prio||'P3']],
+    q.prio==='P1'?'#ef4444':'#f59e0b'),{});
+  loaSimReadReceipt(1,1000);
+  loaSimIncoming(loaSimRandName()+'（司機）','收到配送單，我馬上出發！',1800);
+  loaSimIncoming(loaSimRandName()+'（司機）','預計 20 分鐘後抵達 '+q.site,3200);
+  loaShowImpact([
+    {id:'warehouse',icon:'📦',lbl:'物資管理',delta:'派案中'},
+    {id:'rtSync',icon:'📡',lbl:'即時協調',delta:'+任務'}
+  ],'叫料派案 → '+q.id);
 }
 // ── Line OA 角色分組系統 ────────────────────────────────────────────────────
 function setLOAGroup(gid){ LOA_GROUP=gid; renderLOATab(LOA_ACTIVE_TAB); }
@@ -5098,11 +5309,22 @@ function loaGroupBroadcast(){
     loaLog('📤 [組長廣播] '+esc(gName)+' '+gVids.length+'位 → '+m.substring(0,30)+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
     toast('📤 已推播給 '+esc(gName)+' '+gVids.length+' 位'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
     rtAudit('組長廣播',gName+' → '+m.substring(0,40));
+    loaChatSys('── 組長廣播（模擬）──');
+    loaChatAdd('out','我','['+gName+'] '+m,{});
+    loaSimReadReceipt(gVids.length||3,1200);
+    loaSimIncoming(loaSimRandName(),'收到！',2000);
+    loaSimIncoming(loaSimRandName(),'了解 👍',3200);
+    loaShowImpact([{id:'ics',icon:'🏛',lbl:'ICS',delta:'+廣播'}],'組長廣播 → '+gName);
   } else {
     var vn=(rtGet('volunteers/'+t)||{}).name||t;
     loaSendTask(t,m,'');
     loaLog('📤 [組長點對點] '+esc(vn)+' → '+m.substring(0,30)+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
     toast('📲 已推播給 '+esc(vn)+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+    loaChatSys('── 點對點訊息（模擬）──');
+    loaChatAdd('out','我','[給 '+vn+'] '+m,{});
+    loaSimReadReceipt(1,1200);
+    loaSimIncoming(vn,'收到，我馬上處理',2000);
+    loaShowImpact([{id:'ics',icon:'🏛',lbl:'ICS',delta:'+訊息'}],'點對點 → '+vn);
   }
   if(msg) msg.value='';
 }
@@ -5129,6 +5351,12 @@ function loaDirectPush(vid){
   loaSendTask(vid,'📩 組長有訊息給您，請回報目前任務狀態','');
   loaLog('📲 直接推播 → '+esc(v.name)+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
   toast('📲 已推播給 '+esc(v.name)+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
+  // 模擬：組長詢問 → 志工回覆狀態
+  loaChatSys('── 直接詢問（模擬）──');
+  loaChatAdd('out','我','📩 '+v.name+'，請回報目前任務狀態',{});
+  loaSimReadReceipt(1,1000);
+  loaSimIncoming(v.name,'目前任務執行中，預計再 15 分鐘完成',1800);
+  loaShowImpact([{id:'ics',icon:'🏛',lbl:'ICS',delta:'+追蹤'}],'直接詢問 → '+v.name);
 }
 
 // ── 組員 Action Functions ──
@@ -5159,10 +5387,20 @@ function loaMemberSendMsg(){
   if(!m){toast('⚠ 請輸入回報內容');return;}
   var vid=LOA_MEMBER_VID;
   var v=vid?rtGet('volunteers/'+vid):null;
-  loaLog('🙋 [組員回報] '+esc(v?v.name:'組員')+' → '+m.substring(0,40));
+  var vName=v?v.name:'組員';
+  loaLog('🙋 [組員回報] '+esc(vName)+' → '+m.substring(0,40));
   rtAudit('組員回報',m.substring(0,60));
   toast('📲 訊息已送出'+(DATA.registry.innerGasUrl?'':' ⚠[模擬]'));
   if(el) el.value='';
+  // 模擬：組員傳出訊息 → 組長收到並回覆
+  loaChatSys('── 組員回報（模擬）──');
+  loaChatAdd('out',vName,m,{});
+  loaSimReadReceipt(1,1000);
+  loaSimIncoming('李組長','收到！'+vName+'，繼續加油，有需要隨時呼叫 🙏',2000);
+  loaShowImpact([
+    {id:'ics',icon:'🏛',lbl:'ICS',delta:'+回報'},
+    {id:'rtSync',icon:'📡',lbl:'即時協調',delta:'+更新'}
+  ],'組員回報：'+vName);
 }
 function loaMemberRequestSupply(item){
   var el=document.getElementById('loa-supply-item'); if(el) el.value=item;
@@ -5191,7 +5429,6 @@ function triggerSOS(who,detail){
   RTDB.ref('sos').set({active:true,who:who||'前線志工',detail:detail||'緊急求救',time:t});
   RTDB.ref('sosQueue').push({who:who||'前線志工',detail:detail||'緊急求救',time:t,resolved:false});
   rtAudit('SOS求救',(who||'前線')+'：'+(detail||'緊急求救'));
-  // Line OA 推播 tab 自動填入緊急內容
   var panel=document.getElementById('line-oa-panel');
   if(panel&&panel.style.display!=='none'){
     switchLOATab('push',document.querySelector('.loa-tab'));
@@ -5204,6 +5441,19 @@ function triggerSOS(who,detail){
   }
   loaLog('🆘 SOS 已進持久看板：'+(who||'前線')+'·'+(detail||'緊急求救'));
   renderRTSync();
+  // 模擬：SOS 傳入訊息 + 緊急廣播後的回應
+  loaChatSys('🆘 SOS 緊急警報（模擬）');
+  loaChatAdd('in',who||'前線志工','🆘 求救！'+(detail||'緊急求救')+'（'+t+'）',{});
+  loaChatAdd('out','我','🆘 緊急 SOS：'+(who||'前線志工')+'回報「'+(detail||'緊急求救')+'」，請全員注意安全並即時回報位置！',{});
+  loaSimReadReceipt('142',1200);
+  loaSimIncoming(loaSimRandName(),'收到！我在附近，馬上支援！',2000);
+  loaSimIncoming(loaSimRandName(),'了解！我通知組長',3000);
+  loaSimIncoming('李組長','收到 SOS，請問現在位置？派工台同步處理中',4200);
+  loaShowImpact([
+    {id:'rtSync',icon:'📡',lbl:'即時協調',delta:'🆘 SOS'},
+    {id:'ics',icon:'🏛',lbl:'ICS指揮',delta:'+緊急'},
+    {id:'rollcall',icon:'📡',lbl:'安全點名',delta:'+1筆'}
+  ],'SOS：'+(who||'前線志工'));
 }
 function showSOSOverlay(data){
   var ov=document.getElementById('sos-overlay'); if(!ov) return;
@@ -5432,6 +5682,18 @@ function rtDoAssign(k,vid){
   toast('✅ 已派給 '+v.name);
   loaSendTask(vid, t.title, '');
   RT_ASSIGN_FOR=null; renderRTSync();
+  // 模擬：派工推播 Flex Card → 志工確認
+  loaChatSys('── 即時派工（模擬）──');
+  loaChatAdd('out','我',loaSimFlexCard('⚡ 即時派工',
+    [['任務',t.title.substring(0,18)],['受派',v.name],['優先',t.priority||'P3'],['狀態','進行中']],
+    t.priority==='P1'?'#ef4444':t.priority==='P2'?'#f59e0b':'#3b82f6'),{});
+  loaSimReadReceipt(1,900);
+  loaSimIncoming(v.name,'收到！我馬上開始 💪',1600);
+  loaShowImpact([
+    {id:'rtSync',icon:'📡',lbl:'即時協調',delta:'進行中'},
+    {id:'ics',icon:'🏛',lbl:'ICS',delta:'+派工'},
+    {id:'loa',icon:'💬',lbl:'LINE OA',delta:'+推播'}
+  ],'派工 → '+v.name+' · '+t.title.substring(0,14));
 }
 function showFatigueReplacement(vid,tk){
   var vols=rtGet('volunteers');
@@ -5838,13 +6100,10 @@ function rtReport(k,result){
   var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   if(result==='已完成'){
     RTDB.ref('tasks/'+k).update({status:'已完成',lockedBy:''});
-    // 釋放志工回待命
     if(t.assignee){
       RTDB.ref('volunteers/'+t.assignee).update({task:'',status:'待命'});
     }
-    // 推入完成動態 feed（派工台看板用）
     RTDB.ref('completionFeed').push({taskId:k,title:t.title,who:who,time:time});
-    // 若任務來自民眾求助，同步更新原求助單
     if(t.title&&t.title.indexOf('民眾求助')>-1){
       var m=t.title.match(/民眾求助\s+([\w-]+)/);
       if(m&&DATA.relief_req){
@@ -5855,9 +6114,25 @@ function rtReport(k,result){
     logSys('ok','✅ 任務完成：'+who+' 完成「'+t.title+'」，志工釋回待命');
     toast('✅ 任務完成：'+who+' — 已釋回待命');
     loaLog('✅ [任務完成] '+who+' 完成「'+t.title+'」('+time+') — 志工已釋回待命');
+    // 模擬：完成回報 Flex Card + 指揮官確認
+    loaChatSys('── 任務完成回報（模擬）──');
+    loaChatAdd('in',who,loaSimFlexCard('✅ 任務完成回報',
+      [['任務',t.title.substring(0,18)],['完成者',who],['時間',time],['狀態','已完成 ✅']],
+      '#06C755'),{});
+    loaSimIncoming(who,'任務完成，我已釋回待命，請問下一個任務？',1800);
+    loaChatAdd('out','我','辛苦了！'+who+' 已確認完成，請原地待命等候下一任務指示。',{});
+    loaSimReadReceipt(1,800);
+    loaShowImpact([
+      {id:'rtSync',icon:'📡',lbl:'即時協調',delta:'✅完成'},
+      {id:'ics',icon:'🏛',lbl:'ICS',delta:'+1完成'},
+      {id:'archive',icon:'📁',lbl:'稽核歸檔',delta:'+記錄'}
+    ],'任務完成：'+who+' — '+t.title.substring(0,16));
   } else {
     logSys('info','【回報】'+who+' · '+t.title+' → '+result);
     toast('💬 回報已同步：'+result);
+    loaChatSys('── 進度回報（模擬）──');
+    loaChatAdd('in',who,'📊 '+t.title.substring(0,20)+' → '+result,{});
+    loaShowImpact([{id:'rtSync',icon:'📡',lbl:'即時協調',delta:'更新'}],'進度回報');
   }
   RTDB.ref('reportLog').push({time:time,msg:'📲 '+who+' 回報「'+t.title+'」→ '+result});
   renderRTSync();
