@@ -974,7 +974,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
           <option value="">— 模組 —</option>
           <option>dashboard</option><option>monitor</option><option>rtsync</option><option>relief_req</option>
           <option>vol_hub</option><option>coord</option><option>warehouse</option><option>sorting</option>
-          <option>case_mgt</option><option>care_rec</option><option>shelter_mgt</option><option>rebuild</option>
+          <option>persons</option><option>shelter_mgt</option>
           <option>assets</option><option>line_oa</option><option>drive</option><option>admin</option>
           <option>arch_doc</option><option>arch7</option><option>intake</option>
           <option>全系統</option>
@@ -1310,7 +1310,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
   <div id="coord-content"></div>
 </div>
 
-<!-- ══ 災後重建與長期陪伴 ══ -->
+<!-- ══ 災後重建與長期陪伴（舊頁保留，已由 page-persons 整合） ══ -->
 <div class="page" id="page-rebuild">
   <div class="pg-hdr"><div><div class="pg-title">🏠 災後重建與長期陪伴</div><div class="pg-sub">緊急安置 → 組合屋 → 修繕 → 重建 · 中長期心理重建追蹤</div></div></div>
   <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
@@ -1319,6 +1319,22 @@ textarea.iep-inp{resize:vertical;min-height:56px}
     <button class="btn btn-ghost" id="rbtab-psych" onclick="setRebuildTab('psych')">🧠 心理重建追蹤</button>
   </div>
   <div id="rebuild-content"></div>
+</div>
+
+<!-- ══ 個案全程陪伴（整合：個案管理 + 關懷行動 + 災後重建） ══ -->
+<div class="page" id="page-persons">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">🫂 個案全程陪伴</div>
+      <div class="pg-sub">急救期 → 安置期 → 重建期 · 個案卡 · 關懷紀錄 · 重建追蹤</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue"  id="prtab-cases"  onclick="setPersonsTab('cases')">🗂️ 個案名單</button>
+    <button class="btn btn-ghost" id="prtab-care"   onclick="setPersonsTab('care')">💚 關懷紀錄</button>
+    <button class="btn btn-ghost" id="prtab-rebuild" onclick="setPersonsTab('rebuild')">🏗️ 重建追蹤</button>
+  </div>
+  <div id="persons-content"></div>
 </div>
 
 <!-- WARTIME SCENARIO OVERLAY -->
@@ -2306,7 +2322,7 @@ var ARCH_DOC={
     {id:'sorting',name:'物資整理站',layer:'L3',status:'live',note:'收件→拆箱分類→報廢/覆核→重包裝→入庫'},
     {id:'warehouse',name:'物資倉儲管理',layer:'L3',status:'live',note:'三級分類造冊、大車物流調度、對內庫存管理'},
     {id:'shelter_mgt',name:'安置收容管理',layer:'L3',status:'live',note:'災民造冊、慰問金、清掃修繕'},
-    {id:'case_mgt',name:'個案管理系統',layer:'L3',status:'live',note:'個案訪視紀錄、動線規劃'},
+    {id:name:'個案管理系統',layer:'L3',status:'live',note:'個案訪視紀錄、動線規劃'},
     {id:'care_rec',name:'關懷行動紀錄',layer:'L3',status:'live',note:'訪視、線上、定點、法訊'},
     {id:'assets',name:'慈濟資產調度',layer:'L3',status:'live',note:'可重複物資調用→運送→歸還循環追蹤'}
   ],
@@ -4437,6 +4453,30 @@ DATA.devTasks = [
 // ══════════════════════════════════════════════════════
 //  RENDER FUNCTIONS
 // ══════════════════════════════════════════════════════
+// ── 個案全程陪伴 統一資料模型 ──
+// 所有個案共用同一清單，phase 欄位決定所處階段
+// timeline[] 記錄跨階段的完整關懷軌跡
+DATA.persons = {
+  PERSONS_TAB: 'cases',
+  cases: [
+    {caseId:'C001', name:'張本個案', address:'竹崎鄉中正路 123 號', phase:'急救期', visitStatus:'待訪視', route:'動線A', psych:'', longCare:false, rebuildPct:0, rebuildPhase:'', timeline:[]},
+    {caseId:'C002', name:'李本個案', address:'梅山鄉中山路 45 號',  phase:'急救期', visitStatus:'訪視中', route:'動線B', psych:'', longCare:false, rebuildPct:0, rebuildPhase:'', timeline:[]},
+    {caseId:'C003', name:'王本個案', address:'大埔鄉和平街 67 號',  phase:'急救期', visitStatus:'已完成', route:'動線A', psych:'', longCare:false, rebuildPct:0, rebuildPhase:'', timeline:[{type:'訪視關懷',summary:'個案訪視完成，動線A GPS 軌跡已存',recorder:'系統自動',ts:'06-22'}]},
+    {caseId:'RB-018', name:'林○○一家', address:'大埔鄉和平村', phase:'重建期', visitStatus:'已完成', route:'', psych:'焦慮', longCare:true, rebuildPct:15, rebuildPhase:'緊急安置', timeline:[{type:'訪視關懷',summary:'發放生活包、情緒安撫',recorder:'林師姐',ts:'06-21'}]},
+    {caseId:'RB-015', name:'張○○',    address:'竹崎鄉緞繻村', phase:'重建期', visitStatus:'已完成', route:'', psych:'穩定', longCare:true, rebuildPct:45, rebuildPhase:'組合屋', timeline:[{type:'訪視關懷',summary:'安置期訪視，情緒穩定',recorder:'陳師兄',ts:'06-19'}]},
+    {caseId:'RB-009', name:'黃○○夫婦', address:'梅山鄉太平村', phase:'重建期', visitStatus:'已完成', route:'', psych:'穩定', longCare:false, rebuildPct:70, rebuildPhase:'修繕中', timeline:[]},
+    {caseId:'RB-003', name:'吳○○',    address:'竹崎鄉文峰村', phase:'重建期', visitStatus:'已完成', route:'', psych:'需持續關懷', longCare:true, rebuildPct:100, rebuildPhase:'重建完成', timeline:[{type:'心理追蹤',summary:'持續心理重建，轉介專業師資',recorder:'心理重建組',ts:'06-18'}]},
+  ],
+  careLogs: [
+    {type:'訪視關懷', target:'竹崎受災戶',     summary:'發放生活包、情緒安撫',     recorder:'林師姐', caseId:'RB-018'},
+    {type:'定點關懷', target:'梅山國小收容所', summary:'午餐供應熱食 150 份',      recorder:'陳師兄', caseId:''},
+    {type:'線上關懷', target:'大埔獨居長者',   summary:'電話問安 12 戶，2 戶需回訪',recorder:'張師姐', caseId:''},
+    {type:'法訊關懷', target:'竹崎收容所',     summary:'晚間祈禱共修 40 人參與',   recorder:'李師兄', caseId:''},
+  ],
+  careStats: {online:45, visit:28, fixedPointMeals:350},
+  rebuildPhases: ['緊急安置','組合屋','修繕中','重建完成'],
+};
+
 DATA.case_mgt={
   title:'個案與動線管理',
   addrNote:'電子地圖 + 公部門開源地址清冊已對接',
@@ -5306,9 +5346,7 @@ const NAV_CFG=[
   {id:'sorting',    icon:'🧰',label:'物資整理站',    tag:'limb', group:'L3 現場執行',roles:['admin','staff','logistics']},
   {id:'warehouse',  icon:'📦',label:'物資倉儲管理',  tag:'limb', group:'L3 現場執行',roles:['admin','logistics']},
   {id:'shelter_mgt',icon:'🏕️',label:'安置收容管理',  tag:'limb', group:'L3 現場執行',roles:['admin','staff','logistics']},
-  {id:'case_mgt',   icon:'🗂️',label:'個案管理系統',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
-  {id:'care_rec',   icon:'💚',label:'關懷行動紀錄',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
-  {id:'rebuild',    icon:'🏠',label:'災後重建與陪伴',tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
+  {id:'persons',    icon:'🫂',label:'個案全程陪伴',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
   {id:'assets',     icon:'🛏',label:'慈濟資產調度',  tag:'limb', group:'L3 現場執行',roles:['admin','logistics']},
   {id:'arch_doc',   icon:'🗺️',label:'系統架構說明',  tag:'doc',  group:'📐 架構文件',roles:['admin','it']},
 ];
@@ -5419,7 +5457,8 @@ function showPage(id){
   var mainEl=document.querySelector('.main');
   if(mainEl) mainEl.classList.toggle('arch-fullbleed',id==='arch_doc');
   if(id==='arch_doc') renderArchDoc();
-  if(id==='case_mgt') renderCaseMgt();
+  if(id==='persons') renderPersons();
+  if(id==='persons') renderCaseMgt();
   if(id==='care_rec') renderCareRec();
   if(id==='warehouse') renderWarehouse();
   if(id==='shelter_mgt') renderShelterMgt();
@@ -5431,7 +5470,7 @@ function showPage(id){
   if(id==='sorting') renderSorting();
   if(id==='assets') renderAssets();
   if(id==='rtsync'){ renderRTSync(); bindRTListeners(); }
-  if(state==='war'&&['case_mgt','care_rec','warehouse','shelter_mgt'].indexOf(id)>=0&&pg){
+  if(state==='war'&&['persons','persons','warehouse','shelter_mgt'].indexOf(id)>=0&&pg){
     var wb=document.getElementById('war-lock-'+id);
     if(!wb){
       wb=document.createElement('div');
@@ -5844,7 +5883,7 @@ function dsgQRow(q,i){
 function esc(v){ return String(v==null?'':v).split('&').join('&amp;').split('"').join('&quot;').split("'").join('&#39;').split('<').join('&lt;').split('>').join('&gt;'); }
 function dsgSet(k,v){ ensureDesigner()[k]=v; }
 function dsgSetQ(i,k,v){ var d=ensureDesigner(); d.questions[i][k]=v; if(k==='type') renderDesigner(); }
-function dsgSetQOpts(i,v){ ensureDesigner().questions[i].opts=v.split(/[,，]/).map(function(x){return x.trim();}).filter(Boolean); }
+function dsgSetQOpts(i,v){ ensureDesigner().questions[i].opts=v.split(/[，]/).map(function(x){return x.trim();}).filter(Boolean); }
 function dsgAddQ(){ var d=ensureDesigner(); d.questions.push({id:'q'+(d.questions.length+1),label:'新題目',type:'text',opts:[],req:false,def:''}); renderDesigner(); }
 function dsgDelQ(i){ var d=ensureDesigner(); d.questions.splice(i,1); renderDesigner(); }
 function dsgMoveQ(i,dir){ var d=ensureDesigner(); var j=i+dir; if(j<0||j>=d.questions.length) return; var t=d.questions[i]; d.questions[i]=d.questions[j]; d.questions[j]=t; renderDesigner(); }
@@ -6348,13 +6387,11 @@ const MODULES_PEACE = [
   {id:'vol_hub',    name:'志工人力中心', desc:'報名報到 · 名冊總表 · 管理指派',icon:'🧑‍🤝‍🧑'},
   {id:'monitor',    name:'全域監控',      desc:'API 連線 · 手動警報覆寫',      icon:'🖥️'},
   {id:'admin',      name:'系統管理',      desc:'角色權限 · 模組 · API · 版本',  icon:'🔧'},
-  {id:'case_mgt',   name:'個案管理系統', desc:'個案訪視 · 動線規劃',          icon:'🗂️'},
-  {id:'care_rec',   name:'關懷行動紀錄', desc:'四大關懷面向 · 餐食彙整',      icon:'💚'},
+  {id:'persons',    name:'個案全程陪伴', desc:'個案名單 · 關懷紀錄 · 重建追蹤', icon:'🫂'},
   {id:'warehouse',  name:'物資倉儲管理', desc:'三級分類 · 大車物流',          icon:'📦'},
   {id:'shelter_mgt',name:'安置收容管理', desc:'災民造冊 · 模式切換',          icon:'🏕️'},
   {id:'relief_req', name:'民眾求助通報', desc:'災民自主報案 · 轉派調度',      icon:'🆘'},
   {id:'coord',      name:'跨單位資源協調',desc:'外部單位 · 缺口媒合 · 分區',  icon:'🤝'},
-  {id:'rebuild',    name:'災後重建與陪伴',desc:'重建進度 · 長期關懷 · 心理',  icon:'🏠'},
 ];
 const MODULES_WAR = [
   {id:'w-dashboard', name:'戰時儀表板',   desc:'精簡版即時災情',              icon:'⚡'},
@@ -6363,8 +6400,7 @@ const MODULES_WAR = [
   {id:'w-logistics', name:'補給回報',      desc:'便當/飲水/物資一鍵回報',      icon:'🍱'},
   {id:'w-scenario',  name:'情境模擬器',   desc:'五種災型 · 變化球切換',       icon:'🎯'},
   {id:'w-map',       name:'地圖進度',      desc:'避難路線 · 物資投放',         icon:'🗺️'},
-  {id:'case_mgt',   name:'個案管理(戰時)', desc:'唯讀鎖定 · 動線凍結',         icon:'🗂️'},
-  {id:'care_rec',   name:'關懷紀錄(戰時)', desc:'唯讀鎖定 · 即時回報',         icon:'💚'},
+  {id:'persons',    name:'個案全程陪伴(戰時)', desc:'唯讀鎖定 · 即時回報',      icon:'🫂'},
   {id:'warehouse',  name:'倉儲管理(戰時)', desc:'三級分類緊急模式',            icon:'📦'},
   {id:'shelter_mgt',name:'收容管理(戰時)', desc:'造冊優先 · 唯讀資料',         icon:'🏕️'},
 ];
@@ -6521,81 +6557,81 @@ var WAR_MODULE_DEFAULTS = {
   quake: {
     label:'地震', emoji:'🏚️',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   wind: {
     label:'風災', emoji:'🌀',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','rtsync'], hidden:['case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','rtsync'], hidden:['persons','shelter_mgt','assets','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   flood: {
     label:'水災', emoji:'🌊',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   fire: {
     label:'火災/爆炸', emoji:'🔥',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['sorting','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['sorting','admin'] }
     }
   },
   landslide: {
     label:'土石流/山崩', emoji:'⛰️',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','persons','shelter_mgt','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   compound: {
     label:'複合型災害', emoji:'🌐',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','shelter_mgt','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','shelter_mgt','assets','rtsync'], hidden:['sorting','persons','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   drought: {
     label:'乾旱/缺水', emoji:'🏜️',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','care_rec','assets','rtsync'], hidden:['sorting','case_mgt','shelter_mgt','line_oa','drive','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','care_rec','assets','rtsync','line_oa'], hidden:['case_mgt','shelter_mgt','drive','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','persons','shelter_mgt','assets','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','assets','rtsync'], hidden:['sorting','persons','shelter_mgt','line_oa','drive','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','assets','rtsync','line_oa'], hidden:['shelter_mgt','drive','admin'] }
     }
   },
   epidemic: {
     label:'疫情/傳染病', emoji:'🦠',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','assets','rtsync','drive'], hidden:['sorting','shelter_mgt','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','assets','rtsync','line_oa','drive'], hidden:['sorting','shelter_mgt','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','persons','shelter_mgt','assets','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','assets','rtsync','drive'], hidden:['sorting','shelter_mgt','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','assets','rtsync','line_oa','drive'], hidden:['sorting','shelter_mgt','admin'] }
     }
   },
   tsunami: {
     label:'海嘯', emoji:'🌊',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','shelter_mgt','assets','rtsync'], hidden:['sorting','case_mgt','care_rec','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','shelter_mgt','assets','rtsync'], hidden:['sorting','persons','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync','drive'], hidden:['sorting','line_oa','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive'], hidden:['admin'] }
     }
   },
   war_s: {
     label:'動亂', emoji:'⚔️',
     levels:{
-      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','case_mgt','care_rec','shelter_mgt','assets','line_oa','drive','admin'] },
-      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync'], hidden:['sorting','line_oa','drive','admin'] },
-      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync'], hidden:['line_oa','drive','admin'] }
+      L1:{ modules:['dashboard','monitor','vol_hub','warehouse','rtsync'], hidden:['sorting','persons','shelter_mgt','assets','line_oa','drive','admin'] },
+      L2:{ modules:['dashboard','monitor','vol_hub','warehouse','persons','shelter_mgt','assets','rtsync'], hidden:['sorting','line_oa','drive','admin'] },
+      L3:{ modules:['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync'], hidden:['line_oa','drive','admin'] }
     }
   }
 };
@@ -6647,7 +6683,7 @@ function wtPickLevel(level){
     var enabled=lvObj.modules.slice();
     if(enabled.indexOf('dashboard')<0) enabled.unshift('dashboard');
     disabledModules.clear();
-    var ALL=['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive','admin'];
+    var ALL=['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive','admin'];
     for(var i=0;i<ALL.length;i++){ if(enabled.indexOf(ALL[i])<0) disabledModules.add(ALL[i]); }
     saveDisabledModules();
     selectScenario(_wtPendingScenario);
@@ -6673,7 +6709,7 @@ function wtPickLevel(level){
   var ALL_MOD_LABELS={
     monitor:'🖥️ 全域監控',vol_hub:'🧑‍🤝‍🧑 志工人力中心',
     sorting:'🧰 物資整理站',warehouse:'📦 物資倉儲',
-    case_mgt:'🗂️ 個案管理',care_rec:'💚 關懷紀錄',shelter_mgt:'🏕️ 安置收容',
+    persons:'🫂 個案全程陪伴',shelter_mgt:'🏕️ 安置收容',
     assets:'🛏 資產調度',rtsync:'⚡ 即時調度中台',line_oa:'💬 Line OA',
     drive:'📸 照片回報',admin:'🔧 系統管理'
   };
@@ -6706,7 +6742,7 @@ function wtBackToLevel(){
 }
 function wtConfirmAndLaunch(){
   var def=WAR_MODULE_DEFAULTS[_wtPendingScenario]||WAR_MODULE_DEFAULTS['quake'];
-  var ALL_IDS=['monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive','admin'];
+  var ALL_IDS=['monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive','admin'];
   var enabled=['dashboard'];
   var toHide=[];
   for(var i=0;i<ALL_IDS.length;i++){
@@ -7461,7 +7497,7 @@ function saveSimEdit(){
 
 
 // ── PERSIST DATA to localStorage ──
-var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','case_mgt','care_rec','shelter_mgt','registry','devTasks','relief_req','coord','rebuild'];
+var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','persons','shelter_mgt','registry','devTasks','relief_req','coord'];
 function saveData(){
   var payload = {};
   for(var i=0;i<DATA_KEYS.length;i++) payload[DATA_KEYS[i]] = DATA[DATA_KEYS[i]];
@@ -7786,7 +7822,7 @@ function renderWarModuleSettings(){
   var ALL_MOD_LABELS={
     monitor:'🖥️ 全域監控',vol_hub:'🧑‍🤝‍🧑 志工人力中心',
     sorting:'🧰 物資整理站',warehouse:'📦 物資倉儲',
-    case_mgt:'🗂️ 個案管理',care_rec:'💚 關懷紀錄',shelter_mgt:'🏕️ 安置收容',
+    persons:'🫂 個案全程陪伴',shelter_mgt:'🏕️ 安置收容',
     assets:'🛏 資產調度',rtsync:'⚡ 即時調度中台',line_oa:'💬 Line OA',
     drive:'📸 照片回報',admin:'🔧 系統管理'
   };
@@ -7835,7 +7871,7 @@ function wmsToggle(scen,mid,checked){
   if(checked&&idx<0) arr.push(mid);
   else if(!checked&&idx>=0) arr.splice(idx,1);
   // 同步 hidden
-  var ALL=['dashboard','monitor','vol_hub','sorting','warehouse','case_mgt','care_rec','shelter_mgt','assets','rtsync','line_oa','drive','admin'];
+  var ALL=['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive','admin'];
   lvObj.hidden=ALL.filter(function(x){return arr.indexOf(x)<0;});
   saveWarModuleDefaults();
 }
@@ -8262,6 +8298,154 @@ function setRebuildTab(t){
   ['progress','care','psych'].forEach(function(x){var b=document.getElementById('rbtab-'+x);if(b)b.className='btn '+(x===t?'btn-blue':'btn-ghost');});
   renderRebuild();
 }
+
+// ══ 個案全程陪伴 ══
+var PERSONS_TAB='cases';
+function setPersonsTab(t){
+  PERSONS_TAB=t;
+  ['cases','care'].forEach(function(k){
+    var b=document.getElementById('prtab-'+k);
+    if(b) b.className='btn '+(k===t?'btn-blue':'btn-ghost');
+  });
+  renderPersons();
+}
+function renderPersons(){
+  var el=document.getElementById('persons-content'); if(!el) return;
+  if(PERSONS_TAB==='care')    el.innerHTML=renderPersonsCare();
+  else if(PERSONS_TAB==='rebuild') el.innerHTML=renderPersonsRebuild();
+  else el.innerHTML=renderPersonsCases();
+}
+function renderPersonsCases(){
+  var d=DATA.persons;
+  var phColor={'急救期':'badge-red','重建期':'badge-blue'};
+  var stColor={'待訪視':'badge-amber','訪視中':'badge-blue','已完成':'badge-green'};
+  var html='<div class="card"><div class="card-title">🗂️ 個案名單（全階段）</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">急救期個案完成訪視後自動銜接重建追蹤；點「▶ 開始」推進訪視狀態。</div>'
+    +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>地址</th><th>階段</th><th>訪視狀態</th><th>操作</th></tr></thead><tbody>';
+  d.cases.forEach(function(c,i){
+    html+='<tr>'
+      +'<td class="sh-time">'+c.caseId+'</td>'
+      +'<td style="font-weight:500">'+c.name+'</td>'
+      +'<td style="font-size:11px">'+c.address+'</td>'
+      +'<td><span class="badge '+(phColor[c.phase]||'badge-blue')+'">'+c.phase+'</span></td>'
+      +'<td><span class="badge '+(stColor[c.visitStatus]||'badge-blue')+'">'+c.visitStatus+'</span></td>'
+      +'<td>';
+    if(c.visitStatus==='已完成'){
+      html+='<span style="font-size:9px;color:var(--green)">✓</span>';
+    } else {
+      html+='<button class="btn btn-blue btn-xs" onclick="advancePersonCase('+i+')">'+(c.visitStatus==='待訪視'?'▶ 開始訪視':'✓ 完成訪視')+'</button>';
+    }
+    html+='</td></tr>';
+    if(c.timeline&&c.timeline.length){
+      html+='<tr><td colspan="6" style="padding:4px 12px 8px;background:var(--bg1)">'
+        +'<div style="font-size:10px;color:var(--text4);display:flex;gap:10px;flex-wrap:wrap">';
+      c.timeline.forEach(function(t){
+        html+='<span>'+t.ts+' · <b>'+t.type+'</b> · '+t.summary+'（'+t.recorder+'）</span>';
+      });
+      html+='</div></td></tr>';
+    }
+  });
+  html+='</tbody></table>'
+    +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
+  return html;
+}
+function advancePersonCase(i){
+  var c=DATA.persons.cases[i], now=new Date(), ds=(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2);
+  if(c.visitStatus==='待訪視'){
+    c.visitStatus='訪視中';
+    logSys('info','【個案】'+c.caseId+' '+c.name+' 開始訪視，GPS 簽到記錄');
+    toast('▶ '+c.caseId+' 訪視開始');
+  } else if(c.visitStatus==='訪視中'){
+    c.visitStatus='已完成';
+    c.timeline.push({type:'訪視關懷',summary:'訪視完成'+(c.route?' （'+c.route+'）':''),recorder:'系統自動',ts:ds});
+    DATA.persons.careLogs.unshift({type:'訪視關懷',target:c.name,summary:'個案訪視完成',recorder:'系統自動',caseId:c.caseId});
+    DATA.persons.careStats.visit++;
+    logSys('ok','【個案】'+c.caseId+' 訪視完成 → 寫入關懷紀錄');
+    toast('✓ '+c.caseId+' 完成，已同步關懷紀錄');
+  }
+  renderPersons(); saveData();
+}
+function renderPersonsCare(){
+  var d=DATA.persons;
+  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">'
+    +'<div class="stat-card green" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">線上關懷</div><div class="stat-val">'+d.careStats.online+'</div><div class="stat-sub">戶</div></div>'
+    +'<div class="stat-card blue"  style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">訪視關懷</div><div class="stat-val">'+d.careStats.visit+'</div><div class="stat-sub">戶</div></div>'
+    +'<div class="stat-card amber" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">定點供餐</div><div class="stat-val">'+d.careStats.fixedPointMeals+'</div><div class="stat-sub">份</div></div>'
+    +'</div>';
+  var bento=DATA.field&&DATA.field.supplies?DATA.field.supplies.find(function(x){return x.item==='便當';}):null;
+  html+='<div style="display:flex;justify-content:flex-end;margin-bottom:10px">'
+    +'<button class="btn btn-amber" style="font-size:11px" onclick="logPersonsMeal()">🍱 登記定點供餐 +50（便當庫存 '+(bento?bento.stock:0)+'）</button>'
+    +'</div>';
+  var tColor={'訪視關懷':'badge-blue','線上關懷':'badge-green','定點關懷':'badge-amber','法訊關懷':'badge-purple','心理追蹤':'badge-purple'};
+  html+='<div class="card"><div class="card-title">💚 多元關懷行動紀錄</div>'
+    +'<table class="tbl"><thead><tr><th>面向</th><th>對象</th><th>摘要</th><th>紀錄人</th></tr></thead><tbody>';
+  d.careLogs.forEach(function(lg){
+    html+='<tr><td><span class="badge '+(tColor[lg.type]||'badge-blue')+'">'+lg.type+'</span></td>'
+      +'<td style="font-weight:500">'+lg.target+'</td><td style="font-size:11px">'+lg.summary+'</td>'
+      +'<td style="font-size:11px;color:var(--text3)">'+lg.recorder+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  return html;
+}
+function logPersonsMeal(){
+  var bento=DATA.field&&DATA.field.supplies?DATA.field.supplies.find(function(x){return x.item==='便當';}):null;
+  if(bento&&bento.stock<50){toast('⚠ 便當庫存不足 50 份');logSys('warn','供餐登記失敗：便當庫存不足');return;}
+  if(bento){bento.stock-=50;bento.status=bento.stock<bento.need*0.3?'red':(bento.stock<bento.need?'amber':'green');}
+  DATA.persons.careStats.fixedPointMeals+=50;
+  DATA.persons.careLogs.unshift({type:'定點關懷',target:'梅山國小收容所',summary:'熱食供應 50 份，便當庫存同步扣減',recorder:'系統自動',caseId:''});
+  if(DATA.care_rec){DATA.care_rec.stats.fixedPointMeals+=50;}
+  renderPersons(); if(typeof renderField==='function') renderField(); if(typeof renderAlerts==='function') renderAlerts(); saveData();
+  toast('🍱 供餐已登記，庫存已同步');
+}
+function renderPersonsRebuild(){
+  var d=DATA.persons;
+  var phColor={'緊急安置':'badge-red','組合屋':'badge-amber','修繕中':'badge-blue','重建完成':'badge-green'};
+  var psyColor={'穩定':'badge-green','焦慮':'badge-amber','需持續關懷':'badge-red','已轉介追蹤':'badge-blue'};
+  var rbCases=d.cases.filter(function(c){return c.phase==='重建期';});
+  var html='<div class="card"><div class="card-title">🏗️ 重建進度追蹤</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">承接急救期個案，追蹤至重建完成。</div>'
+    +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>重建階段</th><th>進度</th><th>心理狀態</th><th>長期陪伴</th><th>操作</th></tr></thead><tbody>';
+  rbCases.forEach(function(c){
+    var ci=d.cases.indexOf(c);
+    html+='<tr>'
+      +'<td class="sh-time">'+c.caseId+'</td><td style="font-weight:500">'+c.name+'</td>'
+      +'<td><span class="badge '+(phColor[c.rebuildPhase]||'badge-blue')+'">'+c.rebuildPhase+'</span></td>'
+      +'<td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;min-width:56px"><div style="height:100%;width:'+c.rebuildPct+'%;background:var(--green)"></div></div><span style="font-size:10px;font-family:monospace">'+c.rebuildPct+'%</span></div></td>'
+      +'<td><span class="badge '+(psyColor[c.psych]||'badge-amber')+'">'+c.psych+'</span></td>'
+      +'<td>'+(c.longCare?'✅':'—')+'</td>'
+      +'<td style="display:flex;gap:4px;flex-wrap:wrap">';
+    if(c.rebuildPhase!=='重建完成'){
+      html+='<button class="btn btn-blue btn-xs" onclick="advancePersonRebuild('+ci+')">▶ 推進</button>';
+    }
+    if(c.psych==='焦慮'||c.psych==='需持續關懷'){
+      html+='<button class="btn btn-purple btn-xs" onclick="referPersonPsych('+ci+')">🩺 轉介</button>';
+    }
+    html+='</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  return html;
+}
+function advancePersonRebuild(i){
+  var c=DATA.persons.cases[i], phases=DATA.persons.rebuildPhases;
+  var idx=phases.indexOf(c.rebuildPhase);
+  if(idx<phases.length-1){
+    c.rebuildPhase=phases[idx+1];
+    c.rebuildPct=c.rebuildPhase==='重建完成'?100:Math.min(95,Math.round((idx+2)/phases.length*100));
+    var now=new Date(), ds=(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2);
+    c.timeline.push({type:'重建推進',summary:'階段推進至「'+c.rebuildPhase+'」',recorder:'重建組',ts:ds});
+    logSys('ok','【重建】'+c.caseId+' 推進至「'+c.rebuildPhase+'」');
+    toast('▶ '+c.caseId+' → '+c.rebuildPhase); renderPersons(); saveData();
+  }
+}
+function referPersonPsych(i){
+  var c=DATA.persons.cases[i];
+  c.psych='已轉介追蹤'; c.longCare=true;
+  var now=new Date(), ds=(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2);
+  c.timeline.push({type:'心理追蹤',summary:'轉介專業心理師，納入長期陪伴',recorder:'心理重建組',ts:ds});
+  logSys('warn','【心理重建】'+c.caseId+' 已轉介專業心理師');
+  toast('🩺 已轉介心理師：'+c.caseId); renderPersons(); saveData();
+}
+
 function renderRebuild(){
   var el=document.getElementById('rebuild-content'); if(!el) return;
   if(REBUILD_TAB==='care') el.innerHTML=renderRebuildCare();
