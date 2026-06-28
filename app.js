@@ -32,7 +32,7 @@ var ARCH_DOC={
     {id:'sorting',name:'物資整理站',layer:'L3',status:'live',note:'收件→拆箱分類→報廢/覆核→重包裝→入庫'},
     {id:'warehouse',name:'物資倉儲管理',layer:'L3',status:'live',note:'三級分類造冊、大車物流調度、對內庫存管理'},
     {id:'shelter_mgt',name:'安置收容管理',layer:'L3',status:'live',note:'災民造冊、慰問金、清掃修繕'},
-    {id:name:'個案管理系統',layer:'L3',status:'live',note:'個案訪視紀錄、動線規劃'},
+    {id:'case_mgt',name:'個案管理系統',layer:'L3',status:'live',note:'個案訪視紀錄、動線規劃'},
     {id:'care_rec',name:'關懷行動紀錄',layer:'L3',status:'live',note:'訪視、線上、定點、法訊'},
     {id:'assets',name:'慈濟資產調度',layer:'L3',status:'live',note:'可重複物資調用→運送→歸還循環追蹤'}
   ],
@@ -1025,10 +1025,11 @@ function setAssetTab(t){
     var b=document.getElementById('atab-'+x);
     if(b) b.className=(x===t)?'btn btn-blue':'btn btn-ghost';
   });
-  renderAssets();
+  var tid=document.getElementById('res-assets')?'res-assets':'assets-content';
+  renderAssets(tid);
 }
-function renderAssets(){
-  var el=document.getElementById('assets-content'); if(!el) return;
+function renderAssets(targetId){
+  var el=document.getElementById(targetId||'assets-content'); if(!el) return;
   if(ASSET_TAB==='overview') el.innerHTML=renderAssetOverview();
   else if(ASSET_TAB==='loan') el.innerHTML=renderAssetLoan();
   else if(ASSET_TAB==='transit') el.innerHTML=renderAssetTransit();
@@ -1442,10 +1443,11 @@ function setSortTab(t){
     var b=document.getElementById('stab-'+x);
     if(b){b.className=(x===t)?'btn btn-blue':'btn btn-ghost';}
   });
-  renderSorting();
+  var tid=document.getElementById('res-sorting')?'res-sorting':'sorting-content';
+  renderSorting(tid);
 }
-function renderSorting(){
-  var el=document.getElementById('sorting-content'); if(!el) return;
+function renderSorting(targetId){
+  var el=document.getElementById(targetId||'sorting-content'); if(!el) return;
   if(SORT_TAB==='board') el.innerHTML=renderSortBoard();
   else if(SORT_TAB==='intake') el.innerHTML=renderSortIntake();
   else if(SORT_TAB==='sort') el.innerHTML=renderSortStation();
@@ -6214,10 +6216,11 @@ var RELIEF_TAB='inbox';
 function setReliefTab(t){
   RELIEF_TAB=t;
   ['inbox','map','form'].forEach(function(x){var b=document.getElementById('rrtab-'+x);if(b)b.className='btn '+(x===t?'btn-blue':'btn-ghost');});
-  renderReliefReq();
+  var tid=document.getElementById('needs-relief-content')?'needs-relief-content':'relief-req-content';
+  renderReliefReq(tid);
 }
-function renderReliefReq(){
-  var el=document.getElementById('relief-req-content'); if(!el) return;
+function renderReliefReq(targetId){
+  var el=document.getElementById(targetId||'relief-req-content'); if(!el) return;
   if(RELIEF_TAB==='map') el.innerHTML=renderReliefMap();
   else if(RELIEF_TAB==='form') el.innerHTML=renderReliefForm();
   else el.innerHTML=renderReliefInbox();
@@ -6331,10 +6334,11 @@ var COORD_TAB='match';
 function setCoordTab(t){
   COORD_TAB=t;
   ['match','partner','zone'].forEach(function(x){var b=document.getElementById('cotab-'+x);if(b)b.className='btn '+(x===t?'btn-blue':'btn-ghost');});
-  renderCoord();
+  var tid=document.getElementById('res-coord')?'res-coord':'coord-content';
+  renderCoord(tid);
 }
-function renderCoord(){
-  var el=document.getElementById('coord-content'); if(!el) return;
+function renderCoord(targetId){
+  var el=document.getElementById(targetId||'coord-content'); if(!el) return;
   if(COORD_TAB==='partner') el.innerHTML=renderCoordPartner();
   else if(COORD_TAB==='zone') el.innerHTML=renderCoordZone();
   else el.innerHTML=renderCoordMatch();
@@ -6717,11 +6721,35 @@ function setResourcesTab(t){
 }
 function renderResources(){
   var el=document.getElementById('resources-content'); if(!el) return;
-  if(RES_TAB==='warehouse'){ el.innerHTML='<div id="warehouse-content"></div>'; renderWarehouse(); }
-  else if(RES_TAB==='assets'){  el.innerHTML='<div id="assets-content"></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-blue" id="atab-overview" onclick="setAssetTab(\'overview\')">📋 資產總覽</button><button class="btn btn-ghost" id="atab-loan" onclick="setAssetTab(\'loan\')">📤 前線調用</button><button class="btn btn-ghost" id="atab-transit" onclick="setAssetTab(\'transit\')">🚚 運送追蹤</button><button class="btn btn-ghost" id="atab-return" onclick="setAssetTab(\'return\')">↩️ 歸還盤點</button></div>'; renderAssets(); }
-  else if(RES_TAB==='sorting'){ el.innerHTML='<div id="sorting-content"></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="sort-tabs"><button class="btn btn-blue" id="stab-board" onclick="setSortTab(\'board\')">📊 作業看板</button><button class="btn btn-ghost" id="stab-intake" onclick="setSortTab(\'intake\')">📥 收件登記</button><button class="btn btn-ghost" id="stab-sort" onclick="setSortTab(\'sort\')">✂️ 拆箱分類台</button><button class="btn btn-ghost" id="stab-discard" onclick="setSortTab(\'discard\')">🗑 報廢/覆核</button></div>'; renderSorting(); }
-  else if(RES_TAB==='coord'){   el.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-blue" id="cotab-match" onclick="setCoordTab(\'match\')">🔗 缺口媒合</button><button class="btn btn-ghost" id="cotab-partner" onclick="setCoordTab(\'partner\')">🏢 外部單位</button><button class="btn btn-ghost" id="cotab-zone" onclick="setCoordTab(\'zone\')">📍 責任分區</button></div><div id="coord-content"></div>'; renderCoord(); }
-  else if(RES_TAB==='kitchen'){ el.innerHTML=renderKitchen(); }
+  if(RES_TAB==='warehouse'){
+    el.innerHTML='<div id="res-wh"></div>';
+    renderWarehouse('res-wh');
+  } else if(RES_TAB==='assets'){
+    el.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+      +'<button class="btn btn-blue" id="atab-overview" onclick="setAssetTab(\'overview\')">📋 資產總覽</button>'
+      +'<button class="btn btn-ghost" id="atab-loan" onclick="setAssetTab(\'loan\')">📤 前線調用</button>'
+      +'<button class="btn btn-ghost" id="atab-transit" onclick="setAssetTab(\'transit\')">🚚 運送追蹤</button>'
+      +'<button class="btn btn-ghost" id="atab-return" onclick="setAssetTab(\'return\')">↩️ 歸還盤點</button>'
+      +'</div><div id="res-assets"></div>';
+    renderAssets('res-assets');
+  } else if(RES_TAB==='sorting'){
+    el.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="sort-tabs">'
+      +'<button class="btn btn-blue" id="stab-board" onclick="setSortTab(\'board\')">📊 作業看板</button>'
+      +'<button class="btn btn-ghost" id="stab-intake" onclick="setSortTab(\'intake\')">📥 收件登記</button>'
+      +'<button class="btn btn-ghost" id="stab-sort" onclick="setSortTab(\'sort\')">✂️ 拆箱分類台</button>'
+      +'<button class="btn btn-ghost" id="stab-discard" onclick="setSortTab(\'discard\')">🗑 報廢/覆核</button>'
+      +'</div><div id="res-sorting"></div>';
+    renderSorting('res-sorting');
+  } else if(RES_TAB==='coord'){
+    el.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+      +'<button class="btn btn-blue" id="cotab-match" onclick="setCoordTab(\'match\')">🔗 缺口媒合</button>'
+      +'<button class="btn btn-ghost" id="cotab-partner" onclick="setCoordTab(\'partner\')">🏢 外部單位</button>'
+      +'<button class="btn btn-ghost" id="cotab-zone" onclick="setCoordTab(\'zone\')">📍 責任分區</button>'
+      +'</div><div id="res-coord"></div>';
+    renderCoord('res-coord');
+  } else if(RES_TAB==='kitchen'){
+    el.innerHTML=renderKitchen();
+  }
 }
 function renderKitchen(){
   var d=DATA.kitchen;
@@ -6779,8 +6807,8 @@ function renderNeeds(){
   var loa='<div style="font-size:11px;color:var(--text4);background:var(--bg3);border-radius:6px;padding:6px 10px;margin-bottom:12px">📱 入口：志工透過 <strong>Line OA</strong> 回報 → 自動進入對應通報池 → 幹部收件 → 轉派即時調度中台</div>';
   if(NEEDS_TAB==='people'){
     // 複用既有 relief_req 渲染邏輯
-    el.innerHTML=loa+'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-blue" id="rrtab-inbox" onclick="setReliefTab(\'inbox\')">📥 收件匣</button><button class="btn btn-ghost" id="rrtab-map" onclick="setReliefTab(\'map\')">🗺️ 分佈圖</button><button class="btn btn-ghost" id="rrtab-form" onclick="setReliefTab(\'form\')">📱 填報預覽</button></div><div id="relief-req-content"></div>';
-    renderReliefReq();
+    el.innerHTML=loa+'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-blue" id="rrtab-inbox" onclick="setReliefTab(\'inbox\')">📥 收件匣</button><button class="btn btn-ghost" id="rrtab-map" onclick="setReliefTab(\'map\')">🗺️ 分佈圖</button><button class="btn btn-ghost" id="rrtab-form" onclick="setReliefTab(\'form\')">📱 填報預覽</button></div><div id="needs-relief-content"></div>';
+    renderReliefReq('needs-relief-content');
   } else if(NEEDS_TAB==='kitchen'){
     el.innerHTML=loa+renderNeedsKitchen();
   } else if(NEEDS_TAB==='survey'){
@@ -6906,8 +6934,8 @@ function addMedStaff(){
   renderMedicalCheckin();
 }
 
-function renderWarehouse(){
-  var el=document.getElementById('warehouse-content'); if(!el) return;
+function renderWarehouse(targetId){
+  var el=document.getElementById(targetId||'warehouse-content'); if(!el) return;
   var d=DATA.warehouse;
   var stColor={'配送中':'badge-blue','待命':'badge-amber','回程中':'badge-green'};
   var pC={P1:'var(--red)',P2:'var(--amber)',P3:'var(--green)'};
