@@ -3218,15 +3218,15 @@ var LOA_MEMBER_VID='';    // selected volunteer ID in member mode
 var LOA_NOTIFY={};        // tab → unread count
 var LOA_RM_CURRENT_TAB='push';
 var LOA_RICH_MENUS={
-  push:     [{ico:'📢',lbl:'全員推播',fn:"loaBroadcast&&loaBroadcast()||loaLog('📢 全員推播已送出')"},
-             {ico:'🆘',lbl:'緊急廣播',fn:"loaSOS('系統','緊急廣播測試')"},
+  push:     [{ico:'📢',lbl:'全員推播',fn:"loaLog('📢 全員推播已送出');loaCrossNotify(['checkin','task','rollcall'],1)"},
+             {ico:'🆘',lbl:'緊急廣播',fn:"triggerSOS('系統','緊急廣播測試')"},
              {ico:'📋',lbl:'今日摘要',fn:'loaRMDailySummary()'},
              {ico:'⚙️',lbl:'推播紀錄',fn:'loaRMPushLog()'}],
   checkin:  [{ico:'✅',lbl:'我要報到',fn:'loaRMCheckinSelf()'},
              {ico:'📷',lbl:'掃QR報到',fn:'loaRMQRCheckin()'},
              {ico:'📊',lbl:'報到狀況',fn:'loaRMCheckinStatus()'},
              {ico:'🔔',lbl:'催促未到',fn:'loaRMReminderUnchecked()'}],
-  rollcall: [{ico:'🚨',lbl:'發起點名',fn:'loaRollcall&&loaRollcall()||loaLog("🚨 點名發起")'},
+  rollcall: [{ico:'🚨',lbl:'發起點名',fn:'loaFireRollcall()'},
              {ico:'✋',lbl:'回應點名',fn:'loaRMRespondRollcall()'},
              {ico:'📊',lbl:'點名結果',fn:'loaRMRollcallResult()'},
              {ico:'🔄',lbl:'補點',fn:'loaRMRollcallRetry()'}],
@@ -3241,23 +3241,23 @@ var LOA_RICH_MENUS={
   kitchen:  [{ico:'🍱',lbl:'申請餐食',fn:'loaRMRequestMeal()'},
              {ico:'📊',lbl:'用餐統計',fn:'loaRMMealStats()'},
              {ico:'⚠️',lbl:'食材不足',fn:"loaRMIngredientShortage()"},
-             {ico:'✅',lbl:'備餐完成',fn:"loaKitchenMealReady&&loaKitchenMealReady()||loaLog('✅ 備餐完成')"}],
+             {ico:'✅',lbl:'備餐完成',fn:'loaKitchenBroadcastMeal()'}],
   medical:  [{ico:'🏥',lbl:'傷患通報',fn:'loaRMReportCasualty()'},
              {ico:'🧴',lbl:'耗材申請',fn:'loaRMMedicalSupply()'},
              {ico:'📊',lbl:'傷亡統計',fn:'loaRMMedStats()'},
              {ico:'🚑',lbl:'呼叫支援',fn:"loaRMMedSupport()"}],
   rescue:   [{ico:'🔍',lbl:'出隊通報',fn:'loaRMRescueDepart()'},
              {ico:'📍',lbl:'位置更新',fn:'loaRMRescueLocation()'},
-             {ico:'⚠️',lbl:'危險警告',fn:"loaRescueDanger&&loaRescueDanger()||loaLog('⚠️ 危險警告已發')"},
+             {ico:'⚠️',lbl:'危險警告',fn:'loaRescuePushSafeRule()'},
              {ico:'📋',lbl:'勘災報告',fn:'loaRMRescueReport()'}],
   care:     [{ico:'💙',lbl:'訪視報到',fn:'loaRMCareCheckIn()'},
              {ico:'📋',lbl:'個案查詢',fn:'loaRMCareQuery()'},
-             {ico:'⚠️',lbl:'高危通報',fn:"loaCareHighRisk&&loaCareHighRisk()||loaLog('⚠️ 高危個案通報')"},
-             {ico:'🎁',lbl:'祝福品',fn:"loaCareBlessingGift&&loaCareBlessingGift()||loaLog('🎁 祝福品已申請')"}],
+             {ico:'⚠️',lbl:'高危通報',fn:'loaCareHighRisk()'},
+             {ico:'🎁',lbl:'祝福品',fn:'loaCareBlessingGift()'}],
   transport:[{ico:'🚗',lbl:'接受派車',fn:'loaRMTransportAccept()'},
-             {ico:'📍',lbl:'位置回報',fn:"loaTransportReport&&loaTransportReport('位置更新')||loaLog('📍 位置已回報')"},
+             {ico:'📍',lbl:'位置回報',fn:"loaTransportReport('位置更新')"},
              {ico:'✅',lbl:'完成運送',fn:'loaRMTransportComplete()'},
-             {ico:'⚠️',lbl:'道路阻斷',fn:"loaTransportRoadBlock&&loaTransportRoadBlock()||loaLog('⚠️ 道路阻斷回報')"}]
+             {ico:'⚠️',lbl:'道路阻斷',fn:'loaTransportRoadBlock()'}]
 };
 function renderLOARichMenu(tab){
   var rm=document.getElementById('loa-rich-menu'); if(!rm) return;
@@ -3462,7 +3462,7 @@ function loaRMReportCasualty(){
     [['傷者數','--人'],['傷勢','待評估'],['位置','待定']],
     [{lbl:'輕傷1人',fn:"loaLog('🏥 輕傷1人通報');loaCrossNotify(['medical'],1)"},
      {lbl:'重傷送醫',fn:"loaLog('🚑 重傷送醫');loaCrossNotify(['push','task','medical'],2)"},
-     {lbl:'群傷意外',fn:"loaSOS('醫療組','群傷意外')"},
+     {lbl:'群傷意外',fn:"triggerSOS('醫療組','群傷意外')"},
      {lbl:'心理創傷',fn:"loaLog('💙 心理創傷轉介');loaCrossNotify(['care'],1)"}]);
 }
 function loaRMMedicalSupply(){
