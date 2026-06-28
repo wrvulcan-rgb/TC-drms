@@ -1372,6 +1372,21 @@ body.drill-on .main{padding-bottom:66px}
           <div class="inp-lbl" style="margin-top:8px">🏛 對內慈誠 GAS URL（doPost + 編號+姓名驗證）</div>
           <input class="inp" id="cfg-inner-gas-url" placeholder="https://script.google.com/macros/s/另一部署ID/exec" oninput="DATA.registry.innerGasUrl=this.value;saveData()">
           <div style="font-size:9px;color:var(--text4);margin-top:4px;font-family:monospace">對內 QR = URL + ?type=inner → LIFF 彈窗 → doPost 驗證編號姓名</div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+            <div class="inp-lbl" style="margin-top:0;display:flex;align-items:center;gap:8px">
+              🔥 Firebase RTDB（跨裝置即時同步）
+              <span id="fb-status"></span>
+            </div>
+            <div style="font-size:10px;color:var(--text4);margin-bottom:8px">填入後重新整理頁面，多台裝置即可共用同一份即時資料。<a href="https://console.firebase.google.com/" target="_blank" style="color:var(--blue)">Firebase 控制台 →</a></div>
+            <input class="inp" id="fb-api-key" placeholder="apiKey（AIza...）" style="margin-bottom:6px" value="">
+            <input class="inp" id="fb-auth-domain" placeholder="authDomain（xxx.firebaseapp.com）" style="margin-bottom:6px" value="">
+            <input class="inp" id="fb-db-url" placeholder="databaseURL（https://xxx.firebaseio.com）" style="margin-bottom:6px" value="">
+            <input class="inp" id="fb-project-id" placeholder="projectId（xxx）" style="margin-bottom:8px" value="">
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-green" onclick="fbSaveConfig()" style="flex:1;justify-content:center">💾 儲存並重新整理</button>
+              <button class="btn btn-ghost" onclick="fbClearConfig()">🗑 清除</button>
+            </div>
+          </div>
         </div>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
           <div class="card-title" style="margin-bottom:10px">🗺 本會作業區對照表</div>
@@ -8273,7 +8288,8 @@ var RTDB=(function(){
       };
     },
     seed:function(data){ var db=readAll(); var empty=true; for(var k in db){empty=false;break;} if(empty){ writeAll(data); } },
-    reset:function(data){ writeAll(data); notifyAll(); }
+    reset:function(data){ writeAll(data); notifyAll(); },
+    externalSync:function(data){ var newRaw=JSON.stringify(data); var cur=localStorage.getItem(KEY); if(cur===newRaw) return; writeAll(data); notifyAll(); }
   };
 })();
 var RTDB_SEED={
@@ -8299,6 +8315,98 @@ var RTDB_SEED={
 };
 (function(){ var existing=null; try{ existing=JSON.parse(localStorage.getItem('drms_rtdb')||'null'); }catch(e){} if(!existing||!existing.sos||!existing.auditLog){ RTDB.reset?null:null; localStorage.setItem('drms_rtdb',JSON.stringify(RTDB_SEED)); } })();
 RTDB.seed(RTDB_SEED);
+
+// ════ Firebase RTDB 橋接（跨裝置同步）════
+// 啟用方式：在瀏覽器 Console 執行以下指令，然後重新整理頁面：
+//   localStorage.setItem('drms_fb_cfg', JSON.stringify({apiKey:'YOUR_KEY',authDomain:'xxx.firebaseapp.com',databaseURL:'https://xxx.firebaseio.com',projectId:'xxx'}))
+// 也可在系統管理 > ⚙️ 系統元件 > Firebase 設定欄位中直接填入。
+var FIREBASE_CFG=(function(){
+  try{ var s=localStorage.getItem('drms_fb_cfg'); return s?JSON.parse(s):null; }catch(e){ return null; }
+})();
+var FB_DB=null;
+var FB_CONNECTED=false;
+function fbLoadScript(src,cb){
+  var s=document.createElement('script'); s.src=src; s.async=true;
+  s.onload=cb;
+  s.onerror=function(){ console.warn('[DRMS] Firebase SDK 載入失敗，繼續使用 localStorage 模式'); };
+  document.head.appendChild(s);
+}
+function fbInitBridge(){
+  if(typeof firebase==='undefined'){ console.warn('[DRMS] Firebase 未載入'); return; }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CFG);
+    FB_DB=firebase.database();
+    // 寫入橋接：monkey-patch RTDB.ref，每次寫入同時發送到 Firebase
+    var _origRef=RTDB.ref.bind(RTDB);
+    RTDB.ref=function(path){
+      var r=_origRef(path);
+      var _set=r.set.bind(r), _upd=r.update.bind(r), _psh=r.push.bind(r), _rm=r.remove.bind(r);
+      r.set=function(val){ _set(val); try{ FB_DB.ref(path).set(val); }catch(e){} };
+      r.update=function(obj){ _upd(obj); try{ FB_DB.ref(path).update(obj); }catch(e){} };
+      r.push=function(val){ var id=_psh(val); try{ FB_DB.ref(path).child(id).set(val); }catch(e){} return id; };
+      r.remove=function(){ _rm(); try{ FB_DB.ref(path).remove(); }catch(e){} };
+      return r;
+    };
+    // 讀取橋接：Firebase 根節點監聽，有其他裝置寫入時同步到 localStorage
+    FB_DB.ref('/').on('value',function(snap){
+      var data=snap.val(); if(!data) return;
+      RTDB.externalSync(data);
+    });
+    // 首次連線：Firebase 空時把本地資料上傳
+    FB_DB.ref('/').once('value',function(snap){
+      if(!snap.val()){
+        var local=JSON.parse(localStorage.getItem('drms_rtdb')||'{}');
+        if(Object.keys(local).length) FB_DB.ref('/').set(local);
+      }
+    });
+    FB_CONNECTED=true;
+    try{ logSys('ok','🔥 Firebase RTDB 已連線 — 跨裝置即時同步啟用 ('+FIREBASE_CFG.databaseURL+')'); }catch(e){}
+  } catch(ex){ console.error('[DRMS] Firebase 初始化失敗：',ex); }
+}
+if(FIREBASE_CFG && FIREBASE_CFG.apiKey){
+  fbLoadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',function(){
+    fbLoadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js',fbInitBridge);
+  });
+}
+function fbPopulateFields(){
+  var cfg=FIREBASE_CFG||{};
+  ['api-key','auth-domain','db-url','project-id'].forEach(function(k){
+    var el=document.getElementById('fb-'+k); if(el) el.value=cfg[{
+      'api-key':'apiKey','auth-domain':'authDomain','db-url':'databaseURL','project-id':'projectId'
+    }[k]]||'';
+  });
+}
+function fbSaveConfig(){
+  var apiKey=(document.getElementById('fb-api-key')||{value:''}).value.trim();
+  var authDomain=(document.getElementById('fb-auth-domain')||{value:''}).value.trim();
+  var dbUrl=(document.getElementById('fb-db-url')||{value:''}).value.trim();
+  var projectId=(document.getElementById('fb-project-id')||{value:''}).value.trim();
+  if(!apiKey||!dbUrl){ toast('⚠ 至少填入 API Key 和 Database URL'); return; }
+  var cfg={apiKey:apiKey,authDomain:authDomain,databaseURL:dbUrl,projectId:projectId};
+  try{ localStorage.setItem('drms_fb_cfg',JSON.stringify(cfg)); }catch(e){}
+  toast('✅ Firebase 設定已儲存，3 秒後自動重新整理…');
+  setTimeout(function(){ location.reload(); }, 3000);
+}
+function fbClearConfig(){
+  if(!confirm('清除 Firebase 設定並回到 localStorage 模式？')) return;
+  try{ localStorage.removeItem('drms_fb_cfg'); }catch(e){}
+  toast('🗑 Firebase 設定已清除，3 秒後自動重新整理…');
+  setTimeout(function(){ location.reload(); }, 3000);
+}
+function renderFbStatus(){
+  var el=document.getElementById('fb-status'); if(!el) return;
+  if(FB_CONNECTED){
+    el.innerHTML='<span class="conn-dot ok" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px"></span>'
+      +'<span style="font-size:11px;color:var(--green);font-weight:600">已連線</span>'
+      +'<span style="font-size:10px;color:var(--text4);margin-left:8px">'+esc(FIREBASE_CFG.databaseURL)+'</span>';
+  } else if(FIREBASE_CFG && FIREBASE_CFG.apiKey){
+    el.innerHTML='<span class="conn-dot warn" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--amber);margin-right:6px"></span>'
+      +'<span style="font-size:11px;color:var(--amber);font-weight:600">連線中…</span>';
+  } else {
+    el.innerHTML='<span class="conn-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--border3);margin-right:6px"></span>'
+      +'<span style="font-size:11px;color:var(--text4)">未設定（使用 localStorage 單機模式）</span>';
+  }
+}
 
 const NAV_CFG=[
   {id:'dashboard',  icon:'📊',label:'總控儀表板',    tag:'core', group:'L1 戰情指揮',roles:['admin','it','staff','logistics']},
@@ -9289,7 +9397,7 @@ function switchTab(tid){
   const el=document.getElementById(tid);
   if(el) el.classList.add('act-tp');
   if(tid==='t-todo') renderTodoList();
-  if(tid==='t-sys') renderVersionPanel();
+  if(tid==='t-sys'){ renderVersionPanel(); renderFbStatus(); fbPopulateFields(); }
   if(tid==='t-perm') renderPermMatrix();
   if(tid==='t-mod'){ renderModuleManager(); renderAPIRows(); }
 }
