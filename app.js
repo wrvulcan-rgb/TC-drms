@@ -453,6 +453,15 @@ function rtAudit(action,detail){
   RTDB.ref('auditLog').push({time:time,actor:(role||'admin'),action:action,detail:detail});
 }
 
+// ── 統一 Tab 切換：淡入 + 防高度塌陷 ──
+function switchTabContent(el, html){
+  if(!el.style.minHeight) el.style.minHeight='220px';
+  el.style.animation='none';
+  el.innerHTML=html;
+  void el.offsetWidth;
+  el.style.animation='tab-in .15s ease';
+}
+
 var RT_TAB='tasks';
 var rtBound=false;
 function setRTTab(t){
@@ -1030,10 +1039,10 @@ function setAssetTab(t){
 }
 function renderAssets(targetId){
   var el=document.getElementById(targetId||'assets-content'); if(!el) return;
-  if(ASSET_TAB==='overview') el.innerHTML=renderAssetOverview();
-  else if(ASSET_TAB==='loan') el.innerHTML=renderAssetLoan();
-  else if(ASSET_TAB==='transit') el.innerHTML=renderAssetTransit();
-  else if(ASSET_TAB==='return') el.innerHTML=renderAssetReturn();
+  if(ASSET_TAB==='overview') switchTabContent(el,renderAssetOverview());
+  else if(ASSET_TAB==='loan') switchTabContent(el,renderAssetLoan());
+  else if(ASSET_TAB==='transit') switchTabContent(el,renderAssetTransit());
+  else if(ASSET_TAB==='return') switchTabContent(el,renderAssetReturn());
 }
 function renderAssetOverview(){
   var d=DATA.assets;
@@ -1448,11 +1457,11 @@ function setSortTab(t){
 }
 function renderSorting(targetId){
   var el=document.getElementById(targetId||'sorting-content'); if(!el) return;
-  if(SORT_TAB==='board') el.innerHTML=renderSortBoard();
-  else if(SORT_TAB==='intake') el.innerHTML=renderSortIntake();
-  else if(SORT_TAB==='sort') el.innerHTML=renderSortStation();
-  else if(SORT_TAB==='discard') el.innerHTML=renderSortDiscard();
-  else if(SORT_TAB==='repack') el.innerHTML=renderSortRepack();
+  if(SORT_TAB==='board') switchTabContent(el,renderSortBoard());
+  else if(SORT_TAB==='intake') switchTabContent(el,renderSortIntake());
+  else if(SORT_TAB==='sort') switchTabContent(el,renderSortStation());
+  else if(SORT_TAB==='discard') switchTabContent(el,renderSortDiscard());
+  else if(SORT_TAB==='repack') switchTabContent(el,renderSortRepack());
 }
 function renderSortBoard(){
   var d=DATA.sorting;
@@ -3735,8 +3744,8 @@ function setRegFlow(f){
 }
 function renderRegFlow(){
   var el=document.getElementById('reg-flow-content'); if(!el) return;
-  if(REG_FLOW==='signup'){ el.innerHTML=renderRegSignup(); setTimeout(function(){ renderRegStats(); loadFormPreview(); },10); }
-  else if(REG_FLOW==='checkin') el.innerHTML=renderRegCheckinPanel();
+  if(REG_FLOW==='signup'){ switchTabContent(el,renderRegSignup()); setTimeout(function(){ renderRegStats(); loadFormPreview(); },10); }
+  else if(REG_FLOW==='checkin') switchTabContent(el,renderRegCheckinPanel());
 }
 var SIGNUP_DAY='today';
 function setSignupDay(d){ SIGNUP_DAY=d; renderRegFlow(); }
@@ -6201,9 +6210,9 @@ function setReliefTab(t){
 }
 function renderReliefReq(targetId){
   var el=document.getElementById(targetId||'relief-req-content'); if(!el) return;
-  if(RELIEF_TAB==='map') el.innerHTML=renderReliefMap();
-  else if(RELIEF_TAB==='form') el.innerHTML=renderReliefForm();
-  else el.innerHTML=renderReliefInbox();
+  if(RELIEF_TAB==='map') switchTabContent(el,renderReliefMap());
+  else if(RELIEF_TAB==='form') switchTabContent(el,renderReliefForm());
+  else switchTabContent(el,renderReliefInbox());
 }
 function renderReliefInbox(){
   var d=DATA.relief_req;
@@ -6319,9 +6328,9 @@ function setCoordTab(t){
 }
 function renderCoord(targetId){
   var el=document.getElementById(targetId||'coord-content'); if(!el) return;
-  if(COORD_TAB==='partner') el.innerHTML=renderCoordPartner();
-  else if(COORD_TAB==='zone') el.innerHTML=renderCoordZone();
-  else el.innerHTML=renderCoordMatch();
+  if(COORD_TAB==='partner') switchTabContent(el,renderCoordPartner());
+  else if(COORD_TAB==='zone') switchTabContent(el,renderCoordZone());
+  else switchTabContent(el,renderCoordMatch());
 }
 function renderCoordMatch(){
   var d=DATA.coord, sColor={'待媒合':'badge-amber','已媒合':'badge-green'};
@@ -6407,11 +6416,11 @@ function setPersonsTab(t){
 }
 function renderPersons(){
   var el=document.getElementById('persons-content'); if(!el) return;
-  if(PERSONS_TAB==='care')    el.innerHTML=renderPersonsCare();
-  else if(PERSONS_TAB==='rebuild') el.innerHTML=renderPersonsRebuild();
-  else if(PERSONS_TAB==='shelter'){ el.innerHTML='<div id="pers-shelter"></div>'; renderShelterMgt('pers-shelter'); }
-  else if(PERSONS_TAB==='welfare') el.innerHTML=renderWelfare();
-  else el.innerHTML=renderPersonsCases();
+  if(PERSONS_TAB==='care')    switchTabContent(el,renderPersonsCare());
+  else if(PERSONS_TAB==='rebuild') switchTabContent(el,renderPersonsRebuild());
+  else if(PERSONS_TAB==='shelter'){ switchTabContent(el,'<div id="pers-shelter"></div>'); renderShelterMgt('pers-shelter'); }
+  else if(PERSONS_TAB==='welfare') switchTabContent(el,renderWelfare());
+  else switchTabContent(el,renderPersonsCases());
 }
 function renderWelfare(){
   var d=DATA.persons;
@@ -6591,9 +6600,9 @@ function referPersonPsych(i){
 
 function renderRebuild(){
   var el=document.getElementById('rebuild-content'); if(!el) return;
-  if(REBUILD_TAB==='care') el.innerHTML=renderRebuildCare();
-  else if(REBUILD_TAB==='psych') el.innerHTML=renderRebuildPsych();
-  else el.innerHTML=renderRebuildProgress();
+  if(REBUILD_TAB==='care') switchTabContent(el,renderRebuildCare());
+  else if(REBUILD_TAB==='psych') switchTabContent(el,renderRebuildPsych());
+  else switchTabContent(el,renderRebuildProgress());
 }
 function renderRebuildProgress(){
   var d=DATA.rebuild, phColor={'緊急安置':'badge-red','組合屋':'badge-amber','修繕中':'badge-blue','重建完成':'badge-green'};
@@ -6749,33 +6758,33 @@ function setResourcesTab(t){
 function renderResources(){
   var el=document.getElementById('resources-content'); if(!el) return;
   if(RES_TAB==='warehouse'){
-    el.innerHTML='<div id="res-wh"></div>';
+    switchTabContent(el,'<div id="res-wh"></div>');
     renderWarehouse('res-wh');
   } else if(RES_TAB==='assets'){
-    el.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+    switchTabContent(el,'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
       +'<button class="btn btn-blue" id="atab-overview" onclick="setAssetTab(\'overview\')">📋 資產總覽</button>'
       +'<button class="btn btn-ghost" id="atab-loan" onclick="setAssetTab(\'loan\')">📤 前線調用</button>'
       +'<button class="btn btn-ghost" id="atab-transit" onclick="setAssetTab(\'transit\')">🚚 運送追蹤</button>'
       +'<button class="btn btn-ghost" id="atab-return" onclick="setAssetTab(\'return\')">↩️ 歸還盤點</button>'
-      +'</div><div id="res-assets"></div>';
+      +'</div><div id="res-assets"></div>');
     renderAssets('res-assets');
   } else if(RES_TAB==='sorting'){
-    el.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="sort-tabs">'
+    switchTabContent(el,'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="sort-tabs">'
       +'<button class="btn btn-blue" id="stab-board" onclick="setSortTab(\'board\')">📊 作業看板</button>'
       +'<button class="btn btn-ghost" id="stab-intake" onclick="setSortTab(\'intake\')">📥 收件登記</button>'
       +'<button class="btn btn-ghost" id="stab-sort" onclick="setSortTab(\'sort\')">✂️ 拆箱分類台</button>'
       +'<button class="btn btn-ghost" id="stab-discard" onclick="setSortTab(\'discard\')">🗑 報廢/覆核</button>'
-      +'</div><div id="res-sorting"></div>';
+      +'</div><div id="res-sorting"></div>');
     renderSorting('res-sorting');
   } else if(RES_TAB==='coord'){
-    el.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+    switchTabContent(el,'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
       +'<button class="btn btn-blue" id="cotab-match" onclick="setCoordTab(\'match\')">🔗 缺口媒合</button>'
       +'<button class="btn btn-ghost" id="cotab-partner" onclick="setCoordTab(\'partner\')">🏢 外部單位</button>'
       +'<button class="btn btn-ghost" id="cotab-zone" onclick="setCoordTab(\'zone\')">📍 責任分區</button>'
-      +'</div><div id="res-coord"></div>';
+      +'</div><div id="res-coord"></div>');
     renderCoord('res-coord');
   } else if(RES_TAB==='kitchen'){
-    el.innerHTML=renderKitchen();
+    switchTabContent(el,renderKitchen());
   }
 }
 function renderKitchen(){
@@ -6833,15 +6842,14 @@ function renderNeeds(){
   var el=document.getElementById('needs-content'); if(!el) return;
   var loa='<div style="font-size:11px;color:var(--text4);background:var(--bg3);border-radius:6px;padding:6px 10px;margin-bottom:12px">📱 入口：志工透過 <strong>Line OA</strong> 回報 → 自動進入對應通報池 → 幹部收件 → 轉派即時調度中台</div>';
   if(NEEDS_TAB==='people'){
-    // 複用既有 relief_req 渲染邏輯
-    el.innerHTML=loa+'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-blue" id="rrtab-inbox" onclick="setReliefTab(\'inbox\')">📥 收件匣</button><button class="btn btn-ghost" id="rrtab-map" onclick="setReliefTab(\'map\')">🗺️ 分佈圖</button><button class="btn btn-ghost" id="rrtab-form" onclick="setReliefTab(\'form\')">📱 填報預覽</button></div><div id="needs-relief-content"></div>';
+    switchTabContent(el,loa+'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-blue" id="rrtab-inbox" onclick="setReliefTab(\'inbox\')">📥 收件匣</button><button class="btn btn-ghost" id="rrtab-map" onclick="setReliefTab(\'map\')">🗺️ 分佈圖</button><button class="btn btn-ghost" id="rrtab-form" onclick="setReliefTab(\'form\')">📱 填報預覽</button></div><div id="needs-relief-content"></div>');
     renderReliefReq('needs-relief-content');
   } else if(NEEDS_TAB==='kitchen'){
-    el.innerHTML=loa+renderNeedsKitchen();
+    switchTabContent(el,loa+renderNeedsKitchen());
   } else if(NEEDS_TAB==='survey'){
-    el.innerHTML=loa+renderNeedsSurvey();
+    switchTabContent(el,loa+renderNeedsSurvey());
   } else if(NEEDS_TAB==='medical'){
-    el.innerHTML=loa+renderNeedsMedical();
+    switchTabContent(el,loa+renderNeedsMedical());
   }
 }
 function renderNeedsKitchen(){

@@ -136,6 +136,8 @@ body.nav-collapsed .main{margin-left:0}
 .rt-relief-row:active{transform:scale(.99)}
 @media(max-width:768px){.rt-board{grid-template-columns:1fr}}
 @keyframes fin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tab-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.tab-panel{min-height:220px}
 .pg-hdr{margin-bottom:28px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .pg-title{font-size:21px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:-.3px;line-height:1.2}
 .pg-sub{font-size:11px;color:var(--text4);font-family:'JetBrains Mono',monospace;line-height:1.6}
