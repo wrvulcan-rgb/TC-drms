@@ -3446,7 +3446,6 @@ RTDB.seed(RTDB_SEED);
 const NAV_CFG=[
   {id:'dashboard',  icon:'📊',label:'總控儀表板',    tag:'core', group:'L1 戰情指揮',roles:['admin','it','staff','logistics']},
   {id:'monitor',    icon:'🖥️',label:'全域監控',      tag:'core', group:'L1 戰情指揮',roles:['admin','it']},
-  {id:'coord',      icon:'🤝',label:'跨單位資源協調',tag:'core', group:'L1 戰情指揮',roles:['admin','it','staff']},
   {id:'admin',      icon:'🔧',label:'系統管理',      tag:'admin',group:'L1 戰情指揮',roles:['admin']},
   {id:'rtsync',     icon:'⚡',label:'即時調度中台',  tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
   {id:'needs',      icon:'📥',label:'需求通報池',    tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
@@ -3454,7 +3453,6 @@ const NAV_CFG=[
   {id:'line_oa',    icon:'💬',label:'Line OA 模擬',   tag:'core', group:'L2 任務調度',roles:['admin','it']},
   {id:'drive',      icon:'📸',label:'照片回報與分類',tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
   {id:'resources',  icon:'🗄️',label:'資源台帳',      tag:'limb', group:'L3 現場執行',roles:['admin','logistics','staff']},
-  {id:'shelter_mgt',icon:'🏕️',label:'安置收容管理',  tag:'limb', group:'L3 現場執行',roles:['admin','staff','logistics']},
   {id:'persons',    icon:'🫂',label:'個案全程陪伴',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
   {id:'arch_doc',   icon:'🗺️',label:'系統架構說明',  tag:'doc',  group:'📐 架構文件',roles:['admin','it']},
 ];
@@ -6416,7 +6414,7 @@ function setRebuildTab(t){
 var PERSONS_TAB='cases';
 function setPersonsTab(t){
   PERSONS_TAB=t;
-  ['cases','care'].forEach(function(k){
+  ['cases','care','rebuild','shelter','welfare'].forEach(function(k){
     var b=document.getElementById('prtab-'+k);
     if(b) b.className='btn '+(k===t?'btn-blue':'btn-ghost');
   });
@@ -6426,7 +6424,54 @@ function renderPersons(){
   var el=document.getElementById('persons-content'); if(!el) return;
   if(PERSONS_TAB==='care')    el.innerHTML=renderPersonsCare();
   else if(PERSONS_TAB==='rebuild') el.innerHTML=renderPersonsRebuild();
+  else if(PERSONS_TAB==='shelter'){ el.innerHTML='<div id="pers-shelter"></div>'; renderShelterMgt('pers-shelter'); }
+  else if(PERSONS_TAB==='welfare') el.innerHTML=renderWelfare();
   else el.innerHTML=renderPersonsCases();
+}
+function renderWelfare(){
+  var d=DATA.persons;
+  var cases=d.cases||[];
+  var html='<div class="card"><div class="card-title">💰 祝福金發放紀錄</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">依個案訪視進度核發應急慰問金、重建補助及後續關懷金。</div>'
+    +'<table class="tbl"><thead><tr><th>個案編號</th><th>姓名</th><th>階段</th><th>金額</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+  cases.forEach(function(c,i){
+    var amt=c.phase==='急救期'?'$3,000':'$10,000';
+    var status=c.welfareStatus||'待申請';
+    var badgeCls=status==='已核發'?'badge-green':status==='審核中'?'badge-amber':'badge-blue';
+    html+='<tr>'
+      +'<td class="sh-time">'+c.caseId+'</td>'
+      +'<td style="font-weight:500">'+c.name+'</td>'
+      +'<td><span class="badge '+(c.phase==='急救期'?'badge-red':'badge-blue')+'">'+c.phase+'</span></td>'
+      +'<td>'+amt+'</td>'
+      +'<td><span class="badge '+badgeCls+'">'+status+'</span></td>'
+      +'<td>';
+    if(status==='待申請'){
+      html+='<button class="btn btn-blue btn-xs" onclick="applyWelfare('+i+')">📝 申請</button>';
+    } else if(status==='審核中'){
+      html+='<button class="btn btn-green btn-xs" onclick="approveWelfare('+i+')">✓ 核發</button>';
+    } else {
+      html+='<span style="font-size:9px;color:var(--green)">✓ 完成</span>';
+    }
+    html+='</td></tr>';
+  });
+  html+='</tbody></table></div>'
+    +'<div class="card" style="margin-top:12px"><div class="card-title">📊 統計</div>'
+    +'<div style="display:flex;gap:12px;flex-wrap:wrap">'
+    +'<div class="stat-card green" style="padding:12px"><div class="stat-lbl">已核發</div><div class="stat-val">'+cases.filter(function(c){return c.welfareStatus==='已核發';}).length+'</div></div>'
+    +'<div class="stat-card amber" style="padding:12px"><div class="stat-lbl">審核中</div><div class="stat-val">'+cases.filter(function(c){return c.welfareStatus==='審核中';}).length+'</div></div>'
+    +'<div class="stat-card blue" style="padding:12px"><div class="stat-lbl">待申請</div><div class="stat-val">'+cases.filter(function(c){return !c.welfareStatus||c.welfareStatus==='待申請';}).length+'</div></div>'
+    +'</div></div>';
+  return html;
+}
+function applyWelfare(i){
+  DATA.persons.cases[i].welfareStatus='審核中';
+  toast('📝 已送出申請');
+  renderPersons(); saveData();
+}
+function approveWelfare(i){
+  DATA.persons.cases[i].welfareStatus='已核發';
+  toast('💰 祝福金核發完成');
+  renderPersons(); saveData();
 }
 function renderPersonsCases(){
   var d=DATA.persons;
@@ -6966,8 +7011,8 @@ function renderWarehouse(targetId){
     +'<button class="btn btn-amber" style="margin-top:12px" onclick="toast(\'🚛 大車調度請求已送出（演練模擬）\')">＋ 申請大車調度</button></div>';
   el.innerHTML=html;
 }
-function renderShelterMgt(){
-  var el=document.getElementById('shelter-mgt-content'); if(!el) return;
+function renderShelterMgt(targetId){
+  var el=document.getElementById(targetId||'shelter-mgt-content'); if(!el) return;
   var d=DATA.shelter_mgt;
   var modeBtns='';
   for(var i=0;i<d.modes.length;i++){
