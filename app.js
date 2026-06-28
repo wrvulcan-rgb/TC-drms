@@ -1946,8 +1946,8 @@ function setLOARole(r){
   renderLineOA();
 }
 
-function renderLineOA(){
-  var el=document.getElementById('line-oa-content'); if(!el) return;
+function renderLineOA(targetId){
+  var el=document.getElementById(targetId||'line-oa-content'); if(!el) return;
 
   if(LOA_ROLE==='flow'){
     el.style.cssText='';
@@ -2244,38 +2244,9 @@ function loaOASay(text, extra){
 
 // ── Line OA 串接 tab（在 rtsync 中台內）──
 function renderRTLoa(){
-  var LOA_TAB=LOA_ACTIVE_TAB||'push';
-  var tabBtns=[
-    {id:'push',    label:'📢 廣播推播'},
-    {id:'checkin', label:'✅ 報到管理'},
-    {id:'rollcall',label:'📡 安全點名'},
-    {id:'task',    label:'🎯 任務推播'},
-    {id:'supply',  label:'🚛 叫料/供需'},
-  ];
-  var btnHtml=tabBtns.map(function(t){
-    return '<button class="btn '+(LOA_TAB===t.id?'btn-blue':'btn-ghost')+' btn-xs" '
-      +'onclick="switchLOATab(\''+t.id+'\',this)">'+t.label+'</button>';
-  }).join('');
-  var html='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+btnHtml+'</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">'
-    // 左：操作面板
-    +'<div class="card"><div class="card-title">📱 Line OA 操作介面</div>'
-    +'<div id="loa-body" style="font-size:12px"></div></div>'
-    // 右：推播 log
-    +'<div><div class="card" style="margin-bottom:12px">'
-    +'<div class="card-title"><span class="dot blink" style="background:var(--green)"></span>推播紀錄</div>'
-    +'<div id="loa-log" style="font-size:10px;line-height:1.8;min-height:60px;color:var(--text3)">等待操作...</div>'
-    +'</div>'
-    +'<div class="card">'
-    +'<div class="card-title" style="font-size:11px">🔗 快速跳轉</div>'
-    +'<div style="display:flex;flex-direction:column;gap:6px">'
-    +'<button class="btn btn-ghost btn-xs" onclick="showPage(\'line_oa\')">📱 手機模擬畫面 ↗</button>'
-    +'<button class="btn btn-ghost btn-xs" onclick="showPage(\'vol_hub\');setVolHubTab(\'checkin\')">名冊管理 ↗</button>'
-    +'<button class="btn btn-ghost btn-xs" onclick="showPage(\'warehouse\')">物資倉儲 ↗</button>'
-    +'</div></div></div>'
-    +'</div>';
-  // 渲染完後再填入 loa-body
-  setTimeout(function(){ renderLOATab(LOA_TAB); },0);
+  // 直接嵌入手機模擬器，用唯一 id 避免衝突
+  var html='<div id="rt-loa-content" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap"></div>';
+  setTimeout(function(){ renderLineOA('rt-loa-content'); },0);
   return html;
 }
 function sendBroadcast(){
@@ -3479,13 +3450,24 @@ function renderNav(){
   var nav=document.getElementById('nav');
   nav.innerHTML='';
   var lastGroup=null;
-  NAV_CFG.forEach(function(item,idx){
+  // 依角色決定 group 顯示順序
+  var groupOrder={
+    'it':      ['後台系統','今日行動','現場管理'],
+    'admin':   ['後台系統','今日行動','現場管理'],
+    'staff':   ['今日行動','現場管理','後台系統'],
+    'logistics':['今日行動','現場管理','後台系統'],
+  }[role]||['今日行動','現場管理','後台系統'];
+  var groupColor={'今日行動':'var(--blue)','現場管理':'var(--green)','後台系統':'var(--text4)'};
+  // 依 groupOrder 重排
+  var sorted=[];
+  groupOrder.forEach(function(g){ NAV_CFG.forEach(function(item){ if(item.group===g) sorted.push(item); }); });
+  NAV_CFG.forEach(function(item){ if(groupOrder.indexOf(item.group)===-1) sorted.push(item); });
+  sorted.forEach(function(item,idx){
     if(disabledModules.has(item.id)&&!editMode){ return; }
     if(item.group&&item.group!==lastGroup){
       var sec=document.createElement('div');
       sec.className='nav-sec';
-      var lvlColor={'L1':'var(--red)','L2':'var(--blue)','L3':'var(--green)'}[item.group.substring(0,2)]||'var(--text4)';
-      sec.style.cssText='border-left:3px solid '+lvlColor+';padding-left:7px';
+      sec.style.cssText='border-left:3px solid '+(groupColor[item.group]||'var(--text4)')+';padding-left:7px';
       sec.textContent=item.group;
       nav.appendChild(sec);
       lastGroup=item.group;
