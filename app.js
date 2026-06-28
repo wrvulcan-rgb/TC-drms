@@ -2377,10 +2377,10 @@ function renderRTLoa(){
     // ── 頂部 tab bar ──
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">'
     +'<span style="font-size:11px;color:var(--text4);margin-right:4px">Line OA 操作：</span>'+btnHtml+'</div>'
-    // ── 主體：左控台 + 右雙手機 ──
-    +'<div style="display:grid;grid-template-columns:380px 1fr;gap:16px;align-items:start">'
-    // 左：控台
-    +'<div>'
+    // ── 主體：橫向捲動，左控台 + 右雙手機並排 ──
+    +'<div style="display:flex;gap:16px;align-items:start;overflow-x:auto;padding-bottom:8px">'
+    // 左：控台（固定寬）
+    +'<div style="flex:0 0 340px;min-width:340px">'
     +'<div class="card" style="margin-bottom:10px">'
     +'<div class="card-title" style="margin-bottom:10px">Line OA 中控台</div>'
     +'<div id="rt-loa-body" style="font-size:12px"></div>'
@@ -2390,8 +2390,8 @@ function renderRTLoa(){
     +'<div id="rt-loa-log" style="font-size:10px;line-height:1.9;min-height:50px;color:var(--text3);max-height:140px;overflow-y:auto">等待操作...</div>'
     +'</div>'
     +'</div>'
-    // 右：雙手機
-    +'<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">'
+    // 右：兩支手機並排（不 wrap）
+    +'<div style="display:flex;gap:20px;flex-shrink:0">'
     +'<div>'+makeLoaPhoneShell('vol','rt-phone-vol')+'</div>'
     +'<div>'+makeLoaPhoneShell('staff','rt-phone-staff')+'</div>'
     +'</div>'
