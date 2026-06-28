@@ -407,9 +407,10 @@
 <div class="page" id="page-vol_hub">
   <div class="pg-hdr"><div><div class="pg-title">🧑‍🤝‍🧑 志工人力中心</div><div class="pg-sub">報名報到 · 名冊總表 · 管理指派（共用同一份 Master 名冊）</div></div></div>
   <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
-    <button class="btn btn-blue" id="vhtab-checkin" onclick="setVolHubTab('checkin')">📋 報名與報到</button>
-    <button class="btn btn-ghost" id="vhtab-roster" onclick="setVolHubTab('roster')">📊 報名資料總表</button>
-    <button class="btn btn-ghost" id="vhtab-manage" onclick="setVolHubTab('manage')">👥 志工管理與指派</button>
+    <button class="btn btn-blue" id="vhtab-checkin" onclick="setVolHubTab('checkin')">📋 志工報到</button>
+    <button class="btn btn-ghost" id="vhtab-medical" onclick="setVolHubTab('medical')">🏥 醫護報到</button>
+    <button class="btn btn-ghost" id="vhtab-roster" onclick="setVolHubTab('roster')">📊 名冊總表</button>
+    <button class="btn btn-ghost" id="vhtab-manage" onclick="setVolHubTab('manage')">👥 管理指派</button>
   </div>
 
   <!-- 子分頁：報名與報到 -->
@@ -443,6 +444,11 @@
       </div>
     </div>
   </div>
+  </div>
+
+  <!-- 子分頁：醫護人員報到（原型 D） -->
+  <div id="vh-medical" class="vh-panel" style="display:none">
+    <div id="medical-checkin-content"></div>
   </div>
 
   <!-- 子分頁：報名資料總表（Google Sheets 對接） -->
@@ -878,6 +884,31 @@
     <button class="btn btn-ghost" id="atab-return" onclick="setAssetTab('return')">↩️ 歸還盤點</button>
   </div>
   <div id="assets-content"></div>
+</div>
+
+<!-- ══ 原型 A：資源台帳 ══ -->
+<div class="page" id="page-resources">
+  <div class="pg-hdr"><div><div class="pg-title">🗄️ 資源台帳</div><div class="pg-sub">物資倉儲 · 慈濟資產 · 物資整理站 · 跨單位協調 · 香積餐食（原型 A）</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue"  id="restab-warehouse" onclick="setResourcesTab('warehouse')">📦 物資供需</button>
+    <button class="btn btn-ghost" id="restab-assets"    onclick="setResourcesTab('assets')">🛏 資產借調</button>
+    <button class="btn btn-ghost" id="restab-sorting"   onclick="setResourcesTab('sorting')">🧰 整理站</button>
+    <button class="btn btn-ghost" id="restab-coord"     onclick="setResourcesTab('coord')">🤝 跨單位協調</button>
+    <button class="btn btn-ghost" id="restab-kitchen"   onclick="setResourcesTab('kitchen')">🍲 香積餐食</button>
+  </div>
+  <div id="resources-content"></div>
+</div>
+
+<!-- ══ 原型 B：需求通報池 ══ -->
+<div class="page" id="page-needs">
+  <div class="pg-hdr"><div><div class="pg-title">📥 需求通報池</div><div class="pg-sub">民眾求助 · 廚房需求 · 勘察回報 · 醫療需求（入口皆為 Line OA）（原型 B）</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue"  id="needtab-people"  onclick="setNeedsTab('people')">🆘 民眾通報</button>
+    <button class="btn btn-ghost" id="needtab-kitchen" onclick="setNeedsTab('kitchen')">🍱 廚房需求</button>
+    <button class="btn btn-ghost" id="needtab-survey"  onclick="setNeedsTab('survey')">🔍 勘察回報</button>
+    <button class="btn btn-ghost" id="needtab-medical" onclick="setNeedsTab('medical')">🏥 醫療需求</button>
+  </div>
+  <div id="needs-content"></div>
 </div>
 
 <div class="page" id="page-rtsync">
