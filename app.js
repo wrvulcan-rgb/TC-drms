@@ -1929,133 +1929,305 @@ function renderMonitor(){
     cctv.innerHTML=ch;
   }
 }
-// ── Line OA 手機模擬頁（page-line_oa）──
-var LOA_ROLE='vol';
+// ══ Line OA 手機互動模擬（page-line_oa）══
+// 完全 inline，不用 iframe，按鈕直接呼叫主系統函數
+var LOA_ROLE = 'vol';
+var LOA_CHAT = { vol:[], staff:[], driver:[] }; // 各角色聊天紀錄
+var LOA_SUPPLY_STEP = {}; // 叫料精靈狀態
+
 function setLOARole(r){
-  LOA_ROLE=r;
-  ['vol','staff','driver','flow'].forEach(function(k){
+  LOA_ROLE = r;
+  ['vol','staff','driver'].forEach(function(k){
     var b=document.getElementById('loatab-'+k);
     if(b) b.className='btn '+(k===r?'btn-blue':'btn-ghost');
   });
   renderLineOA();
 }
+
 function renderLineOA(){
   var el=document.getElementById('line-oa-content'); if(!el) return;
-  if(LOA_ROLE==='flow'){
-    el.innerHTML=renderLOAFlowDiagram();
-    return;
-  }
-  // 手機框 + iframe
-  var roleLabel={'vol':'🧑 志工端','staff':'📋 幹部端','driver':'🚛 物流端'};
-  var roleHint={
-    vol:'志工透過 Line 完成：掃碼報到 · 三步驟叫料 · 勘災照片上傳 · SOS 求救 · 安全點名回報',
-    staff:'幹部透過 Line 收到：任務派工通知 · 組員點名 · 廣播訊息 · 物資派送確認',
-    driver:'物流志工透過 Line 收到：配送單 · 到貨確認請求 · 大車調度指令'
-  };
-  var simHtml=decodeURIComponent(escape(atob(LINE_OA_SIM_B64)));
-  var wrapper=document.createElement('div');
-  wrapper.style.cssText='display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap';
+  el.style.cssText='display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap';
 
-  // 左欄：說明
-  var info=document.createElement('div');
-  info.style.cssText='flex:1;min-width:220px;max-width:320px';
-  info.innerHTML='<div class="card" style="margin-bottom:12px">'
-    +'<div class="card-title">'+roleLabel[LOA_ROLE]+'</div>'
-    +'<div style="font-size:12px;color:var(--text3);line-height:1.7">'+roleHint[LOA_ROLE]+'</div>'
+  var roleNames = { vol:'陳建宏（志工）', staff:'林師姐（幹部）', driver:'王師兄（物流）' };
+  var roleAvatar = { vol:'🧑', staff:'📋', driver:'🚛' };
+
+  // 初始化聊天紀錄（第一次進來給預設訊息）
+  if(!LOA_CHAT[LOA_ROLE].length) loaInitChat(LOA_ROLE);
+
+  el.innerHTML =
+    // 左：操作按鈕區（模擬 LIFF 選單）
+    '<div style="flex:1;min-width:200px;max-width:260px">'
+      +'<div class="card" style="margin-bottom:10px">'
+        +'<div class="card-title" style="font-size:11px">'+roleAvatar[LOA_ROLE]+' '+roleNames[LOA_ROLE]+'</div>'
+        +'<div id="loa-action-area" style="display:flex;flex-direction:column;gap:6px"></div>'
+      +'</div>'
+      +'<div class="card">'
+        +'<div class="card-title" style="font-size:10px;color:var(--text4)">📡 中台即時狀態</div>'
+        +'<div id="loa-status-area" style="font-size:10px;line-height:1.9"></div>'
+      +'</div>'
     +'</div>'
-    +'<div class="card">'
-    +'<div class="card-title" style="font-size:11px">📡 此角色送出 → 中台</div>'
-    +renderLOARoleInbound(LOA_ROLE)
-    +'<div class="card-title" style="font-size:11px;margin-top:12px">📲 中台推播 → 此角色</div>'
-    +renderLOARoleOutbound(LOA_ROLE)
+    // 右：手機畫面
+    +'<div style="flex:0 0 auto">'
+      +'<div style="background:#1a1a2e;border-radius:36px;padding:10px 10px 16px;box-shadow:0 8px 32px rgba(0,0,0,.45);display:inline-block">'
+        // 頂部瀏海
+        +'<div style="background:#000;width:280px;height:28px;border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:center">'
+          +'<div style="width:60px;height:5px;background:#333;border-radius:3px"></div>'
+        +'</div>'
+        // Line 頂部欄
+        +'<div style="background:#06C755;width:280px;padding:8px 12px;display:flex;align-items:center;gap:8px">'
+          +'<div style="width:28px;height:28px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">🏥</div>'
+          +'<div style="color:#fff;font-size:12px;font-weight:600;flex:1">慈濟 DRMS</div>'
+          +'<div style="color:rgba(255,255,255,.8);font-size:10px">OA</div>'
+        +'</div>'
+        // 聊天區
+        +'<div id="loa-chat" style="background:#c8d9c2;width:280px;height:440px;overflow-y:auto;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px"></div>'
+        // 輸入列
+        +'<div style="background:#fff;width:280px;padding:8px 10px;display:flex;gap:6px;align-items:center;box-sizing:border-box;border-top:1px solid #e0e0e0">'
+          +'<div style="flex:1;background:#f0f0f0;border-radius:16px;padding:6px 10px;font-size:11px;color:#999">輸入訊息…</div>'
+          +'<div style="font-size:18px">😊</div>'
+        +'</div>'
+        // 底部圓角
+        +'<div style="background:#000;width:280px;height:20px;border-radius:0 0 20px 20px;display:flex;align-items:center;justify-content:center">'
+          +'<div style="width:80px;height:4px;background:#333;border-radius:2px"></div>'
+        +'</div>'
+      +'</div>'
     +'</div>';
 
-  // 右欄：手機模擬器
-  var phone=document.createElement('div');
-  phone.style.cssText='flex:0 0 auto';
-  phone.innerHTML='<div style="background:#1a1a2e;border-radius:36px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);display:inline-block">'
-    +'<div style="background:#000;border-radius:28px;overflow:hidden;width:300px;height:580px">'
-    +'<iframe id="loa-iframe" title="Line OA 模擬器（'+roleLabel[LOA_ROLE]+'）" '
-    +'style="width:100%;height:100%;border:none" srcdoc=""></iframe>'
-    +'</div></div>';
-
-  el.innerHTML='';
-  el.appendChild(wrapper);
-  wrapper.appendChild(info);
-  wrapper.appendChild(phone);
-
-  // 把 srcdoc 設進去（避免 XSS innerHTML 限制）
-  document.getElementById('loa-iframe').srcdoc=simHtml;
+  loaRenderChat();
+  loaRenderActions();
+  loaRenderStatus();
 }
-function renderLOARoleInbound(role){
-  var rows={
-    vol:['掃碼報到 → vol_hub 名冊','叫料需求 → warehouse 任務派案','勘災照片 → drive 分類','SOS → rtsync 緊急','安全點名 → SAFETY 統計'],
-    staff:['任務完工確認 → rtsync 任務狀態','物資收到確認 → warehouse 狀態','點名回報 → SAFETY 統計'],
-    driver:['到貨確認 → warehouse REQ 狀態','大車申請 → rtsync 任務池']
+
+// ── 初始聊天訊息 ──
+function loaInitChat(role){
+  var welcome = {
+    vol: [
+      {from:'oa', text:'歡迎加入慈濟災害應變系統！\n\n請使用下方選單操作，或輸入關鍵字：\n「報到」「叫料」「安全」「SOS」'},
+    ],
+    staff: [
+      {from:'oa', text:'📋 幹部您好，目前任務狀態：', card:'tasks'},
+    ],
+    driver: [
+      {from:'oa', text:'🚛 物流師兄您好，待配送需求：', card:'supply'},
+    ]
   };
-  return (rows[role]||[]).map(function(r){
-    var parts=r.split(' → ');
-    return '<div style="font-size:10px;padding:4px 0;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">'
-      +'<span style="color:var(--text3)">'+parts[0]+'</span>'
-      +'<span style="color:var(--text4)">→</span>'
-      +'<span style="color:var(--blue);font-family:monospace">'+parts[1]+'</span></div>';
+  LOA_CHAT[role] = welcome[role] || [];
+}
+
+// ── 渲染聊天氣泡 ──
+function loaRenderChat(){
+  var el=document.getElementById('loa-chat'); if(!el) return;
+  var msgs=LOA_CHAT[LOA_ROLE];
+  el.innerHTML = msgs.map(function(m){
+    if(m.from==='oa') return loaChatBubbleOA(m);
+    return loaChatBubbleUser(m);
+  }).join('');
+  // 捲到底
+  el.scrollTop = el.scrollHeight;
+}
+
+function loaChatBubbleOA(m){
+  var bg='#fff'; var color='#222';
+  var inner = '<div style="font-size:11px;line-height:1.6;white-space:pre-wrap">'+escHtml(m.text||'')+'</div>';
+
+  if(m.card==='tasks'){
+    var tasks=(DATA.tasks&&DATA.tasks.items||[]).slice(0,3);
+    inner += tasks.map(function(t){
+      return '<div style="margin-top:6px;background:#f5f5f5;border-radius:8px;padding:6px 8px;font-size:10px">'
+        +'<b>'+t.id+'</b> '+t.title
+        +'<br><span style="color:#888">'+t.assign+' · '+t.endTime+'</span>'
+        +(t.status!=='done'?'<br><button onclick="loaStaffTaskDone(\''+t.id+'\')" style="margin-top:4px;background:#06C755;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer">✅ 完工回報</button>':'<br><span style="color:#06C755;font-size:10px">✓ 已完成</span>')
+        +'</div>';
+    }).join('');
+  }
+  if(m.card==='supply'){
+    var reqs=(DATA.warehouse&&DATA.warehouse.reqs||[]).filter(function(r){return r.status==='待派案'||r.status==='已派案';}).slice(0,3);
+    inner += reqs.map(function(r){
+      return '<div style="margin-top:6px;background:#f5f5f5;border-radius:8px;padding:6px 8px;font-size:10px">'
+        +'<b style="color:'+(r.prio==='P1'?'#ef4444':'#f59e0b')+'">'+r.prio+'</b> '+r.item+' '+r.qty
+        +'<br><span style="color:#888">→ '+r.site+' · '+r.due+'</span>'
+        +(r.status!=='已送達'?'<br><button onclick="loaDriverConfirm(\''+r.id+'\')" style="margin-top:4px;background:#3b82f6;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer">✅ 已到貨</button>':'')
+        +'</div>';
+    }).join('');
+  }
+  if(m.flex==='rollcall'){
+    inner += '<div style="margin-top:8px;display:flex;gap:6px">'
+      +'<button onclick="loaVolSafe()" style="flex:1;background:#06C755;color:#fff;border:none;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">✅ 我安全</button>'
+      +'<button onclick="loaVolSOS()" style="flex:1;background:#ef4444;color:#fff;border:none;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">🆘 求救</button>'
+      +'</div>';
+  }
+  if(m.flex==='supply_items'){
+    inner += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">'
+      +['礦泉水','便當','醫療耗材','毛毯','發電機燃油','清潔用品'].map(function(item){
+        return '<button onclick="loaSupplyPickItem(\''+item+'\')" '
+          +'style="background:#f0f0f0;border:1px solid #ddd;border-radius:8px;padding:6px;font-size:11px;cursor:pointer;text-align:left">'+item+'</button>';
+      }).join('')
+      +'</div>';
+  }
+  if(m.flex==='supply_qty'){
+    inner += '<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">'
+      +['×10','×20','×50','×100'].map(function(q){
+        return '<button onclick="loaSupplyPickQty(\''+q+'\')" '
+          +'style="flex:1;background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">'+q+'</button>';
+      }).join('')
+      +'</div>';
+  }
+
+  return '<div style="display:flex;gap:6px;align-items:flex-start">'
+    +'<div style="width:28px;height:28px;background:#06C755;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px">🏥</div>'
+    +'<div style="max-width:200px;background:'+bg+';border-radius:0 10px 10px 10px;padding:8px 10px;color:'+color+';box-shadow:0 1px 2px rgba(0,0,0,.1)">'
+      +inner
+    +'</div></div>';
+}
+
+function loaChatBubbleUser(m){
+  return '<div style="display:flex;justify-content:flex-end">'
+    +'<div style="max-width:200px;background:#06C755;border-radius:10px 0 10px 10px;padding:8px 10px;color:#fff;font-size:11px;line-height:1.6">'+escHtml(m.text)+'</div>'
+    +'</div>';
+}
+
+// ── 操作按鈕（左欄，依角色顯示）──
+function loaRenderActions(){
+  var el=document.getElementById('loa-action-area'); if(!el) return;
+  var btns = {
+    vol: [
+      {label:'✅ 報到',   fn:'loaVolCheckin()'},
+      {label:'📦 叫料',   fn:'loaVolSupply()'},
+      {label:'📡 安全回報',fn:'loaVolSafe()'},
+      {label:'🆘 SOS 求救',fn:'loaVolSOS()', red:true},
+    ],
+    staff: [
+      {label:'📢 發送廣播', fn:'loaStaffBroadcast()'},
+      {label:'📡 發起點名', fn:'loaStaffRollcall()'},
+      {label:'🎯 查看任務', fn:'loaStaffViewTasks()'},
+    ],
+    driver: [
+      {label:'🚛 查看派送單', fn:'loaDriverViewReqs()'},
+    ]
+  };
+  el.innerHTML = (btns[LOA_ROLE]||[]).map(function(b){
+    return '<button onclick="'+b.fn+'" class="btn '+(b.red?'btn-red':'btn-green')+'" style="font-size:12px;justify-content:center">'+b.label+'</button>';
   }).join('');
 }
-function renderLOARoleOutbound(role){
-  var rows={
-    vol:['報到確認訊息','派工任務卡（Flex）','廣播通知','SOS 緊急廣播'],
-    staff:['新任務指派（Flex）','點名廣播','警報通知','人力調度指令'],
-    driver:['配送單（Flex）','物資到貨確認請求','大車調度指令']
-  };
-  return (rows[role]||[]).map(function(r){
-    return '<div style="font-size:10px;padding:4px 0;border-bottom:1px solid var(--border);color:var(--text3)">📲 '+r+'</div>';
-  }).join('');
+
+// ── 即時狀態（左欄下方）──
+function loaRenderStatus(){
+  var el=document.getElementById('loa-status-area'); if(!el) return;
+  var inner=DATA.registry.innerMembers.filter(function(m){return m.checkin;}).length;
+  var outer=DATA.registry.volunteers.filter(function(v){return v.checkin;}).length;
+  var pend=(DATA.warehouse.reqs||[]).filter(function(r){return r.status==='待派案';}).length;
+  var safe=SAFETY.safe, sos=SAFETY.sos;
+  el.innerHTML=''
+    +'<div>報到：<b style="color:var(--green)">'+(inner+outer)+'</b> 人</div>'
+    +'<div>待派需求：<b style="color:var(--amber)">'+pend+'</b> 件</div>'
+    +'<div>安全回報：<b style="color:var(--green)">'+safe+'</b> / SOS：<b style="color:var(--red)">'+sos+'</b></div>';
 }
-function renderLOAFlowDiagram(){
-  var rows=[
-    {from:'志工掃碼報到',     via:'Webhook → GAS',       to:'vol_hub',       detail:'姓名/編號 → 名冊打勾，自動回傳確認'},
-    {from:'三步驟叫料',       via:'Webhook → GAS',       to:'warehouse.reqs',detail:'品項/數量/地點 → 進入供需派案台'},
-    {from:'勘災照片上傳',     via:'Message API',          to:'drive',         detail:'自動對應個案/任務，寫入 Google Drive'},
-    {from:'SOS 求救',         via:'Postback → RTDB',      to:'rtsync 緊急',   detail:'觸發 SOS overlay + 全員緊急廣播'},
-    {from:'安全點名回報',     via:'Postback → GAS',       to:'SAFETY 統計',   detail:'已回/未回/求救 即時更新漏斗'},
-    {from:'任務完工確認',     via:'Postback → GAS',       to:'rtsync 任務池', detail:'任務狀態 → done，結案紀錄寫入'},
-    {from:'到貨確認（物流）', via:'Postback',             to:'warehouse',     detail:'REQ 狀態 → 已送達'},
-  ];
-  var outRows=[
-    {trigger:'新任務建立',   target:'指定組長',     type:'任務 Flex 卡'},
-    {trigger:'供需派案',     target:'司機',         type:'配送單 Flex'},
-    {trigger:'報到 QR 推播', target:'全員 / 分組',  type:'QR Code 圖片'},
-    {trigger:'發起點名',     target:'全員',         type:'安全點名廣播'},
-    {trigger:'緊急警報',     target:'全員',         type:'警報 Flex + 聲音'},
-  ];
-  var html='<div class="card" style="margin-bottom:14px">'
-    +'<div class="card-title">🔽 Line → 中台（志工送出，系統接收）</div>'
-    +'<div style="font-size:11px;color:var(--text4);margin-bottom:10px">真實串接需 Line Webhook URL 填入系統管理 → Line OA 設定</div>'
-    +'<table class="tbl"><thead><tr><th>Line 動作</th><th>傳輸方式</th><th>寫入模組</th><th>效果</th></tr></thead><tbody>';
-  rows.forEach(function(r){
-    html+='<tr>'
-      +'<td style="font-weight:500">'+r.from+'</td>'
-      +'<td style="font-family:monospace;font-size:10px;color:var(--text3)">'+r.via+'</td>'
-      +'<td><span class="badge badge-blue" style="font-family:monospace;font-size:9px">'+r.to+'</span></td>'
-      +'<td style="font-size:10px;color:var(--text3)">'+r.detail+'</td>'
-      +'</tr>';
-  });
-  html+='</tbody></table></div>';
-  html+='<div class="card">'
-    +'<div class="card-title">🔼 中台 → Line（系統觸發，推播給志工）</div>'
-    +'<table class="tbl"><thead><tr><th>觸發條件</th><th>推播對象</th><th>訊息類型</th></tr></thead><tbody>';
-  outRows.forEach(function(r){
-    html+='<tr>'
-      +'<td style="font-weight:500">'+r.trigger+'</td>'
-      +'<td>'+r.target+'</td>'
-      +'<td><span class="badge badge-green">'+r.type+'</span></td>'
-      +'</tr>';
-  });
-  html+='</tbody></table>'
-    +'<div style="margin-top:12px;padding:10px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-sm);font-size:11px;color:var(--amber)">'
-    +'⚠ 目前狀態：Webhook 端點 0% 實作（純模擬）。下一里程碑：GAS doPost() 接收 Webhook，寫入 Firebase RTDB，中台即時同步。'
-    +'</div></div>';
-  return html;
+
+// ── 志工操作 ──
+function loaVolCheckin(){
+  var me=DATA.registry.volunteers[0];
+  if(!me){loaUserSay('報到');loaOASay('找不到報名資料，請洽詢櫃台');return;}
+  if(!me.checkin){
+    me.checkin=true; me.checkinTime=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+    DATA.registry.stats.total++;
+    logSys('ok','【Line OA 模擬】'+me.name+' 報到完成');
+    if(typeof renderVolHub==='function') renderVolHub();
+    loaUserSay('報到');
+    loaOASay('✅ '+me.name+' 報到完成！\n時間：'+me.checkinTime+'\n請至任務分配區等候。');
+  } else {
+    loaUserSay('報到');
+    loaOASay('您已報到（'+me.checkinTime+'），無需重複操作。');
+  }
+  loaRenderStatus(); saveData();
+}
+
+function loaVolSupply(){
+  LOA_SUPPLY_STEP = {};
+  loaUserSay('叫料');
+  loaOASay('📦 請選擇需要的物資：', {flex:'supply_items'});
+}
+function loaSupplyPickItem(item){
+  LOA_SUPPLY_STEP.item = item;
+  loaUserSay(item);
+  loaOASay('需要幾份 '+item+'？', {flex:'supply_qty'});
+}
+function loaSupplyPickQty(qty){
+  var item = LOA_SUPPLY_STEP.item || '物資';
+  var id   = 'REQ-'+Date.now().toString().slice(-5);
+  DATA.warehouse.reqs.push({id:id, item:item, qty:qty, site:'現場', due:'1 小時內', prio:'P2', status:'待派案', driver:''});
+  logSys('ok','【Line OA 模擬】叫料 '+id+'：'+item+' '+qty);
+  loaUserSay(qty);
+  loaOASay('✅ 叫料需求已送出！\n單號：'+id+'\n'+item+' '+qty+'\n幹部確認後安排配送。');
+  if(typeof renderWarehouse==='function') renderWarehouse();
+  loaRenderStatus(); saveData();
+}
+
+function loaVolSafe(){
+  SAFETY.safe = Math.min(SAFETY.safe+1, SAFETY.sent);
+  SAFETY.unreported = SAFETY.unreported.filter(function(n,i){return i>0;});
+  logSys('ok','【Line OA 模擬】志工回報安全');
+  loaUserSay('我安全 ✅');
+  loaOASay('✅ 已記錄您的安全狀態，感謝回報！');
+  if(typeof renderRTSync==='function'&&typeof RT_TAB!=='undefined'&&RT_TAB==='emergency') renderRTSync();
+  loaRenderStatus(); saveData();
+}
+
+function loaVolSOS(){
+  triggerSOS('Line OA 模擬志工','緊急求救（Line OA 模擬）');
+  SAFETY.sos++;
+  loaUserSay('SOS 🆘');
+  loaOASay('🆘 求救訊號已送達指揮中心！\n請保持手機開機，幹部即刻聯絡您。');
+  loaRenderStatus(); saveData();
+}
+
+// ── 幹部操作 ──
+function loaStaffBroadcast(){
+  var msg='📢 請全體志工注意：目前進入緊急協調模式，請依分組聽候指示。';
+  logSys('ok','【Line OA 模擬】幹部廣播：'+msg);
+  loaUserSay('發送廣播');
+  loaOASay('✅ 廣播已送出（模擬 142 人）\n內容：'+msg);
+}
+function loaStaffRollcall(){
+  SAFETY.sent=DATA.registry.innerMembers.length+DATA.registry.volunteers.length;
+  SAFETY.unreported=DATA.registry.volunteers.slice(0,5).map(function(v){return v.name;});
+  logSys('ok','【Line OA 模擬】幹部發起安全點名');
+  loaUserSay('發起點名');
+  loaOASay('📡 安全點名已發送給 '+SAFETY.sent+' 位志工\n請等待回報結果。', {flex:'rollcall'});
+  if(typeof renderRTSync==='function'&&typeof RT_TAB!=='undefined'&&RT_TAB==='emergency') renderRTSync();
+}
+function loaStaffViewTasks(){
+  loaUserSay('查看任務');
+  loaOASay('目前任務清單：', {card:'tasks'});
+}
+function loaStaffTaskDone(id){
+  var tk=(DATA.tasks&&DATA.tasks.items||[]).find(function(t){return t.id===id;});
+  if(tk){ tk.status='done'; logSys('ok','【Line OA 模擬】任務 '+id+' 完工回報'); saveData(); }
+  loaOASay('✅ 任務 '+id+' 完工已記錄，感謝師兄/姐！');
+  if(typeof renderRTSync==='function') renderRTSync();
+}
+
+// ── 物流操作 ──
+function loaDriverViewReqs(){
+  loaUserSay('查看派送單');
+  loaOASay('目前待配送需求：', {card:'supply'});
+}
+function loaDriverConfirm(reqId){
+  var req=(DATA.warehouse.reqs||[]).find(function(r){return r.id===reqId;});
+  if(req){ req.status='已送達'; logSys('ok','【Line OA 模擬】'+reqId+' 到貨確認'); saveData(); }
+  loaOASay('✅ 到貨確認（'+reqId+'）已記錄，感謝師兄！');
+  if(typeof renderWarehouse==='function') renderWarehouse();
+  loaRenderStatus();
+}
+
+// ── 聊天紀錄 helpers ──
+function loaUserSay(text){
+  LOA_CHAT[LOA_ROLE].push({from:'user', text:text});
+  loaRenderChat();
+}
+function loaOASay(text, extra){
+  var msg = Object.assign({from:'oa', text:text}, extra||{});
+  LOA_CHAT[LOA_ROLE].push(msg);
+  loaRenderChat();
 }
 
 // ── Line OA 串接 tab（在 rtsync 中台內）──
