@@ -592,6 +592,11 @@ function rtWizAssign(vid){
     var rr=DATA.relief_req.requests.filter(function(x){return x.id===RT_WIZ.reliefId;})[0];
     if(rr){ rr.status='已轉派'; rr.taskRef='已建任務'; try{saveData();}catch(e){} try{ if(activePage==='relief_req') renderReliefReq(); }catch(e){} }
   }
+  // 通知幹部手機
+  if(typeof loaHook==='function'){
+    if(vid && v) loaHook('staff','🎯 任務已派發\n'+RT_WIZ.tplLabel+'\n指派：'+v.name+'\n優先：'+(RT_WIZ.prio||'P2'));
+    else loaHook('staff','📋 新任務建立\n'+RT_WIZ.tplLabel+'（待派工）');
+  }
   RT_WIZ.open=false; renderRTSync();
 }
 function rtPickAssign(k){ RT_ASSIGN_FOR=(RT_ASSIGN_FOR===k?null:k); renderRTSync(); }
@@ -2286,15 +2291,37 @@ function loaOASayAll(text, extra){
 }
 
 // ── Line OA 雙手機 shell ──
+var LOA_PHONE_BTNS={
+  vol:[
+    {label:'✅ 報到',   fn:'loaVolCheckin()',  cls:'btn-green'},
+    {label:'📦 叫料',   fn:'loaVolSupply()',   cls:'btn-blue'},
+    {label:'📡 安全回報',fn:'loaVolSafe()',    cls:'btn-ghost'},
+    {label:'🆘 SOS 求救',fn:'loaVolSOS()',    cls:'btn-red'},
+  ],
+  staff:[
+    {label:'📢 廣播',   fn:'loaStaffBroadcast()',  cls:'btn-blue'},
+    {label:'📡 點名',   fn:'loaStaffRollcall()',   cls:'btn-amber'},
+    {label:'🎯 查任務', fn:'loaStaffViewTasks()',  cls:'btn-ghost'},
+  ],
+  driver:[
+    {label:'🚛 查派送單',fn:'loaDriverViewReqs()', cls:'btn-blue'},
+  ]
+};
 function makeLoaPhoneShell(role, chatId){
   var labels={vol:'🧑 志工端',staff:'📋 幹部端',driver:'🚛 物流端'};
   var roleNames={vol:'陳建宏（志工）',staff:'林師姐（幹部）',driver:'王師兄（物流）'};
   if(!LOA_CHAT[role]||!LOA_CHAT[role].length) loaInitChat(role);
   var msgs=LOA_CHAT[role]||[];
-  var chatHtml=msgs.map(function(m){
-    return m.from==='oa' ? loaChatBubbleOA(m) : loaChatBubbleUser(m);
+  var chatHtml=msgs.map(function(m){return m.from==='oa'?loaChatBubbleOA(m):loaChatBubbleUser(m);}).join('');
+  var actionId='loa-act-'+role;
+  var statusId='loa-sts-'+role;
+  var btns=(LOA_PHONE_BTNS[role]||[]).map(function(b){
+    return '<button onclick="LOA_ROLE=\''+role+'\';'+b.fn+'" class="btn '+b.cls+'" style="font-size:11px;justify-content:center;padding:5px 8px">'+b.label+'</button>';
   }).join('');
   return '<div style="text-align:center;margin-bottom:6px;font-size:11px;color:var(--text3);font-weight:600">'+labels[role]+'</div>'
+    // 操作按鈕區（手機上方）
+    +'<div id="'+actionId+'" style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">'+btns+'</div>'
+    // 手機殼
     +'<div style="background:#1a1a2e;border-radius:36px;padding:10px 10px 16px;box-shadow:0 8px 32px rgba(0,0,0,.45);display:inline-block">'
     +'<div style="background:#000;width:260px;height:28px;border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:center">'
     +'<div style="width:60px;height:5px;background:#333;border-radius:3px"></div></div>'
@@ -2303,20 +2330,32 @@ function makeLoaPhoneShell(role, chatId){
     +'<div style="color:#fff;font-size:12px;font-weight:600;flex:1">慈濟 DRMS</div>'
     +'<div style="color:rgba(255,255,255,.8);font-size:10px">OA</div>'
     +'</div>'
-    +'<div id="'+chatId+'" style="background:#c8d9c2;width:260px;height:400px;overflow-y:auto;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">'+chatHtml+'</div>'
+    +'<div id="'+chatId+'" style="background:#c8d9c2;width:260px;height:360px;overflow-y:auto;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">'+chatHtml+'</div>'
     +'<div style="background:#fff;width:260px;padding:6px 10px;display:flex;gap:6px;align-items:center;box-sizing:border-box;border-top:1px solid #e0e0e0">'
     +'<div style="flex:1;background:#f0f0f0;border-radius:16px;padding:6px 10px;font-size:11px;color:#999">'+roleNames[role]+'</div>'
     +'<div style="font-size:18px">😊</div>'
     +'</div>'
     +'<div style="background:#000;width:260px;height:20px;border-radius:0 0 20px 20px;display:flex;align-items:center;justify-content:center">'
     +'<div style="width:80px;height:4px;background:#333;border-radius:2px"></div></div>'
-    +'</div>';
+    +'</div>'
+    // 狀態列（手機下方）
+    +'<div id="'+statusId+'" style="font-size:10px;color:var(--text4);margin-top:6px;text-align:center"></div>';
 }
 function loaRefreshPhones(){
-  var v=document.getElementById('rt-phone-vol');
-  var s=document.getElementById('rt-phone-staff');
-  if(v){ var msgs=LOA_CHAT.vol||[]; v.innerHTML=msgs.map(function(m){return m.from==='oa'?loaChatBubbleOA(m):loaChatBubbleUser(m);}).join(''); v.scrollTop=v.scrollHeight; }
-  if(s){ var msgs2=LOA_CHAT.staff||[]; s.innerHTML=msgs2.map(function(m){return m.from==='oa'?loaChatBubbleOA(m):loaChatBubbleUser(m);}).join(''); s.scrollTop=s.scrollHeight; }
+  ['vol','staff','driver'].forEach(function(role){
+    var el=document.getElementById('rt-phone-'+role);
+    if(!el) return;
+    var msgs=LOA_CHAT[role]||[];
+    el.innerHTML=msgs.map(function(m){return m.from==='oa'?loaChatBubbleOA(m):loaChatBubbleUser(m);}).join('');
+    el.scrollTop=el.scrollHeight;
+  });
+}
+// ── 從其他頁面推訊息到 Line OA 手機（雙向串連 hook）──
+function loaHook(role, text, extra){
+  if(!LOA_CHAT[role]||!LOA_CHAT[role].length) loaInitChat(role);
+  LOA_CHAT[role].push(Object.assign({from:'oa',text:text},extra||{}));
+  loaRefreshPhones();
+  loaLog('['+role+'] '+text.substring(0,30));
 }
 
 // ── Line OA 串接 tab（在 rtsync 中台內）──
@@ -4411,6 +4450,7 @@ function innerCheckIn(code,name){
   renderRegistry(); saveData();
   logSys('ok','【對內報到】'+m.name+'（'+code+'）'+m.group+' 報到完成');
   toast('✅ 阿彌陀佛！歡迎 '+m.name+' 師兄姐');
+  if(typeof loaHook==='function') loaHook('vol','✅ 報到完成\n歡迎 '+m.name+' 師兄姐\n時間：'+m.checkinTime+'\n請至'+m.group+'集合。');
 }
 function innerCheckInUI(){
   var code=document.getElementById('inner-code');
@@ -4510,6 +4550,7 @@ function fireAlert(){
   const m=document.getElementById('al-msg').value||'請注意安全';
   showModal('🚨 緊急警報已強制推播','已發送至 <strong style="color:var(--green)">142 位現場志工</strong> 的 Line OA','標題：'+t+'\n區域：'+a+'\n內容：'+m+'\n時間：'+new Date().toLocaleTimeString('zh-TW'));
   fireRollCall();
+  if(typeof loaOASayAll==='function') loaOASayAll('🚨 緊急警報\n'+t+'\n區域：'+a+'\n'+m+'\n請立即回報安全狀態。',{flex:'rollcall'});
 }
 
 // ── TABS ──
@@ -6441,9 +6482,11 @@ function renderReliefForm(){
 }
 function reliefSimSubmit(){
   var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  DATA.relief_req.requests.unshift({id:'SOS-'+(2042+Math.floor(Math.random()*900)),time:tm,type:'物資',name:'民眾○○',phone:'09**-***-'+Math.floor(100+Math.random()*899),location:'竹崎鄉（演練模擬填報）',people:1+Math.floor(Math.random()*4),desc:'演練模擬：民眾自主填報之求助案件',status:'待處理',dup:false});
+  var newReq={id:'SOS-'+(2042+Math.floor(Math.random()*900)),time:tm,type:'物資',name:'民眾○○',phone:'09**-***-'+Math.floor(100+Math.random()*899),location:'竹崎鄉（演練模擬填報）',people:1+Math.floor(Math.random()*4),desc:'演練模擬：民眾自主填報之求助案件',status:'待處理',dup:false};
+  DATA.relief_req.requests.unshift(newReq);
   logSys('info','【民眾求助】收到新求助通報（演練模擬填報）');
   toast('🆘 已收到一筆民眾求助 → 請至收件匣處理');
+  if(typeof loaHook==='function') loaHook('staff','🆘 新求助通報\n'+newReq.id+' ('+newReq.type+')\n地點：'+newReq.location+'\n人數：'+newReq.people+'人\n請盡速處理！');
   setReliefTab('inbox'); saveData();
 }
 
@@ -7048,6 +7091,7 @@ function addNeedsKitchen(){
   DATA.needs.kitchen.unshift({id:newId, time:new Date().toLocaleString('zh-TW',{hour:'2-digit',minute:'2-digit'}), site:site||'現場', item:item, qty:qty||'若干', urgency:'P2', status:'待配送', reporter:'幹部'});
   renderNeeds();
   toast('✅ 廚房需求 '+newId+' 已新增');
+  if(typeof loaHook==='function') loaHook('staff','🍱 廚房新需求\n'+newId+' '+item+' '+qty+'\n站點：'+(site||'現場')+'\n需盡快配送');
 }
 
 // ══════════════════════════════════════════════════════
@@ -7202,6 +7246,10 @@ function dispatchReq(rid){
   renderWarehouse();renderNav();renderAlerts();
   logSys('ok','【派案】'+rid+' '+rq.item+rq.qty+' → '+rq.site+'，指派 '+rq.driver+'，配送任務卡已建立');
   toast('🚛 '+rid+' 已派案，司機 Line 已收到配送單');
+  if(typeof loaHook==='function'){
+    loaHook('driver','🚛 派送通知\n'+rq.item+rq.qty+'\n→ '+rq.site+'\n請於 '+rq.due+' 前送達');
+    loaHook('staff','📦 叫料派案\n'+rid+' '+rq.item+rq.qty+'\n指派：'+rq.driver);
+  }
   setTimeout(function(){
     if(rq.status!=='已派案') return;
     rq.status='配送中';
