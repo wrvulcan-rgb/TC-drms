@@ -1943,7 +1943,9 @@ function setLOARole(r){
     var b=document.getElementById('loatab-'+k);
     if(b) b.className='btn '+(k===r?'btn-blue':'btn-ghost');
   });
-  renderLineOA();
+  // 判斷目前在哪個容器
+  var tid=document.getElementById('rt-loa-content')?'rt-loa-content':'line-oa-content';
+  renderLineOA(tid);
 }
 
 function renderLineOA(targetId){
@@ -2026,9 +2028,10 @@ function loaInitChat(role){
   LOA_CHAT[role] = welcome[role] || [];
 }
 
+function loaContainer(){ return document.getElementById('rt-loa-content')||document.getElementById('line-oa-content')||document; }
 // ── 渲染聊天氣泡 ──
 function loaRenderChat(){
-  var el=document.getElementById('loa-chat'); if(!el) return;
+  var el=loaContainer().querySelector('#loa-chat'); if(!el) return;
   var msgs=LOA_CHAT[LOA_ROLE]||[];
   el.innerHTML = msgs.map(function(m){
     if(m.from==='oa') return loaChatBubbleOA(m);
@@ -2100,7 +2103,7 @@ function loaChatBubbleUser(m){
 
 // ── 操作按鈕（左欄，依角色顯示）──
 function loaRenderActions(){
-  var el=document.getElementById('loa-action-area'); if(!el) return;
+  var el=loaContainer().querySelector('#loa-action-area'); if(!el) return;
   var btns = {
     vol: [
       {label:'✅ 報到',   fn:'loaVolCheckin()'},
@@ -2124,7 +2127,7 @@ function loaRenderActions(){
 
 // ── 即時狀態（左欄下方）──
 function loaRenderStatus(){
-  var el=document.getElementById('loa-status-area'); if(!el) return;
+  var el=loaContainer().querySelector('#loa-status-area'); if(!el) return;
   var inner=DATA.registry.innerMembers.filter(function(m){return m.checkin;}).length;
   var outer=DATA.registry.volunteers.filter(function(v){return v.checkin;}).length;
   var pend=(DATA.warehouse.reqs||[]).filter(function(r){return r.status==='待派案';}).length;
