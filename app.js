@@ -3444,17 +3444,17 @@ var RTDB_SEED={
 RTDB.seed(RTDB_SEED);
 
 const NAV_CFG=[
-  {id:'dashboard',  icon:'📊',label:'總控儀表板',    tag:'core', group:'L1 戰情指揮',roles:['admin','it','staff','logistics']},
-  {id:'monitor',    icon:'🖥️',label:'全域監控',      tag:'core', group:'L1 戰情指揮',roles:['admin','it']},
-  {id:'admin',      icon:'🔧',label:'系統管理',      tag:'admin',group:'L1 戰情指揮',roles:['admin']},
-  {id:'rtsync',     icon:'⚡',label:'即時調度中台',  tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
-  {id:'needs',      icon:'📥',label:'需求通報池',    tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
-  {id:'vol_hub',    icon:'🧑‍🤝‍🧑',label:'報到系統',   tag:'core', group:'L2 任務調度',roles:['admin','staff']},
-  {id:'line_oa',    icon:'💬',label:'Line OA 模擬',   tag:'core', group:'L2 任務調度',roles:['admin','it']},
-  {id:'drive',      icon:'📸',label:'照片回報與分類',tag:'core', group:'L2 任務調度',roles:['admin','it','staff','logistics']},
-  {id:'resources',  icon:'🗄️',label:'資源台帳',      tag:'limb', group:'L3 現場執行',roles:['admin','logistics','staff']},
-  {id:'persons',    icon:'🫂',label:'個案全程陪伴',  tag:'limb', group:'L3 現場執行',roles:['admin','staff']},
-  {id:'arch_doc',   icon:'🗺️',label:'系統架構說明',  tag:'doc',  group:'📐 架構文件',roles:['admin','it']},
+  {id:'vol_hub',    icon:'🧑‍🤝‍🧑',label:'報到系統',      tag:'core', group:'今日行動',roles:['admin','staff','logistics']},
+  {id:'rtsync',     icon:'⚡',label:'即時調度中台',    tag:'core', group:'今日行動',roles:['admin','it','staff','logistics']},
+  {id:'needs',      icon:'📥',label:'需求通報池',      tag:'core', group:'今日行動',roles:['admin','it','staff','logistics']},
+  {id:'drive',      icon:'📸',label:'照片回報與分類',  tag:'core', group:'今日行動',roles:['admin','it','staff','logistics']},
+  {id:'resources',  icon:'🗄️',label:'資源台帳',        tag:'limb', group:'現場管理',roles:['admin','logistics','staff']},
+  {id:'persons',    icon:'🫂',label:'個案全程陪伴',    tag:'limb', group:'現場管理',roles:['admin','staff']},
+  {id:'dashboard',  icon:'📊',label:'總控儀表板',      tag:'core', group:'後台系統',roles:['admin','it','staff','logistics']},
+  {id:'monitor',    icon:'🖥️',label:'全域監控',        tag:'core', group:'後台系統',roles:['admin','it']},
+  {id:'line_oa',    icon:'💬',label:'Line OA 模擬',     tag:'core', group:'後台系統',roles:['admin','it']},
+  {id:'admin',      icon:'🔧',label:'系統管理',        tag:'admin',group:'後台系統',roles:['admin']},
+  {id:'arch_doc',   icon:'🗺️',label:'系統架構說明',    tag:'doc',  group:'後台系統',roles:['admin','it']},
 ];
 const GROUPS=[
   {id:'medical',icon:'🏥',name:'醫護組',email:'medical@tzuchi-chiayi.org.tw',linked:true,line:'@tzuchi-medical'},
