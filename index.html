@@ -3259,10 +3259,63 @@ var LOA_RICH_MENUS={
              {ico:'✅',lbl:'完成運送',fn:'loaRMTransportComplete()'},
              {ico:'⚠️',lbl:'道路阻斷',fn:'loaTransportRoadBlock()'}]
 };
+// ── 角色+狀態雙維度 Rich Menu（優先於 LOA_RICH_MENUS） ──
+var LOA_RICH_MENUS_EX={
+  'push:commander':[
+    {ico:'📢',lbl:'全員廣播',fn:'loaSendBroadcast()'},
+    {ico:'🆘',lbl:'SOS 警報',fn:"triggerSOS('指揮官','全員緊急集合')"},
+    {ico:'📊',lbl:'戰情摘要',fn:'loaRMCommanderSummary()'},
+    {ico:'📋',lbl:'核銷報表',fn:'loaRMAuditSummary()'}],
+  'push:leader':[
+    {ico:'📣',lbl:'組內廣播',fn:'loaGroupBroadcast()'},
+    {ico:'⬆️',lbl:'回報指揮',fn:'loaReportToCommand()'},
+    {ico:'📋',lbl:'今日任務',fn:'loaRMAllTasks()'},
+    {ico:'🚨',lbl:'緊急回報',fn:"loaRMRequestReinforcement()"}],
+  'task:commander':[
+    {ico:'📊',lbl:'全域任務',fn:'loaRMAllTasks()'},
+    {ico:'👥',lbl:'人力總覽',fn:'loaRMCommanderTeam()'},
+    {ico:'⚡',lbl:'緊急調度',fn:'loaRMEmergencyDispatch()'},
+    {ico:'🆘',lbl:'SOS',fn:"triggerSOS('指揮','緊急調度')"}],
+  'task:leader':[
+    {ico:'👥',lbl:'本組狀態',fn:'loaRMTeamStatus()'},
+    {ico:'📋',lbl:'待派任務',fn:'loaRMAllTasks()'},
+    {ico:'🔄',lbl:'申請補援',fn:'loaRMRequestReinforcement()'},
+    {ico:'🚨',lbl:'緊急點名',fn:'loaFireRollcall()'}],
+  'task:member:idle':[
+    {ico:'⏳',lbl:'等待派任',fn:'loaRMMemberWaiting()'},
+    {ico:'😴',lbl:'標記疲勞',fn:'loaRMMarkFatigued()'},
+    {ico:'📍',lbl:'更新位置',fn:'loaRMMemberLocation()'},
+    {ico:'🆘',lbl:'緊急SOS',fn:"loaMemberSOS()"}],
+  'task:member:assigned':[
+    {ico:'✅',lbl:'完成任務',fn:'loaRMCompleteTask()'},
+    {ico:'⚠️',lbl:'需要支援',fn:'loaRMRequestHelp()'},
+    {ico:'📍',lbl:'位置更新',fn:'loaRMMemberLocation()'},
+    {ico:'🆘',lbl:'緊急SOS',fn:"loaMemberSOS()"}],
+  'task:member:fatigued':[
+    {ico:'💪',lbl:'恢復待命',fn:"loaSetTaskState(LOA_MEMBER_VID,'idle')"},
+    {ico:'🏠',lbl:'申請休息',fn:"loaLog('🏠 休息申請已送往組長');loaCrossNotify(['task'],1)"},
+    {ico:'📞',lbl:'聯繫組長',fn:"loaLog('📞 聯繫組長中...')"},
+    {ico:'🆘',lbl:'緊急SOS',fn:"loaMemberSOS()"}],
+  'task:member:evacuated':[
+    {ico:'✅',lbl:'安全確認',fn:"loaSetTaskState(LOA_MEMBER_VID,'idle');loaLog('✅ 撤離安全確認')"},
+    {ico:'📍',lbl:'回報位置',fn:'loaRMMemberLocation()'},
+    {ico:'📞',lbl:'聯繫組長',fn:"loaLog('📞 聯繫組長中...')"},
+    {ico:'🆘',lbl:'緊急SOS',fn:"loaMemberSOS()"}]
+};
 function renderLOARichMenu(tab){
   var rm=document.getElementById('loa-rich-menu'); if(!rm) return;
-  var items=LOA_RICH_MENUS[tab];
   LOA_RM_CURRENT_TAB=tab;
+  // 角色+狀態雙維度查找
+  var exKey=tab+':'+LOA_MODE;
+  if(tab==='task'&&LOA_MODE==='member'){
+    var vid=LOA_MEMBER_VID||'V001';
+    var vol=rtGet('volunteers/'+vid)||{};
+    var ts=vol.taskState||(Object.keys(rtGet('tasks')||{}).some(function(k){var t=rtGet('tasks/'+k);return t&&t.assignee===vid&&t.status!=='已完成';}))?'assigned':'idle';
+    if(vol.fatigue) ts='fatigued';
+    if(vol.evacuated) ts='evacuated';
+    exKey='task:member:'+ts;
+  }
+  var items=LOA_RICH_MENUS_EX[exKey]||LOA_RICH_MENUS[tab];
   if(!items||!items.length){ rm.style.display='none'; return; }
   rm.style.display='block';
   rm.innerHTML='<div class="loa-rm">'+items.map(function(item,i){
@@ -3524,6 +3577,97 @@ function loaRMTransportComplete(){
   loaFlexMsg('✅ 運送完成回報',
     [['任務','最新進行中任務'],['完成時間',new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})],['接收確認','待對方確認']],
     [{lbl:'確認送出',fn:"loaLog('✅ 運送完成已回報');loaCrossNotify(['supply','task'],1)"}]);
+}
+// ── 志工狀態機 (ICS Push Model) ──
+// taskState: idle | assigned | fatigued | evacuated
+function loaSetTaskState(vid, state){
+  if(!vid) return;
+  var updates={taskState:state};
+  if(state==='fatigued')   updates.fatigue=true;
+  if(state==='evacuated')  updates.evacuated=true;
+  if(state==='idle')       { updates.fatigue=false; updates.evacuated=false; }
+  if(state==='assigned')   { updates.fatigue=false; updates.evacuated=false; }
+  RTDB.ref('volunteers/'+vid).update(updates);
+  var stateLabels={idle:'待命',assigned:'執行中',fatigued:'疲勞退出',evacuated:'緊急撤離'};
+  loaLog('🔄 狀態更新：'+(stateLabels[state]||state));
+  RTDB.ref('auditLog').push({time:new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),action:'志工狀態→'+state,vid:vid});
+  if(state==='fatigued')  loaCrossNotify(['task','rollcall'],1);
+  if(state==='evacuated') loaCrossNotify(['push','task','rollcall'],2);
+  renderLOATab(LOA_ACTIVE_TAB);
+}
+// RM helpers - 指揮官
+function loaRMCommanderSummary(){
+  var tasks=rtGet('tasks')||{};var vols=rtGet('volunteers')||{};
+  var tc=Object.values(tasks).length;
+  var done=Object.values(tasks).filter(function(t){return t.status==='已完成';}).length;
+  var fatigue=Object.values(vols).filter(function(v){return v.fatigue;}).length;
+  var assigned=Object.values(vols).filter(function(v){return v.taskState==='assigned';}).length;
+  loaFlexMsg('📊 戰情摘要',
+    [['在線志工',Object.values(vols).length+'人'],['執行中任務',assigned+'人'],['任務完成率',tc>0?Math.round(done/tc*100)+'%':'--'],['疲勞退出',fatigue+'人']],
+    [{lbl:'調度中台',fn:"closeLineOAPanel();showPage('rtsync')"},
+     {lbl:'全員廣播',fn:'loaSendBroadcast()'}]);
+}
+function loaRMAuditSummary(){
+  var log=rtGet('auditLog')||{};
+  var logs=Object.values(log).slice(-5);
+  loaFlexMsg('📋 核銷紀錄（最近5筆）',
+    logs.length?logs.map(function(e){return [e.time||'--',escHtml(e.action||'').substring(0,12)];}):
+    [['（無紀錄）','']],null);
+}
+function loaRMCommanderTeam(){
+  var vols=rtGet('volunteers')||{};
+  var states={idle:0,assigned:0,fatigued:0,evacuated:0};
+  Object.values(vols).forEach(function(v){states[v.taskState||'idle']=(states[v.taskState||'idle']||0)+1;});
+  loaFlexMsg('👥 全員人力狀態',
+    [['待命',states.idle+'人'],['執行中',states.assigned+'人'],['疲勞退出',states.fatigued+'人'],['緊急撤離',states.evacuated+'人']],
+    [{lbl:'點名',fn:'loaFireRollcall()'},{lbl:'補援申請',fn:'loaRMRequestReinforcement()'}]);
+}
+function loaRMEmergencyDispatch(){
+  loaFlexMsg('⚡ 緊急調度',null,
+    [{lbl:'🆘 全員集合',fn:"triggerSOS('指揮','全員緊急集合')"},
+     {lbl:'🔄 重新分派',fn:"loaLog('🔄 重新分派所有待命志工');loaCrossNotify(['task'],1)"},
+     {lbl:'📢 廣播指令',fn:'loaSendBroadcast()'},
+     {lbl:'📋 任務清單',fn:'loaRMAllTasks()'}]);
+}
+// RM helpers - 組長
+function loaRMTeamStatus(){
+  var vols=rtGet('volunteers')||{};
+  var gVids=getGroupVolunteers();
+  var rows=gVids.slice(0,5).map(function(vid){
+    var v=vols[vid]||{name:vid};
+    var ts=v.taskState||'idle';
+    var icons={idle:'⚪',assigned:'🔵',fatigued:'😴',evacuated:'🔴'};
+    return [(icons[ts]||'⚪')+escHtml(v.name||vid), ts==='assigned'?'執行中':ts==='fatigued'?'疲勞':ts==='evacuated'?'撤離':'待命'];
+  });
+  if(!rows.length) rows=[['（本組無成員）','']];
+  // ICS span-of-control 警告
+  var warn=gVids.length>7?'⚠ 管轄超過7人 (ICS 建議 ≤7)':'';
+  loaFlexMsg('👥 本組狀態'+(warn?' · '+warn:''), rows,
+    [{lbl:'點名',fn:'loaFireRollcall()'},{lbl:'申請補援',fn:'loaRMRequestReinforcement()'}]);
+}
+function loaRMRequestReinforcement(){
+  loaFlexMsg('🔄 申請補援',
+    [['申請來源',getGroupDisplayName()],['狀況','人力不足'],['需求','待填']],
+    [{lbl:'緊急補援',fn:"loaLog('🔄 緊急補援已送往指揮官');loaCrossNotify(['push','task'],2)"},
+     {lbl:'一般補援',fn:"loaLog('🔄 補援申請已送往指揮官');loaCrossNotify(['push'],1)"}]);
+}
+// RM helpers - 志工
+function loaRMMemberWaiting(){
+  loaFlexMsg('⏳ 等待系統派任',
+    [['狀態','待命中'],['說明','任務由系統自動指派\n請保持手機暢通']],
+    [{lbl:'更新位置',fn:'loaRMMemberLocation()'},
+     {lbl:'標記疲勞',fn:'loaRMMarkFatigued()'}]);
+}
+function loaRMMarkFatigued(){
+  loaFlexMsg('😴 標記疲勞',null,
+    [{lbl:'確認疲勞退出',fn:"loaSetTaskState(LOA_MEMBER_VID||'V001','fatigued')"},
+     {lbl:'取消',fn:"loaLog('取消疲勞標記')"}]);
+}
+function loaRMMemberLocation(){
+  var t=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  loaFlexMsg('📍 位置更新',
+    [['更新時間',t],['定位方式','GPS模擬'],['狀態',rtGet('volunteers/'+(LOA_MEMBER_VID||'V001')+'/taskState')||'idle']],
+    [{lbl:'確認送出',fn:"RTDB.ref('volunteers/'+(LOA_MEMBER_VID||'V001')).update({lastLocation:'已更新',lastLocationTime:'"+t+"'});loaLog('📍 位置已更新')"}]);
 }
 function loaLog(msg){
   var el=document.getElementById('loa-log'); if(!el) return;
@@ -4089,20 +4233,46 @@ function renderLOATaskLeader(){
       +'<button class="btn btn-green btn-xs" onclick="loaReportToCommand(\''+k+'\')">↑ 回報協調站</button>'
       +'</div></div>';
   });
-  // Group member availability
+  // ICS Span-of-Control 警告 (標準: ≤7人)
+  var spanWarn=gVids.length>7;
   html+='<div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">'
-    +'<div style="font-size:11px;font-weight:600;margin-bottom:5px">👥 本組狀態</div>';
+    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
+    +'<span style="font-size:11px;font-weight:600">👥 本組狀態</span>'
+    +'<span style="font-size:9px;color:var(--text4)">（'+gVids.length+'人）</span>'
+    +(spanWarn?'<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:1px 6px">⚠ 超過ICS上限7人</span>':'')
+    +'<button class="btn btn-ghost btn-xs" style="margin-left:auto" onclick="loaRMRequestReinforcement()">申請補援</button>'
+    +'</div>';
   var avail=gVids.filter(function(vid){var v=vols[vid];return v&&v.status!=='待報到';});
   if(!avail.length) html+='<div style="font-size:11px;color:var(--text4)">本組目前無已報到成員</div>';
-  avail.slice(0,6).forEach(function(vid){
+  var tsIcons={idle:'⚪',assigned:'🔵',fatigued:'😴',evacuated:'🔴'};
+  var tsLabels={idle:'待命',assigned:'執行中',fatigued:'疲勞',evacuated:'撤離'};
+  avail.slice(0,8).forEach(function(vid){
     var v=vols[vid]; if(!v) return;
-    html+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0">'
-      +'<span style="font-size:10px;color:'+(v.status==='任務中'?'var(--amber)':'var(--green)')+'">●</span>'
-      +'<span style="flex:1;font-size:11px">'+esc(v.name)+(v.fatigue?' 😴':'')+'</span>'
-      +'<span style="font-size:10px;color:var(--text4)">'+esc(v.status||'待命')+'</span>'
+    var ts=v.taskState||(v.fatigue?'fatigued':'idle');
+    var myT=Object.values(tasks).filter(function(t){return t.assignee===vid&&t.status!=='已完成';});
+    html+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">'
+      +'<span style="font-size:10px">'+(tsIcons[ts]||'⚪')+'</span>'
+      +'<span style="flex:1;font-size:11px">'+esc(v.name)+'</span>'
+      +'<span style="font-size:10px;color:var(--text4)">'+esc(tsLabels[ts]||'待命')+'</span>'
+      +(myT.length?'<span style="font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:6px;padding:1px 5px">'+esc(myT[0].title||'').substring(0,8)+'</span>':'')
       +'</div>';
   });
   html+='</div>';
+  // MATCHING 等待配對區（雙人任務）
+  var matchingTasks=Object.keys(tasks).filter(function(k){return tasks[k].status==='配對中'||tasks[k].slots>1&&tasks[k].status==='待派工'&&tasks[k].assignee;});
+  if(matchingTasks.length){
+    html+='<div style="margin-top:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:var(--r-sm);padding:8px 10px">'
+      +'<div style="font-size:11px;font-weight:700;color:#6366f1;margin-bottom:5px">🔗 雙人任務・等待配對（'+matchingTasks.length+'）</div>';
+    matchingTasks.forEach(function(k){
+      var t=tasks[k];
+      html+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:10px;border-bottom:1px solid rgba(99,102,241,.15)">'
+        +'<span style="flex:1">'+esc(t.title||'').substring(0,14)+'</span>'
+        +'<span style="color:var(--text4)">已有1人・等搭檔</span>'
+        +'<button class="btn btn-xs" style="background:#6366f1;color:#fff;border:none" onclick="loaSubAssign(\''+k+'\')">配對</button>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
   html+='<button class="btn btn-primary" style="width:100%;justify-content:center;font-size:12px;margin-top:8px" onclick="closeLineOAPanel();showPage(\'rtsync\');setRTTab(\'tasks\')">↗ 調度中台</button>';
   return html;
 }
@@ -4118,10 +4288,31 @@ function renderLOATaskMember(){
   if(!vid||!v) return '<div style="font-size:12px;color:var(--amber);text-align:center;padding:20px 0">請在上方「我是」選擇您的志工帳號</div>';
   var pC={'P1':'var(--red)','P2':'var(--amber)','P3':'var(--green)'};
   var myTasks=Object.keys(tasks).filter(function(k){return tasks[k].assignee===vid&&tasks[k].status!=='已完成';});
-  // 顯示未讀收件匣通知
+  // 志工狀態機 - 計算當前狀態
+  var ts=v.taskState||(myTasks.length?'assigned':'idle');
+  if(v.fatigue) ts='fatigued';
+  if(v.evacuated) ts='evacuated';
+  var tsConf={
+    idle:      {lbl:'待命中',   color:'var(--green)',  bg:'var(--green-bg)',  border:'var(--green-border)',  icon:'⚪'},
+    assigned:  {lbl:'任務執行中',color:'var(--blue)',   bg:'var(--blue-bg)',   border:'var(--blue-border)',   icon:'🔵'},
+    fatigued:  {lbl:'疲勞退出', color:'var(--amber)',  bg:'rgba(245,158,11,.1)', border:'rgba(245,158,11,.3)', icon:'😴'},
+    evacuated: {lbl:'緊急撤離', color:'var(--red)',    bg:'var(--red-bg)',    border:'var(--red-border)',    icon:'🔴'}
+  };
+  var tc=tsConf[ts]||tsConf.idle;
+  // 狀態機 badge
+  var html='<div style="background:'+tc.bg+';border:1px solid '+tc.border+';border-radius:var(--r-sm);padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
+    +'<div style="font-size:20px">'+tc.icon+'</div>'
+    +'<div style="flex:1">'
+    +'<div style="font-size:13px;font-weight:700;color:'+tc.color+'">'+esc(v.name)+' · '+tc.lbl+'</div>'
+    +'<div style="font-size:10px;color:var(--text4);margin-top:1px">ICS 狀態 · 組別：'+esc(v.group||'未分組')+'</div>'
+    +'</div>'
+    +(ts==='idle'?'<button class="btn btn-ghost btn-xs" onclick="loaRMMarkFatigued()">😴 疲勞</button>':'')
+    +(ts==='assigned'?'<button class="btn btn-red btn-xs" onclick="loaSetTaskState(\''+vid+'\',\'fatigued\')">退出</button>':'')
+    +(ts==='fatigued'||ts==='evacuated'?'<button class="btn btn-green btn-xs" onclick="loaSetTaskState(\''+vid+'\',\'idle\')">恢復</button>':'')
+    +'</div>';
+  // 未讀收件匣通知
   var inbox=rtGet('loaInbox/'+vid)||{};
   var unread=Object.keys(inbox).filter(function(k){return !inbox[k].read;});
-  var html='<div style="font-size:11px;font-weight:600;margin-bottom:8px">🙋 '+esc(v.name)+' 的任務</div>';
   if(unread.length){
     html+='<div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm);padding:8px 10px;margin-bottom:8px">'
       +'<div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:5px">📨 新通知（'+unread.length+'）</div>';
@@ -4134,21 +4325,48 @@ function renderLOATaskMember(){
     });
     html+='</div>';
   }
-  if(!myTasks.length){
-    html+='<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r-sm);padding:12px;text-align:center;font-size:11px;color:var(--green);margin-bottom:10px">✓ 目前無進行中任務<br><span style="font-size:10px;color:var(--text4)">狀態：待命中</span></div>';
-  }
-  myTasks.forEach(function(k){
-    var t=tasks[k];
-    html+='<div style="padding:10px;margin-bottom:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);border-left:3px solid '+(pC[t.priority]||'var(--amber)')+'">'
-      +'<div style="font-size:12px;font-weight:600;margin-bottom:3px">'+esc(t.title)+'</div>'
-      +'<div style="font-size:10px;color:var(--text4);margin-bottom:8px">優先：'+esc(t.priority||'')+(t.created?' · 建立：'+t.created:'')+'</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
-      +'<button class="btn btn-blue" style="justify-content:center;font-size:11px" onclick="loaMemberReport(\''+k+'\',\'進行中\')">▶ 執行中</button>'
-      +'<button class="btn btn-green" style="justify-content:center;font-size:11px" onclick="loaMemberReport(\''+k+'\',\'已完成\')">✓ 完成回報</button>'
-      +'<button class="btn btn-amber" style="justify-content:center;font-size:11px" onclick="loaMemberReport(\''+k+'\',\'需支援\')">⚠ 需要支援</button>'
-      +'<button class="btn btn-red" style="justify-content:center;font-size:11px" onclick="loaMemberSOS(\''+k+'\')">🆘 SOS</button>'
+  // 狀態依賴內容
+  if(ts==='idle'){
+    html+='<div style="background:var(--bg3);border:1px dashed var(--border);border-radius:var(--r-sm);padding:14px;text-align:center;margin-bottom:10px">'
+      +'<div style="font-size:24px;margin-bottom:6px">⏳</div>'
+      +'<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:3px">等待系統指派任務</div>'
+      +'<div style="font-size:10px;color:var(--text4)">任務由系統自動推送，請保持手機暢通</div>'
+      +'</div>';
+  } else if(ts==='fatigued'){
+    html+='<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.3);border-radius:var(--r-sm);padding:12px;text-align:center;margin-bottom:10px">'
+      +'<div style="font-size:12px;color:var(--amber)">已標記疲勞退出<br><span style="font-size:10px;color:var(--text4)">組長已收到通知，請休息並等待指示</span></div>'
+      +'<button class="btn btn-green" style="margin-top:8px;width:100%;justify-content:center" onclick="loaSetTaskState(\''+vid+'\',\'idle\')">💪 恢復待命</button>'
+      +'</div>';
+  } else if(ts==='evacuated'){
+    html+='<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r-sm);padding:12px;text-align:center;margin-bottom:10px">'
+      +'<div style="font-size:12px;color:var(--red)">🔴 緊急撤離狀態<br><span style="font-size:10px;color:var(--text4)">請確認人身安全後回報組長</span></div>'
+      +'<div style="display:flex;gap:6px;margin-top:8px">'
+      +'<button class="btn btn-green" style="flex:1;justify-content:center" onclick="loaSetTaskState(\''+vid+'\',\'idle\')">✅ 安全確認</button>'
+      +'<button class="btn btn-red" style="flex:1;justify-content:center" onclick="loaMemberSOS()">🆘 SOS</button>'
       +'</div></div>';
-  });
+  }
+  // 執行中任務卡
+  if(myTasks.length){
+    myTasks.forEach(function(k){
+      var t=tasks[k];
+      var unitIcons={'rescue':'🔍','medical':'🏥','kitchen':'🍱','care':'💙','transport':'🚗','logistics':'📦','staff':'📋'};
+      var unitIcon=unitIcons[t.required_unit]||'🎯';
+      html+='<div style="padding:10px;margin-bottom:8px;background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm);border-left:3px solid '+(pC[t.priority]||'var(--amber)')+'">'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
+        +'<span style="font-size:14px">'+unitIcon+'</span>'
+        +'<span style="font-size:12px;font-weight:700;flex:1">'+esc(t.title)+'</span>'
+        +'<span style="font-size:9px;background:var(--blue);color:#fff;padding:1px 5px;border-radius:8px">'+esc(t.priority||'P2')+'</span>'
+        +'</div>'
+        +(t.location?'<div style="font-size:10px;color:var(--text4);margin-bottom:6px">📍 '+esc(t.location)+'</div>':'')
+        +(t.slots&&t.slots>1?'<div style="font-size:10px;color:var(--blue);margin-bottom:6px">👥 雙人協作任務'+(t.partner?'・搭檔：'+esc(t.partner):'・等待搭檔中...')+'</div>':'')
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+        +'<button class="btn btn-blue" style="justify-content:center;font-size:11px" onclick="loaMemberReport(\''+k+'\',\'進行中\');loaSetTaskState(\''+vid+'\',\'assigned\')">▶ 執行中</button>'
+        +'<button class="btn btn-green" style="justify-content:center;font-size:11px" onclick="loaMemberReport(\''+k+'\',\'已完成\');loaSetTaskState(\''+vid+'\',\'idle\')">✓ 完成</button>'
+        +'<button class="btn btn-amber" style="justify-content:center;font-size:11px" onclick="loaMemberReport(\''+k+'\',\'需支援\')">⚠ 需支援</button>'
+        +'<button class="btn btn-red" style="justify-content:center;font-size:11px" onclick="loaMemberSOS(\''+k+'\')">🆘 SOS</button>'
+        +'</div></div>';
+    });
+  }
   html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'rtsync\');setRTTab(\'report\')">↗ 完整回報介面</button>';
   return html;
 }
