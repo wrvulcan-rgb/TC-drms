@@ -1993,54 +1993,33 @@ function renderLineOA(targetId){
     return;
   }
 
-  el.style.cssText='display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap';
-
-  var roleNames = { vol:'陳建宏（志工）', staff:'林師姐（幹部）', driver:'王師兄（物流）' };
-  var roleAvatar = { vol:'🧑', staff:'📋', driver:'🚛' };
-
-  // 初始化聊天紀錄（第一次進來給預設訊息）
-  if(!LOA_CHAT[LOA_ROLE] || !LOA_CHAT[LOA_ROLE].length) loaInitChat(LOA_ROLE);
-
-  el.innerHTML =
-    // 左：操作按鈕區（模擬 LIFF 選單）
-    '<div style="flex:1;min-width:200px;max-width:260px">'
-      +'<div class="card" style="margin-bottom:10px">'
-        +'<div class="card-title" style="font-size:11px">'+roleAvatar[LOA_ROLE]+' '+roleNames[LOA_ROLE]+'</div>'
-        +'<div id="loa-action-area" style="display:flex;flex-direction:column;gap:6px"></div>'
-      +'</div>'
-      +'<div class="card">'
-        +'<div class="card-title" style="font-size:10px;color:var(--text4)">📡 中台即時狀態</div>'
-        +'<div id="loa-status-area" style="font-size:10px;line-height:1.9"></div>'
-      +'</div>'
+  // 雙手機並排（與即時調度中台同步）
+  el.style.cssText='';
+  el.innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 216px 216px;gap:10px;align-items:start">'
+    // 左：操作 + 狀態
+    +'<div>'
+    +'<div class="card" style="margin-bottom:10px">'
+    +'<div class="card-title" style="margin-bottom:8px">Line OA 操作面板</div>'
+    +'<div id="loa-action-area" style="display:flex;flex-direction:column;gap:6px"></div>'
     +'</div>'
-    // 右：手機畫面
-    +'<div style="flex:0 0 auto">'
-      +'<div style="background:#1a1a2e;border-radius:36px;padding:10px 10px 16px;box-shadow:0 8px 32px rgba(0,0,0,.45);display:inline-block">'
-        // 頂部瀏海
-        +'<div style="background:#000;width:280px;height:28px;border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:center">'
-          +'<div style="width:60px;height:5px;background:#333;border-radius:3px"></div>'
-        +'</div>'
-        // Line 頂部欄
-        +'<div style="background:#06C755;width:280px;padding:8px 12px;display:flex;align-items:center;gap:8px">'
-          +'<div style="width:28px;height:28px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">🏥</div>'
-          +'<div style="color:#fff;font-size:12px;font-weight:600;flex:1">慈濟 DRMS</div>'
-          +'<div style="color:rgba(255,255,255,.8);font-size:10px">OA</div>'
-        +'</div>'
-        // 聊天區
-        +'<div id="loa-chat" style="background:#c8d9c2;width:280px;height:440px;overflow-y:auto;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px"></div>'
-        // 輸入列
-        +'<div style="background:#fff;width:280px;padding:8px 10px;display:flex;gap:6px;align-items:center;box-sizing:border-box;border-top:1px solid #e0e0e0">'
-          +'<div style="flex:1;background:#f0f0f0;border-radius:16px;padding:6px 10px;font-size:11px;color:#999">輸入訊息…</div>'
-          +'<div style="font-size:18px">😊</div>'
-        +'</div>'
-        // 底部圓角
-        +'<div style="background:#000;width:280px;height:20px;border-radius:0 0 20px 20px;display:flex;align-items:center;justify-content:center">'
-          +'<div style="width:80px;height:4px;background:#333;border-radius:2px"></div>'
-        +'</div>'
-      +'</div>'
-    +'</div>';
+    +'<div class="card">'
+    +'<div class="card-title" style="font-size:10px;color:var(--text4)">📡 中台即時狀態</div>'
+    +'<div id="loa-status-area" style="font-size:10px;line-height:1.9"></div>'
+    +'</div>'
+    +'<div class="card" style="margin-top:10px">'
+    +'<div class="card-title"><span class="dot blink" style="background:var(--green);margin-right:6px"></span>推播紀錄</div>'
+    +'<div id="loa-log" style="font-size:10px;line-height:1.9;min-height:40px;color:var(--text3);max-height:120px;overflow-y:auto">等待操作...</div>'
+    +'</div>'
+    +'</div>'
+    // 中：志工手機
+    +'<div style="display:flex;justify-content:center">'+makeLoaPhoneShell('vol','loa-phone-vol')+'</div>'
+    // 右：幹部手機
+    +'<div style="display:flex;justify-content:center">'+makeLoaPhoneShell('staff','loa-phone-staff')+'</div>'
+    +'</div>'
+    // 隱藏的 loa-chat（loaRenderChat 需要這個 id）
+    +'<div id="loa-chat" style="display:none"></div>';
 
-  loaRenderChat();
   loaRenderActions();
   loaRenderStatus();
 }
@@ -2354,7 +2333,7 @@ function makeLoaPhoneShell(role, chatId){
 }
 function loaRefreshPhones(){
   ['vol','staff','driver'].forEach(function(role){
-    var el=document.getElementById('rt-phone-'+role);
+    var el=document.getElementById('rt-phone-'+role)||document.getElementById('loa-phone-'+role);
     if(!el) return;
     var msgs=LOA_CHAT[role]||[];
     el.innerHTML=msgs.map(function(m){return m.from==='oa'?loaChatBubbleOA(m):loaChatBubbleUser(m);}).join('');
