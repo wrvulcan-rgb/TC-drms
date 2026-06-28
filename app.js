@@ -224,6 +224,16 @@ function renderLOATab(tab){
   else if(tab==='rollcall') el.innerHTML=renderLOARollcall();
   else if(tab==='task')     el.innerHTML=renderLOATask();
   else if(tab==='supply')   el.innerHTML=renderLOASupply();
+  else if(tab==='summary')  el.innerHTML=renderLOASummary();
+}
+function loaExportSummary(){
+  toast('📋 總表已複製（實際部署後可匯出 CSV / 推播至 Sheets）');
+  logSys('info','【Line OA 總表】匯出操作觸發');
+}
+function loaPushSummary(){
+  loaLog('📊 今日總表已推播給幹部群組');
+  toast('📲 總表推播完成');
+  logSys('ok','【Line OA 總表】推播至幹部 Line 群組');
 }
 function renderLOAPush(){
   return '<div class="iep-lbl" style="margin-top:0">推播目標</div>'
@@ -2247,9 +2257,64 @@ function loaOASay(text, extra){
 
 // ── Line OA 串接 tab（在 rtsync 中台內）──
 function renderRTLoa(){
-  // 直接嵌入手機模擬器，用唯一 id 避免衝突
-  var html='<div id="rt-loa-content" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap"></div>';
-  setTimeout(function(){ renderLineOA('rt-loa-content'); },0);
+  var LOA_TAB=LOA_ACTIVE_TAB||'push';
+  var tabs=[
+    {id:'push',    label:'📢 廣播推播'},
+    {id:'checkin', label:'✅ 報到管理'},
+    {id:'rollcall',label:'📡 安全點名'},
+    {id:'task',    label:'🎯 任務推播'},
+    {id:'supply',  label:'🚛 叫料/供需'},
+    {id:'summary', label:'📊 總表'},
+  ];
+  var btnHtml=tabs.map(function(t){
+    return '<button class="btn '+(LOA_TAB===t.id?'btn-blue':'btn-ghost')+' btn-xs loa-tab" '
+      +'onclick="switchLOATab(\''+t.id+'\',this)">'+t.label+'</button>';
+  }).join('');
+  var html='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+btnHtml+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">'
+    +'<div class="card"><div class="card-title">📱 Line OA 操作</div>'
+    +'<div id="loa-body" style="font-size:12px"></div></div>'
+    +'<div class="card"><div class="card-title"><span class="dot blink" style="background:var(--green)"></span>推播紀錄</div>'
+    +'<div id="loa-log" style="font-size:10px;line-height:1.8;min-height:60px;color:var(--text3)">等待操作...</div>'
+    +'<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">'
+    +'<div class="card-title" style="font-size:11px">📱 志工端模擬</div>'
+    +'<div id="rt-loa-content" style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap"></div>'
+    +'</div></div>'
+    +'</div>';
+  setTimeout(function(){
+    renderLOATab(LOA_TAB);
+    renderLineOA('rt-loa-content');
+  },0);
+  return html;
+}
+function renderLOASummary(){
+  // 跨派案類型總表
+  var now=new Date();
+  var dateStr=(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+  var inner=DATA.registry.innerMembers.filter(function(m){return m.checkin;}).length;
+  var outer=DATA.registry.volunteers.filter(function(v){return v.checkin;}).length;
+  var tasks=DATA.tasks.items||[];
+  var done=tasks.filter(function(t){return t.status==='done';}).length;
+  var active=tasks.filter(function(t){return t.status==='active';}).length;
+  var pend=tasks.filter(function(t){return t.status!=='done'&&t.status!=='active';}).length;
+  var reqs=DATA.warehouse.reqs||[];
+  var reqPend=reqs.filter(function(r){return r.status==='待派案';}).length;
+  var reqDisp=reqs.filter(function(r){return r.status==='已派案';}).length;
+  var html='<div class="card"><div class="card-title">📊 Line OA 今日總表 <span style="font-size:10px;color:var(--text4);font-weight:400">截至 '+dateStr+'</span></div>'
+    +'<table class="tbl"><thead><tr><th>類型</th><th>指標</th><th>數值</th><th>狀態</th></tr></thead><tbody>'
+    +'<tr><td rowspan="2">✅ 報到</td><td>慈誠委員</td><td>'+inner+' / '+DATA.registry.innerMembers.length+'</td><td><span class="badge '+(inner===DATA.registry.innerMembers.length?'badge-green':'badge-amber')+'">'+Math.round(inner/Math.max(DATA.registry.innerMembers.length,1)*100)+'%</span></td></tr>'
+    +'<tr><td>社區志工</td><td>'+outer+' / '+DATA.registry.volunteers.length+'</td><td><span class="badge '+(outer>0?'badge-green':'badge-blue')+'">'+Math.round(outer/Math.max(DATA.registry.volunteers.length,1)*100)+'%</span></td></tr>'
+    +'<tr><td>📡 安全點名</td><td>已回報 / 求救</td><td>'+SAFETY.safe+' / '+SAFETY.sos+'</td><td><span class="badge '+(SAFETY.sos>0?'badge-red':'badge-green')+'">'+(SAFETY.sos>0?'有求救':'正常')+'</span></td></tr>'
+    +'<tr><td rowspan="3">🎯 任務</td><td>進行中</td><td>'+active+'</td><td><span class="badge badge-blue">執行中</span></td></tr>'
+    +'<tr><td>待指派</td><td>'+pend+'</td><td><span class="badge badge-amber">待處理</span></td></tr>'
+    +'<tr><td>已完成</td><td>'+done+'</td><td><span class="badge badge-green">完成</span></td></tr>'
+    +'<tr><td rowspan="2">🚛 叫料</td><td>待派案</td><td>'+reqPend+'</td><td><span class="badge '+(reqPend>0?'badge-amber':'badge-green')+'">'+(reqPend>0?'需處理':'清空')+'</span></td></tr>'
+    +'<tr><td>派送中</td><td>'+reqDisp+'</td><td><span class="badge badge-blue">在途</span></td></tr>'
+    +'</tbody></table>'
+    +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaExportSummary()">⬇ 匯出報表</button>'
+    +'<button class="btn btn-ghost btn-xs" onclick="loaPushSummary()">📲 推播總表給幹部</button>'
+    +'</div></div>';
   return html;
 }
 function sendBroadcast(){
