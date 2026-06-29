@@ -7626,6 +7626,13 @@ document.addEventListener('focusin',function(e){
 });
 loadData();
 loadWarModuleDefaults();
+// 還原 sessionStorage 中的 ROLE 與 mode
+(function(){
+  var savedRole=sessionStorage.getItem('drms_role');
+  if(savedRole) role=savedRole;
+  var savedState=sessionStorage.getItem('drms_state');
+  if(savedState) state=savedState;
+})();
 // 每次載入預設清空 disabledModules（平時模式全開；戰時啟動後才由 wtPickLevel 設定）
 disabledModules.clear();
 saveDisabledModules();
@@ -7633,6 +7640,15 @@ initConfig();
 renderAll();
 renderModuleManager();
 renderDevTasks();
+// 同步還原角色選單與模式按鈕 UI
+(function(){
+  var sel=document.getElementById('role-sel');
+  if(sel) sel.value=role;
+  var btnP=document.getElementById('btn-p'); var btnW=document.getElementById('btn-w');
+  if(btnP) btnP.className='sbtn'+(state==='peace'?' sp':'');
+  if(btnW) btnW.className='sbtn'+(state==='war'?' sw':'');
+  if(state==='war') document.body.classList.add('wt-mode');
+})();
 showPage('dashboard');
 setScenario('quake');
 renderGmailRows();
