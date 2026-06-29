@@ -4051,12 +4051,14 @@ function setS(s){
     logSys('info','戰時模式啟動。平時 master 資料已轉唯讀鎖定。LINE OA 密鑰切換為緊急專用頻道。');
     logSys('ok','IT 志工已收到戰時通報，後台維運面板自動開啟。');
     syncActive=true;changeRefreshRate(10000);updateSyncBtn();
+    window.onbeforeunload=function(){ return '您有未儲存的操作，確定離開？'; };
   } else {
     document.body.classList.remove('wt-mode');
     endSession();
     restoreAllModulesForPeace();
     logSys('info','已切換回平時模式。所有戰時覆蓋已清除。');
     changeRefreshRate(30000);if(syncActive){startSyncTimer();}updateSyncBtn();
+    window.onbeforeunload=null;
   }
   showPage(activePage);
 }
