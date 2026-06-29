@@ -4179,7 +4179,7 @@ function showPage(id){
   // 手機模式：切換頁面後自動收合側欄抽屜
   if(window.innerWidth<=768) document.body.classList.remove('nav-open');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
-  const pg=document.getElementById('page-'+id);
+  var pg=document.getElementById('page-'+id);
   if(pg) pg.classList.add('act');
   renderNav();
   // P4 permission guard
@@ -6501,7 +6501,7 @@ function renderSysStatusBar(){
   var el=document.getElementById('sys-status-bar'); if(!el) return;
   var gasOk=!!(DATA.registry&&DATA.registry.gasUrl);
   var cu=getCurrentUser();
-  var roleLabel=cu?cu.role:（typeof role!=='undefined'?role:'—');
+  var roleLabel=cu?cu.role:(typeof role!=='undefined'?role:'—');
   el.innerHTML='<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11px;padding:6px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:12px">'
     +'<span>Line OA 模擬中 <span style="color:var(--red)">⬤</span></span>'
     +'<span>GAS '+(gasOk?'已連線 <span style="color:var(--green)">⬤</span>':'未連線 <span style="color:var(--red)">⬤</span>')+'</span>'
