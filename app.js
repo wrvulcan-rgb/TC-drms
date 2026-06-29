@@ -1709,12 +1709,30 @@ function makeRepack(i){
   toast('🎁 '+rp.name+' 完成一包');
   renderSorting();
 }
+var DRIVE_TAB='photos';
+function setDriveTab(t){
+  DRIVE_TAB=t;
+  ['photos','beforeafter'].forEach(function(x){
+    var b=document.getElementById('dtab-'+x);
+    if(b) b.className='btn '+(x===t?'btn-blue':'btn-ghost');
+  });
+  renderDrive();
+}
 function renderDrive(){
   var el=document.getElementById('drive-content'); if(!el) return;
   var d=DATA.drive;
+  var activeTab=DRIVE_TAB||'photos';
   var total=d.folders.reduce(function(a,f){return a+f.files.length;},0);
   var pending=d.folders.reduce(function(a,f){return a+f.files.filter(function(x){return x.status==='待分類';}).length;},0);
-  var html=makeStatGrid([
+  var tabBar='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +'<button class="btn '+(activeTab==='photos'?'btn-blue':'btn-ghost')+'" id="dtab-photos" onclick="setDriveTab(\'photos\')">📸 照片分類</button>'
+    +'<button class="btn '+(activeTab==='beforeafter'?'btn-blue':'btn-ghost')+'" id="dtab-beforeafter" onclick="setDriveTab(\'beforeafter\')">🔄 Before/After 配對</button>'
+    +'</div>';
+  if(activeTab==='beforeafter'){
+    el.innerHTML=tabBar+renderBeforeAfterPanel();
+    return;
+  }
+  var html=tabBar+makeStatGrid([
     {lbl:'總上傳',val:total,sub:'張/影片',color:'blue'},
     {lbl:'已分類',val:total-pending,sub:'自動+手動',color:'green'},
     {lbl:'待分類',val:pending,sub:'需人工確認',color:'amber'},
@@ -1835,6 +1853,8 @@ function renderSheetReg(){
   var el=document.getElementById('sheet-reg-content'); if(!el) return;
   var d=DATA.registry;
   var canSee=(role==='admin'||role==='it');
+  // Phase 3-B：查閱記錄
+  logSys('info','【個資查閱】'+role+' 於 '+new Date().toLocaleTimeString('zh-TW')+' 查閱志工名冊');
   var innerChk=d.innerMembers.filter(function(m){return m.checkin;}).length;
   var outerChk=d.volunteers.filter(function(v){return v.checkin;}).length;
   var html=makeStatGrid([
@@ -1853,37 +1873,44 @@ function renderSheetReg(){
     +'<button class="btn" style="border-radius:var(--r-sm) var(--r-sm) 0 0;padding:7px 16px;font-size:12px;font-weight:600;border-bottom:none;'+(activeTab==='inner'?'background:var(--blue-bg);color:var(--blue);border-color:var(--blue-border)':'background:transparent;color:var(--text3);border-color:transparent')+'" onclick="setSheetTab(\'inner\')">🏛 慈誠委員（'+d.innerMembers.length+'）</button>'
     +'<button class="btn" style="border-radius:var(--r-sm) var(--r-sm) 0 0;padding:7px 16px;font-size:12px;font-weight:600;border-bottom:none;margin-left:4px;'+(activeTab==='outer'?'background:var(--green-bg);color:var(--green);border-color:var(--green-border)':'background:transparent;color:var(--text3);border-color:transparent')+'" onclick="setSheetTab(\'outer\')">🌐 社區志工（'+d.volunteers.length+'/'+d.stats.total+'）</button>'
     +'</div>';
+  // Phase 3-B：個資最小化，依 role 決定可見欄位
+  // admin/it：看全部；staff：看名字/組別/電話（不看身分證）；logistics：只看名字/組別
+  var roleLevel = (role==='admin'||role==='it') ? 'full' : (role==='staff' ? 'staff' : 'logistics');
+  var piiNote = {'full':'完整（'+role+'）','staff':'個資保護（隱藏身分證/出生）','logistics':'最小化（僅姓名/組別）'}[roleLevel];
   if(activeTab==='inner'){
     html+='<div class="card"><div class="card-title" style="justify-content:space-between">'
-      +'<span>慈誠委員名冊</span>'
+      +'<span>慈誠委員名冊 <span style="font-size:10px;font-weight:400;color:var(--text4)">— '+piiNote+'</span></span>'
       +'<span class="badge badge-'+(innerChk===d.innerMembers.length?'green':'amber')+'">'+innerChk+'/'+d.innerMembers.length+' 已報到</span></div>'
-      +'<table class="tbl"><thead><tr><th>編號</th><th>姓名</th><th>組別</th><th>性別</th><th>報到</th><th>時間</th></tr></thead><tbody>';
+      +'<table class="tbl"><thead><tr><th>編號</th><th>姓名</th><th>組別</th>'+(roleLevel==='full'?'<th>性別</th>':'')+'<th>報到</th><th>時間</th></tr></thead><tbody>';
     for(var i=0;i<d.innerMembers.length;i++){
       var m=d.innerMembers[i];
-      html+='<tr><td style="font-family:monospace;font-weight:600">'+m.code+'</td>'
-        +'<td>'+(canSee?m.name:m.name[0]+'師姐/兄')+'</td>'
+      html+='<tr><td style="font-family:monospace;font-weight:600">'+(roleLevel==='logistics'?'****':m.code)+'</td>'
+        +'<td>'+(roleLevel==='logistics'?m.name[0]+'師姐/兄':m.name)+'</td>'
         +'<td><span class="badge badge-blue" style="font-size:9px">'+m.group+'</span></td>'
-        +'<td style="font-size:11px">'+m.gender+'</td>'
+        +(roleLevel==='full'?'<td style="font-size:11px">'+m.gender+'</td>':'')
         +'<td>'+(m.checkin?'<span class="badge badge-green">✓</span>':'<span class="badge badge-amber">待</span>')+'</td>'
         +'<td style="font-family:monospace;font-size:11px">'+(m.checkinTime||'—')+'</td></tr>';
     }
     html+='</tbody></table></div>';
   } else {
     html+='<div class="card"><div class="card-title" style="justify-content:space-between">'
-      +'<span>社區志工報名表 — '+(canSee?'完整':'個資遮蔽')+'</span>'
+      +'<span>社區志工報名表 — '+piiNote+'</span>'
       +'<span style="font-size:10px;color:var(--text4)">'+d.volunteers.length+'/'+d.stats.total+' 筆</span></div>'
-      +'<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>#</th><th>姓名</th><th>身分證</th><th>電話</th><th>飲食</th><th>時段</th><th>體能</th><th>性別</th><th>年齡</th><th>報到</th></tr></thead><tbody>';
+      +'<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>#</th><th>姓名</th>'
+      +(roleLevel!=='logistics'?'<th>電話</th>':'')
+      +(roleLevel==='full'?'<th>身分證</th>':'')
+      +(roleLevel!=='logistics'?'<th>飲食</th><th>時段</th><th>體能</th>':'')
+      +'<th>組別</th><th>報到</th></tr></thead><tbody>';
     for(var j=0;j<d.volunteers.length;j++){
       var v=d.volunteers[j];
       html+='<tr><td style="color:var(--text4);font-family:monospace">'+(j+1)+'</td>'
         +'<td style="font-weight:500">'+v.name+'</td>'
-        +'<td style="font-family:monospace;font-size:10px">'+maskPII(v.idno,'id')+'</td>'
-        +'<td style="font-family:monospace;font-size:10px">'+maskPII(v.phone,'phone')+'</td>'
-        +'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text3)')+'">'+v.diet+'</td>'
-        +'<td style="font-size:10px">'+v.slot+'</td>'
-        +'<td style="font-size:10px">'+v.lift.substring(0,4)+'</td>'
-        +'<td style="font-size:11px">'+v.gender+'</td>'
-        +'<td style="font-size:11px">'+v.age+'</td>'
+        +(roleLevel!=='logistics'?'<td style="font-family:monospace;font-size:10px">'+(roleLevel==='full'?v.phone:maskPII(v.phone,'phone'))+'</td>':'')
+        +(roleLevel==='full'?'<td style="font-family:monospace;font-size:10px">'+maskPII(v.idno,'id')+'</td>':'')
+        +(roleLevel!=='logistics'?'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text3)')+'">'+v.diet+'</td>'
+          +'<td style="font-size:10px">'+v.slot+'</td>'
+          +'<td style="font-size:10px">'+v.lift.substring(0,4)+'</td>':'')
+        +'<td style="font-size:10px">'+v.gender+' '+v.age+'歲</td>'
         +'<td>'+(v.checkin?'<span class="badge badge-green" style="font-size:9px">✓</span>':'<span class="badge badge-amber" style="font-size:9px">待</span>')+'</td></tr>';
     }
     html+='</tbody></table></div>'
@@ -2968,9 +2995,9 @@ DATA.case_mgt={
   title:'個案與動線管理',
   addrNote:'電子地圖 + 公部門開源地址清冊已對接',
   items:[
-    {caseId:'C001',name:'張本個案',address:'竹崎鄉中正路 123 號',status:'待訪視',route:'動線A'},
-    {caseId:'C002',name:'李本個案',address:'梅山鄉中山路 45 號', status:'訪視中',route:'動線B'},
-    {caseId:'C003',name:'王本個案',address:'大埔鄉和平街 67 號', status:'已完成',route:'動線A'},
+    {caseId:'C001',name:'張本個案',address:'竹崎鄉中正路 123 號',status:'待訪視',route:'動線A',triageTag:null,triageNote:'',autoTaskCreated:false},
+    {caseId:'C002',name:'李本個案',address:'梅山鄉中山路 45 號', status:'訪視中',route:'動線B',triageTag:null,triageNote:'',autoTaskCreated:false},
+    {caseId:'C003',name:'王本個案',address:'大埔鄉和平街 67 號', status:'已完成',route:'動線A',triageTag:null,triageNote:'',autoTaskCreated:false},
   ]
 };
 DATA.care_rec={
@@ -3163,6 +3190,35 @@ DATA.handovers=[
    status:'signed',
    nextTierBrief:'注意 TSK-0041 尚未完成，B區積水待清'}
 ];
+
+// ══════════════════════════════════════════════════════
+//  Phase 2-C：48h 追蹤自動提醒資料
+// ══════════════════════════════════════════════════════
+DATA.followups=[
+  {id:'FU-001',taskId:'TSK-0043',caseId:'SOS-2039',
+   createdAt:'2026-06-28 10:00',dueAt:'2026-06-30 10:00',
+   interval:'48h',
+   status:'pending',
+   note:'確認大埔物資配送後續需求'},
+];
+DATA._followup_seq=1;
+
+// ══════════════════════════════════════════════════════
+//  Phase 3-A：金援帳本資料
+// ══════════════════════════════════════════════════════
+DATA.relief_fund=[
+  {id:'RF-0001',caseId:'SOS-2039',recipient:'林○○',
+   idLastFour:'3456',amount:20000,type:'急難金',
+   issuedBy:'CI-001',issuedAt:'2026-06-28 14:30',
+   signatureImg:'[已簽名]',witnessId:'CI-002',
+   status:'confirmed'},
+  {id:'RF-0002',caseId:'SOS-2038',recipient:'吳○○',
+   idLastFour:'7890',amount:10000,type:'生活補助',
+   issuedBy:'CI-001',issuedAt:'2026-06-28 15:00',
+   signatureImg:'[已簽名]',witnessId:'CI-003',
+   status:'confirmed'},
+];
+DATA._relief_fund_seq=2;
 
 DATA.assets={
   catalog:[
@@ -4029,6 +4085,7 @@ const NAV_CFG=[
   {id:'vehicle_dispatch',icon:'🚌',label:'車輛派遣',      tag:'core', group:'今日行動',roles:['admin','logistics']},
   {id:'command_map',  icon:'🗺️',label:'作戰指揮圖',       tag:'core', group:'今日行動',roles:['admin','staff']},
   {id:'handover',     icon:'📋',label:'交接日誌',          tag:'core', group:'今日行動',roles:['admin','staff']},
+  {id:'relief_ledger',icon:'💰',label:'金援帳本',          tag:'core', group:'現場管理',roles:['admin','staff']},
 ];
 const GROUPS=[
   {id:'medical',icon:'🏥',name:'醫護組',email:'medical@tzuchi-chiayi.org.tw',linked:true,line:'@tzuchi-medical'},
@@ -4168,6 +4225,9 @@ function showPage(id){
   if(id==='sorting') renderSorting();
   if(id==='assets') renderAssets();
   if(id==='rtsync'){ renderRTSync(); bindRTListeners(); }
+  if(id==='relief_ledger') renderReliefLedger();
+  if(id==='case_mgt') renderCaseMgt();
+  if(id==='care_rec') renderCareRec();
   if(state==='war'&&['persons','persons','warehouse','shelter_mgt'].indexOf(id)>=0&&pg){
     var wb=document.getElementById('war-lock-'+id);
     if(!wb){
@@ -7289,20 +7349,67 @@ function renderCaseMgt(){
   var el=document.getElementById('case-mgt-content'); if(!el) return;
   var d=DATA.case_mgt;
   var stColor={'待訪視':'badge-amber','訪視中':'badge-blue','已完成':'badge-green'};
+  var triageColor={'危急':'#ef4444','中度':'#f59e0b','輕微':'#22c55e'};
+  var triageLabel={'危急':'🔴 危急','中度':'🟡 中度','輕微':'🟢 輕微'};
   var html='<div class="card"><div class="card-title">🗂️ '+d.title+'</div>'
     +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px;font-family:monospace">📍 '+d.addrNote+'</div>'
-    +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>地址</th><th>動線</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+    +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>地址</th><th>動線</th><th>狀態</th><th>分診標籤</th><th>操作</th></tr></thead><tbody>';
   for(var i=0;i<d.items.length;i++){
     var it=d.items[i];
+    var triageBtns='<div style="display:flex;gap:4px;flex-wrap:wrap">'
+      +'<button class="btn btn-xs" style="background:'+(it.triageTag==='危急'?'#ef4444':'var(--bg3)')+';color:'+(it.triageTag==='危急'?'#fff':'inherit')+';border:1px solid #ef4444;font-size:10px" onclick="triageCase(\''+it.caseId+'\',\'危急\')">🔴 危急</button>'
+      +'<button class="btn btn-xs" style="background:'+(it.triageTag==='中度'?'#f59e0b':'var(--bg3)')+';color:'+(it.triageTag==='中度'?'#fff':'inherit')+';border:1px solid #f59e0b;font-size:10px" onclick="triageCase(\''+it.caseId+'\',\'中度\')">🟡 中度</button>'
+      +'<button class="btn btn-xs" style="background:'+(it.triageTag==='輕微'?'#22c55e':'var(--bg3)')+';color:'+(it.triageTag==='輕微'?'#fff':'inherit')+';border:1px solid #22c55e;font-size:10px" onclick="triageCase(\''+it.caseId+'\',\'輕微\')">🟢 輕微</button>'
+      +'</div>'+(it.autoTaskCreated?'<div style="font-size:9px;color:var(--text4);margin-top:2px">✓ 任務已建</div>':'');
     html+='<tr><td class="sh-time">'+it.caseId+'</td><td style="font-weight:500">'+it.name+'</td>'
       +'<td style="font-size:11px">'+it.address+'</td>'
       +'<td><span class="badge badge-purple">'+it.route+'</span></td>'
       +'<td><span class="badge '+(stColor[it.status]||'badge-blue')+'">'+it.status+'</span></td>'
+      +'<td>'+triageBtns+'</td>'
       +'<td>'+(it.status==='已完成'?'<span style="font-size:9px;color:var(--text4)">✓</span>':'<button class="btn btn-blue btn-xs" onclick="advanceCase('+i+')">'+(it.status==='待訪視'?'▶ 開始訪視':'✓ 完成訪視')+'</button>')+'</td></tr>';
   }
   html+='</tbody></table>'
     +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
   el.innerHTML=html;
+}
+function triageCase(caseId, tag){
+  var it=DATA.case_mgt.items.find(function(x){return x.caseId===caseId;});
+  if(!it) return;
+  it.triageTag=tag;
+  if(!it.autoTaskCreated){
+    if(!DATA.taskPool) DATA.taskPool=[];
+    var iconMap={'清掃':'🧹','搬運':'🚛','關懷':'💚','物資配送':'📦','勘災':'🗺️','醫療':'🏥','搶救':'🆘'};
+    var seq=(DATA.taskPool.length+1);
+    var tid='TSK-'+String(seq+100).padStart(4,'0');
+    var now=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+    var taskTitle,prio,taskType;
+    if(tag==='危急'){
+      taskTitle='【緊急】'+it.name+' 搶救';
+      prio='P1';taskType='搶救';
+    } else if(tag==='中度'){
+      taskTitle='【中度】'+it.name+' 關懷';
+      prio='P2';taskType='關懷';
+    } else {
+      taskTitle='【輕微】'+it.name+' 電話追蹤';
+      prio='P3';taskType='關懷';
+    }
+    DATA.taskPool.push({
+      id:tid,title:taskTitle,type:taskType,icon:iconMap[taskType]||'📋',
+      location:{addr:it.address,lat:0,lng:0},
+      requiredSkills:[taskType],estimatedHours:1,
+      priority:prio,status:'open',
+      claimedBy:null,claimedAt:null,
+      reportedBy:'分診系統',attachments:[],completionPhotos:[],
+      fieldNotes:'由個案分診自動建立，個案：'+caseId,needsCount:1,squadId:null,created:now,
+    });
+    it.autoTaskCreated=true;
+    logSys('ok','【分診】'+caseId+' 標記為「'+tag+'」→ 自動建立任務 '+tid+' ('+prio+')');
+    toast('✅ 分診標記【'+tag+'】已設定，任務 '+tid+' 已建立');
+  } else {
+    logSys('info','【分診】'+caseId+' 更新標籤為「'+tag+'」（任務已存在，不重複建立）');
+    toast('🏷 分診標籤更新為【'+tag+'】');
+  }
+  saveData(); renderCaseMgt();
 }
 function advanceCase(i){
   var it=DATA.case_mgt.items[i];
@@ -7319,27 +7426,45 @@ function advanceCase(i){
   }
   renderCaseMgt();saveData();
 }
+var CARE_REC_TAB='logs';
+function setCareRecTab(t){
+  CARE_REC_TAB=t;
+  ['logs','followup'].forEach(function(x){
+    var b=document.getElementById('crtab-'+x);
+    if(b) b.className='btn '+(x===t?'btn-blue':'btn-ghost');
+  });
+  renderCareRec();
+}
 function renderCareRec(){
   var el=document.getElementById('care-rec-content'); if(!el) return;
   var d=DATA.care_rec;
   var bento=DATA.field.supplies.find(function(x){return x.item==='便當';});
-  var html='<div style="display:flex;justify-content:flex-end;margin-bottom:10px">'
-    +'<button class="btn btn-amber" style="font-size:11px" onclick="logMeal()">🍱 登記定點供餐 +50（便當庫存 '+(bento?bento.stock:0)+'）</button>'
-    +'</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">'
-    +'<div class="stat-card green" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">線上關懷</div><div class="stat-val">'+d.stats.online+'</div><div class="stat-sub">戶</div></div>'
-    +'<div class="stat-card blue" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">訪視關懷</div><div class="stat-val">'+d.stats.visit+'</div><div class="stat-sub">戶</div></div>'
-    +'<div class="stat-card amber" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">定點供餐</div><div class="stat-val">'+d.stats.fixedPointMeals+'</div><div class="stat-sub">份</div></div>'
-    +'</div>'
-    +'<div class="card"><div class="card-title">💚 '+d.title+'</div>'
-    +'<table class="tbl"><thead><tr><th>面向</th><th>對象</th><th>摘要</th><th>紀錄人</th></tr></thead><tbody>';
-  var tColor={'訪視關懷':'badge-blue','線上關懷':'badge-green','定點關懷':'badge-amber','法訊關懷':'badge-purple'};
-  for(var i=0;i<d.logs.length;i++){
-    var lg=d.logs[i];
-    html+='<tr><td><span class="badge '+(tColor[lg.type]||'badge-blue')+'">'+lg.type+'</span></td>'
-      +'<td style="font-weight:500">'+lg.target+'</td><td style="font-size:11px">'+lg.summary+'</td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+lg.recorder+'</td></tr>';
+  var activeTab=CARE_REC_TAB||'logs';
+  var html='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +'<button class="btn '+(activeTab==='logs'?'btn-blue':'btn-ghost')+'" id="crtab-logs" onclick="setCareRecTab(\'logs\')">💚 關懷紀錄</button>'
+    +'<button class="btn '+(activeTab==='followup'?'btn-blue':'btn-ghost')+'" id="crtab-followup" onclick="setCareRecTab(\'followup\')">⏰ 48h 追蹤清單</button>'
+    +'</div>';
+  if(activeTab==='logs'){
+    html+='<div style="display:flex;justify-content:flex-end;margin-bottom:10px">'
+      +'<button class="btn btn-amber" style="font-size:11px" onclick="logMeal()">🍱 登記定點供餐 +50（便當庫存 '+(bento?bento.stock:0)+'）</button>'
+      +'</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">'
+      +'<div class="stat-card green" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">線上關懷</div><div class="stat-val">'+d.stats.online+'</div><div class="stat-sub">戶</div></div>'
+      +'<div class="stat-card blue" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">訪視關懷</div><div class="stat-val">'+d.stats.visit+'</div><div class="stat-sub">戶</div></div>'
+      +'<div class="stat-card amber" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">定點供餐</div><div class="stat-val">'+d.stats.fixedPointMeals+'</div><div class="stat-sub">份</div></div>'
+      +'</div>'
+      +'<div class="card"><div class="card-title">💚 '+d.title+'</div>'
+      +'<table class="tbl"><thead><tr><th>面向</th><th>對象</th><th>摘要</th><th>紀錄人</th></tr></thead><tbody>';
+    var tColor={'訪視關懷':'badge-blue','線上關懷':'badge-green','定點關懷':'badge-amber','法訊關懷':'badge-purple'};
+    for(var i=0;i<d.logs.length;i++){
+      var lg=d.logs[i];
+      html+='<tr><td><span class="badge '+(tColor[lg.type]||'badge-blue')+'">'+lg.type+'</span></td>'
+        +'<td style="font-weight:500">'+lg.target+'</td><td style="font-size:11px">'+lg.summary+'</td>'
+        +'<td style="font-size:11px;color:var(--text3)">'+lg.recorder+'</td></tr>';
+    }
+    html+='</tbody></table></div>';
+  } else {
+    html+=renderFollowupList();
   }
-  html+='</tbody></table></div>';
   el.innerHTML=html;
 }
 function logMeal(){
@@ -8600,4 +8725,395 @@ function signHandover(hoId){
   h.signedBy=DATA.registry&&DATA.registry.userName||'班長';
   saveData(); renderHandover();
   toast('✅ 交接日誌 '+hoId+' 已簽署鎖定');
+}
+
+// ══════════════════════════════════════════════════════
+//  Phase 2-B：Before/After 照片配對面板
+// ══════════════════════════════════════════════════════
+if(!DATA.drive) DATA.drive={};
+if(!DATA.drive.beforeAfterPairs) DATA.drive.beforeAfterPairs=[];
+
+function renderBeforeAfterPanel(){
+  var tasks=(DATA.taskPool||[]).slice(0,8);
+  var pairs=DATA.drive.beforeAfterPairs||[];
+  var html='<div class="card" style="margin-bottom:14px">'
+    +'<div class="card-title">🔄 Before/After 照片配對</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">為任務上傳施工前/施工後對比照片，自動配對顯示</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">';
+  tasks.forEach(function(t){
+    html+='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;min-width:180px">'
+      +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">'+t.id+'</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+t.title+'</div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button class="btn btn-ghost btn-xs" onclick="uploadBeforeAfter(\''+t.id+'\',\'before\')" style="font-size:10px">📷 Before</button>'
+      +'<button class="btn btn-ghost btn-xs" onclick="uploadBeforeAfter(\''+t.id+'\',\'after\')" style="font-size:10px">📷 After</button>'
+      +'</div></div>';
+  });
+  html+='</div></div>';
+  if(pairs.length>0){
+    html+='<div class="card"><div class="card-title">📊 配對紀錄（'+pairs.length+'）</div>';
+    pairs.forEach(function(p){
+      html+='<div style="border:1px solid var(--border);border-radius:var(--r-sm);padding:10px;margin-bottom:10px">'
+        +'<div style="font-size:11px;font-weight:600;margin-bottom:8px">'+p.taskId+' — '+p.taskTitle+'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+        +(p.before?'<div style="background:var(--bg3);border-radius:6px;padding:10px;text-align:center"><div style="font-size:24px">🏚️</div><div style="font-size:10px;font-weight:600;margin-top:4px">BEFORE</div><div style="font-size:9px;color:var(--text4)">'+p.before.time+'</div><div style="font-size:9px;color:var(--text4)">📍 '+p.before.gps+'</div></div>':'<div style="background:var(--bg3);border-radius:6px;padding:10px;text-align:center;color:var(--text4);font-size:11px">尚未上傳</div>')
+        +(p.after?'<div style="background:var(--green-bg);border-radius:6px;padding:10px;text-align:center"><div style="font-size:24px">🏠</div><div style="font-size:10px;font-weight:600;margin-top:4px;color:var(--green)">AFTER</div><div style="font-size:9px;color:var(--text4)">'+p.after.time+'</div><div style="font-size:9px;color:var(--text4)">📍 '+p.after.gps+'</div></div>':'<div style="background:var(--bg3);border-radius:6px;padding:10px;text-align:center;color:var(--text4);font-size:11px">尚未上傳</div>')
+        +'</div></div>';
+    });
+    html+='</div>';
+  } else {
+    html+='<div class="card" style="text-align:center;padding:30px;color:var(--text4)">尚無配對記錄，請點選任務上傳 Before/After 照片</div>';
+  }
+  return html;
+}
+
+function uploadBeforeAfter(taskId, type){
+  if(!DATA.drive) DATA.drive={};
+  if(!DATA.drive.beforeAfterPairs) DATA.drive.beforeAfterPairs=[];
+  var task=(DATA.taskPool||[]).find(function(t){return t.id===taskId;});
+  if(!task) return;
+  var now=new Date();
+  var timeStr=now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var fakeLat=(23.4+Math.random()*0.2).toFixed(4);
+  var fakeLng=(120.4+Math.random()*0.2).toFixed(4);
+  var gps=fakeLat+', '+fakeLng;
+  var pair=DATA.drive.beforeAfterPairs.find(function(p){return p.taskId===taskId;});
+  if(!pair){
+    pair={taskId:taskId,taskTitle:task.title,before:null,after:null};
+    DATA.drive.beforeAfterPairs.push(pair);
+  }
+  var photoRecord={time:timeStr,gps:gps,uploader:role};
+  pair[type]=photoRecord;
+  logSys('ok','【Before/After】'+taskId+' 上傳 '+type.toUpperCase()+' 照片，GPS:'+gps);
+  toast('📷 '+type.toUpperCase()+' 照片已上傳並配對（'+taskId+'）');
+  saveData(); renderDrive();
+}
+
+// ══════════════════════════════════════════════════════
+//  Phase 2-C：48h 追蹤自動提醒函數
+// ══════════════════════════════════════════════════════
+function addFollowup(taskId, caseId, intervalHours){
+  if(!DATA.followups) DATA.followups=[];
+  if(!DATA._followup_seq) DATA._followup_seq=0;
+  DATA._followup_seq++;
+  var now=new Date();
+  var due=new Date(now.getTime()+intervalHours*3600000);
+  function fmt(d){return d.getFullYear()+'-'+(d.getMonth()+1 <10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate()+' '+(d.getHours()<10?'0':'')+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes();}
+  var fu={
+    id:'FU-'+String(DATA._followup_seq).padStart(3,'0'),
+    taskId:taskId,caseId:caseId,
+    createdAt:fmt(now),dueAt:fmt(due),
+    interval:intervalHours+'h',
+    status:'pending',
+    note:'追蹤任務 '+taskId+(caseId?' 個案 '+caseId:'')
+  };
+  DATA.followups.push(fu);
+  saveData();
+  logSys('ok','【追蹤】新增 '+fu.id+' 任務:'+taskId+' 到期:'+fu.dueAt);
+  toast('⏰ 追蹤已新增：'+fu.id+'，到期 '+fu.dueAt);
+  return fu.id;
+}
+
+function completeFollowup(fuId){
+  var fu=(DATA.followups||[]).find(function(x){return x.id===fuId;});
+  if(!fu) return;
+  fu.status='done';
+  saveData();
+  logSys('ok','【追蹤】'+fuId+' 已標記完成');
+  toast('✅ 追蹤 '+fuId+' 已完成');
+  renderCareRec();
+}
+
+function renderFollowupList(){
+  var list=DATA.followups||[];
+  var now=new Date();
+  var html='<div class="card"><div class="card-title" style="justify-content:space-between">'
+    +'<span>⏰ 48h 追蹤清單（'+list.length+'）</span>'
+    +'<button class="btn btn-blue btn-xs" onclick="openAddFollowupModal()">＋ 新增追蹤</button>'
+    +'</div>';
+  if(list.length===0){
+    html+='<div style="text-align:center;padding:20px;color:var(--text4)">暫無追蹤項目</div>';
+  } else {
+    html+='<table class="tbl"><thead><tr><th>追蹤ID</th><th>任務</th><th>個案</th><th>建立</th><th>到期</th><th>備注</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+    for(var i=0;i<list.length;i++){
+      var fu=list[i];
+      var dueDate=new Date(fu.dueAt.replace(' ','T'));
+      var diffMs=dueDate-now;
+      var diffH=diffMs/3600000;
+      var rowStyle='',statusBadge='';
+      if(fu.status==='done'){
+        rowStyle='opacity:0.5';
+        statusBadge='<span class="badge badge-green">完成</span>';
+      } else if(diffMs<0){
+        rowStyle='background:var(--red-bg)';
+        statusBadge='<span class="badge badge-red">逾期</span>';
+        fu.status='overdue';
+      } else if(diffH<=12){
+        rowStyle='background:var(--amber-bg,#fffbeb)';
+        statusBadge='<span class="badge badge-amber">即將到期</span>';
+      } else {
+        statusBadge='<span class="badge badge-blue">待處理</span>';
+      }
+      html+='<tr style="'+rowStyle+'">'
+        +'<td style="font-family:monospace;font-size:11px">'+fu.id+'</td>'
+        +'<td style="font-size:11px">'+fu.taskId+'</td>'
+        +'<td style="font-size:11px">'+fu.caseId+'</td>'
+        +'<td style="font-size:10px;color:var(--text4)">'+fu.createdAt+'</td>'
+        +'<td style="font-size:10px;font-weight:600">'+fu.dueAt+'</td>'
+        +'<td style="font-size:10px">'+fu.note+'</td>'
+        +'<td>'+statusBadge+'</td>'
+        +'<td>'+(fu.status!=='done'?'<button class="btn btn-green btn-xs" onclick="completeFollowup(\''+fu.id+'\')">✓ 完成</button>':'<span style="font-size:9px;color:var(--text4)">—</span>')+'</td></tr>';
+    }
+    html+='</tbody></table>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function openAddFollowupModal(){
+  var taskOpts=(DATA.taskPool||[]).map(function(t){return '<option value="'+t.id+'">'+t.id+' '+t.title.substring(0,20)+'</option>';}).join('');
+  showModal('⏰ 新增追蹤',
+    '<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<label style="font-size:12px">關聯任務<select id="fu-task" class="inp" style="margin-top:4px"><option value="">— 選擇任務 —</option>'+taskOpts+'</select></label>'
+    +'<label style="font-size:12px">關聯個案ID（選填）<input id="fu-case" class="inp" placeholder="例: SOS-2039" style="margin-top:4px"></label>'
+    +'<label style="font-size:12px">追蹤時間間隔<select id="fu-interval" class="inp" style="margin-top:4px"><option value="48">48小時</option><option value="168">7天</option><option value="720">30天</option></select></label>'
+    +'<button class="btn btn-blue" style="margin-top:8px" onclick="submitAddFollowup()">新增追蹤</button>'
+    +'</div>');
+}
+
+function submitAddFollowup(){
+  var tid=(document.getElementById('fu-task')||{}).value||'';
+  var cid=(document.getElementById('fu-case')||{}).value||'';
+  var interval=parseInt((document.getElementById('fu-interval')||{}).value||'48');
+  if(!tid){toast('⚠ 請選擇關聯任務');return;}
+  addFollowup(tid,cid,interval);
+  closeModal();
+  renderCareRec();
+}
+
+// ══════════════════════════════════════════════════════
+//  Phase 3-A：金援帳本
+// ══════════════════════════════════════════════════════
+var LEDGER_TAB='list';
+var LEDGER_STEP=1;
+var _ledgerForm={};
+
+function setLedgerTab(t){
+  LEDGER_TAB=t;
+  LEDGER_STEP=1;
+  _ledgerForm={};
+  renderReliefLedger();
+}
+
+function renderReliefLedger(){
+  var el=document.getElementById('relief-ledger-content'); if(!el) return;
+  var activeTab=LEDGER_TAB||'list';
+  var html='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +'<button class="btn '+(activeTab==='list'?'btn-blue':'btn-ghost')+'" onclick="setLedgerTab(\'list\')">📋 帳本總表</button>'
+    +'<button class="btn '+(activeTab==='new'?'btn-blue':'btn-ghost')+'" onclick="setLedgerTab(\'new\')">➕ 新增發放</button>'
+    +'</div>';
+  if(activeTab==='list'){
+    html+=renderReliefLedgerList();
+  } else {
+    html+=renderReliefLedgerNew();
+  }
+  el.innerHTML=html;
+}
+
+function renderReliefLedgerList(){
+  var list=DATA.relief_fund||[];
+  var total=list.reduce(function(a,r){return a+r.amount;},0);
+  var html=makeStatGrid([
+    {lbl:'發放筆數',val:list.length,sub:'筆',color:'blue'},
+    {lbl:'總發放金額',val:'NT$'+total.toLocaleString(),sub:'累計',color:'green'},
+  ]);
+  html+='<div class="card"><div class="card-title" style="justify-content:space-between">'
+    +'<span>💰 金援帳本（只可新增，不可刪除）</span>'
+    +'<button class="btn btn-ghost btn-xs" onclick="toast(\'📊 CSV 匯出功能已觸發（實際部署後下載）\');logSys(\'info\',\'【金援帳本】匯出CSV\')">📤 匯出 CSV</button>'
+    +'</div>'
+    +'<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+    +'<th>單號</th><th>個案ID</th><th>受款人</th><th>末四碼</th><th>金額</th><th>類型</th><th>發放人</th><th>時間</th><th>見證人</th><th>狀態</th>'
+    +'</tr></thead><tbody>';
+  if(list.length===0){
+    html+='<tr><td colspan="10" style="text-align:center;color:var(--text4)">尚無發放紀錄</td></tr>';
+  } else {
+    list.forEach(function(r){
+      html+='<tr>'
+        +'<td style="font-family:monospace;font-size:10px">'+r.id+'</td>'
+        +'<td style="font-size:11px">'+r.caseId+'</td>'
+        +'<td style="font-weight:500">'+r.recipient+'</td>'
+        +'<td style="font-family:monospace">****'+r.idLastFour+'</td>'
+        +'<td style="font-weight:600;color:var(--green)">NT$'+r.amount.toLocaleString()+'</td>'
+        +'<td><span class="badge badge-blue" style="font-size:9px">'+r.type+'</span></td>'
+        +'<td style="font-size:11px">'+r.issuedBy+'</td>'
+        +'<td style="font-size:10px;font-family:monospace">'+r.issuedAt+'</td>'
+        +'<td style="font-size:11px">'+r.witnessId+'</td>'
+        +'<td><span class="badge badge-green" style="font-size:9px">'+r.status+'</span></td>'
+        +'</tr>';
+    });
+  }
+  html+='</tbody></table></div>'
+    +'<div style="margin-top:10px;font-size:12px;font-weight:600;text-align:right;color:var(--green)">合計：NT$'+total.toLocaleString()+'</div>'
+    +'</div>';
+  return html;
+}
+
+function renderReliefLedgerNew(){
+  var step=LEDGER_STEP||1;
+  var stepLabels=['選擇個案','確認身份','金額類型','簽名見證','完成'];
+  var stepsHtml='<div style="display:flex;gap:4px;margin-bottom:16px">';
+  for(var s=1;s<=5;s++){
+    stepsHtml+='<div style="flex:1;padding:6px;text-align:center;font-size:10px;font-weight:600;border-radius:6px;'
+      +(s===step?'background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)':'background:var(--bg3);color:var(--text4);border:1px solid var(--border)')
+      +'">'+(s===step?'▶ ':'')+s+'. '+stepLabels[s-1]+'</div>';
+  }
+  stepsHtml+='</div>';
+  var html=stepsHtml;
+  var reqs=(DATA.relief_req&&DATA.relief_req.requests)||[];
+  if(step===1){
+    var dispatched=reqs.filter(function(r){return r.status==='已轉派'||r.status==='處理中';});
+    html+='<div class="card"><div class="card-title">Step 1：選擇關聯個案</div>';
+    dispatched.forEach(function(r){
+      var existingRecord=(DATA.relief_fund||[]).find(function(f){return f.caseId===r.id;});
+      var warn=existingRecord?'<div style="background:var(--amber-bg,#fffbeb);border:1px solid var(--amber,#f59e0b);border-radius:6px;padding:6px;font-size:10px;margin-top:4px">⚠ 此個案已有發放紀錄（需額外授權）</div>':'';
+      html+='<div style="border:1px solid var(--border);border-radius:var(--r-sm);padding:10px;margin-bottom:8px;cursor:pointer;'
+        +(_ledgerForm.caseId===r.id?'background:var(--blue-bg);border-color:var(--blue-border)':'')
+        +'" onclick="ledgerSelectCase(\''+r.id+'\',\''+r.name+'\')">'
+        +'<div style="font-weight:600;font-size:12px">'+r.id+' — '+r.name+'</div>'
+        +'<div style="font-size:11px;color:var(--text3)">'+r.type+' | '+r.location+' | '+r.people+'人</div>'
+        +'<div style="font-size:10px;color:var(--text4)">狀態：'+r.status+'</div>'
+        +warn+'</div>';
+    });
+    if(dispatched.length===0){
+      html+='<div style="color:var(--text4);font-size:12px;text-align:center;padding:20px">無已轉派的個案</div>';
+    }
+    html+='<button class="btn btn-blue" style="margin-top:10px;width:100%;justify-content:center" onclick="ledgerNextStep()">下一步 →</button></div>';
+  } else if(step===2){
+    html+='<div class="card"><div class="card-title">Step 2：確認受款人身份</div>'
+      +'<div style="color:var(--text3);font-size:12px;margin-bottom:10px">個案：'+_ledgerForm.caseId+'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:10px">'
+      +'<label style="font-size:12px">受款人姓名（保留最後一字）<input id="lf-recipient" class="inp" placeholder="例：林○○" value="'+((_ledgerForm.recipient)||'')+'"></label>'
+      +'<label style="font-size:12px">身分證末四碼<input id="lf-id4" class="inp" placeholder="例：3456" maxlength="4" value="'+((_ledgerForm.idLastFour)||'')+'"></label>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:14px">'
+      +'<button class="btn btn-ghost" onclick="LEDGER_STEP=1;renderReliefLedger()">← 返回</button>'
+      +'<button class="btn btn-blue" style="flex:1;justify-content:center" onclick="ledgerStep2Next()">下一步 →</button>'
+      +'</div></div>';
+  } else if(step===3){
+    html+='<div class="card"><div class="card-title">Step 3：選擇類型與金額</div>'
+      +'<div style="display:flex;flex-direction:column;gap:10px">'
+      +'<label style="font-size:12px">發放類型<select id="lf-type" class="inp">'
+      +'<option'+((_ledgerForm.type==='急難金')?' selected':'')+'>急難金</option>'
+      +'<option'+((_ledgerForm.type==='生活補助')?' selected':'')+'>生活補助</option>'
+      +'<option'+((_ledgerForm.type==='醫療補助')?' selected':'')+'>醫療補助</option>'
+      +'<option'+((_ledgerForm.type==='住屋修繕')?' selected':'')+'>住屋修繕</option>'
+      +'</select></label>'
+      +'<label style="font-size:12px">金額（新台幣）<input id="lf-amount" class="inp" type="number" placeholder="例：20000" value="'+((_ledgerForm.amount)||'')+'"></label>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:14px">'
+      +'<button class="btn btn-ghost" onclick="LEDGER_STEP=2;renderReliefLedger()">← 返回</button>'
+      +'<button class="btn btn-blue" style="flex:1;justify-content:center" onclick="ledgerStep3Next()">下一步 →</button>'
+      +'</div></div>';
+  } else if(step===4){
+    html+='<div class="card"><div class="card-title">Step 4：簽名確認 + 見證人</div>'
+      +'<div style="background:var(--bg3);border-radius:8px;padding:16px;text-align:center;margin-bottom:14px">'
+      +'<div style="font-size:13px;margin-bottom:4px">受款人：<b>'+(_ledgerForm.recipient||'')+'</b></div>'
+      +'<div style="font-size:13px;margin-bottom:12px">金額：<b style="color:var(--green)">NT$'+Number((_ledgerForm.amount||0)).toLocaleString()+'</b>（'+(_ledgerForm.type||'')+'）</div>'
+      +'<button id="sig-btn" class="btn btn-amber" style="width:100%;justify-content:center" onclick="simulateSign()">✍️ 模擬受款人簽名確認</button>'
+      +'<div id="sig-status" style="margin-top:8px;font-size:11px;color:var(--text4)">'+((_ledgerForm.signatureImg)?'✅ 已簽名':'等待簽名…')+'</div>'
+      +'</div>'
+      +'<label style="font-size:12px">見證人工號<input id="lf-witness" class="inp" placeholder="例：CI-002" value="'+((_ledgerForm.witnessId)||'')+'"></label>'
+      +'<div style="display:flex;gap:8px;margin-top:14px">'
+      +'<button class="btn btn-ghost" onclick="LEDGER_STEP=3;renderReliefLedger()">← 返回</button>'
+      +'<button class="btn btn-blue" style="flex:1;justify-content:center" onclick="ledgerStep4Next()">下一步 →</button>'
+      +'</div></div>';
+  } else if(step===5){
+    html+='<div class="card" style="text-align:center;padding:30px">'
+      +'<div style="font-size:40px;margin-bottom:12px">✅</div>'
+      +'<div style="font-size:16px;font-weight:700;margin-bottom:8px">發放完成</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-bottom:20px">紀錄已寫入不可刪除帳本</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:left;background:var(--bg3);padding:14px;border-radius:8px;margin-bottom:20px;font-size:12px">'
+      +'<div>單號</div><div style="font-weight:600">'+(_ledgerForm.newId||'')+'</div>'
+      +'<div>個案</div><div>'+(_ledgerForm.caseId||'')+'</div>'
+      +'<div>受款人</div><div>'+(_ledgerForm.recipient||'')+'</div>'
+      +'<div>金額</div><div style="color:var(--green);font-weight:600">NT$'+Number((_ledgerForm.amount||0)).toLocaleString()+'</div>'
+      +'<div>類型</div><div>'+(_ledgerForm.type||'')+'</div>'
+      +'<div>見證人</div><div>'+(_ledgerForm.witnessId||'')+'</div>'
+      +'</div>'
+      +'<button class="btn btn-blue" onclick="setLedgerTab(\'list\')">返回帳本總表</button>'
+      +'</div>';
+  }
+  return html;
+}
+
+function ledgerSelectCase(caseId, caseName){
+  _ledgerForm.caseId=caseId;
+  _ledgerForm.caseName=caseName;
+  renderReliefLedger();
+}
+
+function ledgerNextStep(){
+  if(!_ledgerForm.caseId){toast('⚠ 請選擇個案');return;}
+  var existingRecord=(DATA.relief_fund||[]).find(function(f){return f.caseId===_ledgerForm.caseId;});
+  if(existingRecord){
+    if(!confirm('此個案已有發放紀錄！是否確認需要額外授權繼續？')){return;}
+  }
+  LEDGER_STEP=2; renderReliefLedger();
+}
+
+function ledgerStep2Next(){
+  var rec=(document.getElementById('lf-recipient')||{}).value||'';
+  var id4=(document.getElementById('lf-id4')||{}).value||'';
+  if(!rec||!id4){toast('⚠ 請填寫受款人姓名和身分末四碼');return;}
+  _ledgerForm.recipient=rec; _ledgerForm.idLastFour=id4;
+  LEDGER_STEP=3; renderReliefLedger();
+}
+
+function ledgerStep3Next(){
+  var type=(document.getElementById('lf-type')||{}).value||'急難金';
+  var amount=parseInt((document.getElementById('lf-amount')||{}).value||'0');
+  if(!amount||amount<=0){toast('⚠ 請輸入有效金額');return;}
+  _ledgerForm.type=type; _ledgerForm.amount=amount;
+  LEDGER_STEP=4; renderReliefLedger();
+}
+
+function simulateSign(){
+  _ledgerForm.signatureImg='[已簽名]';
+  var btn=document.getElementById('sig-btn');
+  if(btn){btn.textContent='✅ 已完成簽名';btn.className='btn btn-green';btn.disabled=true;}
+  var st=document.getElementById('sig-status');
+  if(st){st.textContent='✅ 已簽名確認';st.style.color='var(--green)';}
+  logSys('ok','【金援帳本】'+_ledgerForm.caseId+' 受款人 '+_ledgerForm.recipient+' 簽名完成');
+}
+
+function ledgerStep4Next(){
+  if(!_ledgerForm.signatureImg){toast('⚠ 請完成受款人簽名確認');return;}
+  var witness=(document.getElementById('lf-witness')||{}).value||'';
+  if(!witness){toast('⚠ 請輸入見證人工號');return;}
+  _ledgerForm.witnessId=witness;
+  // 寫入帳本
+  if(!DATA.relief_fund) DATA.relief_fund=[];
+  if(!DATA._relief_fund_seq) DATA._relief_fund_seq=0;
+  DATA._relief_fund_seq++;
+  var now=new Date();
+  function fmt2(d){return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate()+' '+(d.getHours()<10?'0':'')+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes();}
+  var newId='RF-'+String(DATA._relief_fund_seq).padStart(4,'0');
+  _ledgerForm.newId=newId;
+  DATA.relief_fund.push({
+    id:newId,
+    caseId:_ledgerForm.caseId,
+    recipient:_ledgerForm.recipient,
+    idLastFour:_ledgerForm.idLastFour,
+    amount:_ledgerForm.amount,
+    type:_ledgerForm.type,
+    issuedBy:role,
+    issuedAt:fmt2(now),
+    signatureImg:_ledgerForm.signatureImg,
+    witnessId:_ledgerForm.witnessId,
+    status:'confirmed'
+  });
+  saveData();
+  logSys('ok','【金援帳本】新增 '+newId+'：'+_ledgerForm.recipient+' NT$'+_ledgerForm.amount+' ('+_ledgerForm.type+') 已寫入帳本');
+  toast('✅ 金援發放 '+newId+' 已記錄，NT$'+_ledgerForm.amount.toLocaleString());
+  LEDGER_STEP=5; renderReliefLedger();
 }
