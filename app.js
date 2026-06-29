@@ -3338,6 +3338,7 @@ function renderAll(){
   renderStats();renderDisaster();renderMap();
   renderAlerts();renderManpower();renderAI();
   renderDataSrc();renderField();renderTasks();
+  applyDevTasksVisibility(); // B8
   saveData();
 }
 
@@ -3855,6 +3856,8 @@ const GROUPS=[
   {id:'food',icon:'🍱',name:'餐飲物資',email:'food@tzuchi-chiayi.org.tw',linked:false,line:''},
 ];
 let role='admin',state='peace',activePage='dashboard';
+var _drillMode=false;
+var _preWarSnapshot=null;
 
 var navDragSrc=null;
 function toggleNavCollapse(){
@@ -3935,6 +3938,15 @@ function renderNav(){
 function showPage(id){
   if(disabledModules.has(id)&&id!=='dashboard'){ id='dashboard'; }
   activePage=id;
+  // B3: War view intercept for non-admin/sysadmin roles
+  if(state==='war'&&role!=='admin'&&role!=='sysadmin'&&role!=='it'&&id==='dashboard'){
+    document.querySelectorAll('.page').forEach(function(p){p.classList.remove('act');});
+    var pg=document.getElementById('page-dashboard');
+    if(pg){ pg.classList.add('act'); renderWarView('dashboard'); }
+    if(window.innerWidth<=768) document.body.classList.remove('nav-open');
+    renderNav();
+    return;
+  }
   // 手機模式：切換頁面後自動收合側欄抽屜
   if(window.innerWidth<=768) document.body.classList.remove('nav-open');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
@@ -4016,6 +4028,7 @@ function setRole(r){
   updateFooter();
   renderGmailRows();
   renderLineCards();
+  applyDevTasksVisibility(); // B8
 }
 function setS(s){
   if(role!=='admin'&&role!=='it'){
@@ -5163,6 +5176,11 @@ var _wtPendingScenario='quake';
 var _wtPendingLevel='L1';
 function wtPickScenario(id){
   _wtPendingScenario=id;
+  // B5: update LOA broadcast template list based on scenario
+  if(typeof LOA_TEMPLATES_BY_SCENARIO!=='undefined'&&LOA_TEMPLATES_BY_SCENARIO[id]){
+    DATA._scenarioTemplates=LOA_TEMPLATES_BY_SCENARIO[id].slice();
+  }
+  DATA._warScenario=id;
   var def=WAR_MODULE_DEFAULTS[id]||WAR_MODULE_DEFAULTS['quake'];
   var s1=document.getElementById('wt-step1');
   var s1b=document.getElementById('wt-step1b');
@@ -5188,6 +5206,7 @@ function wtBackToStep1(){
 }
 function wtPickLevel(level){
   _wtPendingLevel=level;
+  DATA._warLevel=level;
   var def=WAR_MODULE_DEFAULTS[_wtPendingScenario]||WAR_MODULE_DEFAULTS['quake'];
   // L1/L2/L3：分層已設計好，直接套用啟動（快速路徑，2 步完成）
   if(level!=='manual'){
@@ -5859,14 +5878,18 @@ function logSys(level, msg){
   var time = new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   var colorMap = {ok:'slog-ok', warn:'slog-warn', err:'slog-err', info:'slog-info'};
   var prefix   = {ok:'✓', warn:'⚠', err:'✗', info:'ℹ'};
-  logEntries.unshift({time:time, level:level, msg:msg});
+  var isDrill=(typeof _drillMode!=='undefined'&&_drillMode&&(typeof state!=='undefined'&&state==='war'));
+  var entry={time:time, level:level, msg:msg};
+  if(isDrill) entry.drill=true;
+  logEntries.unshift(entry);
   if(logEntries.length > 50) logEntries.pop();
   if(typeof telemetryLog==='function') telemetryLog(level,msg);
   var el = document.getElementById('syslog');
   if(!el) return;
   el.innerHTML = logEntries.map(function(e){
+    var drillTag=e.drill?'<span style="color:var(--amber);margin-right:4px">[演練]</span>':'';
     return '<div class="syslog-entry"><span class="slog-time">'+e.time+'</span>'
-      +'<span class="'+colorMap[e.level]+'">'+prefix[e.level]+'</span> '+e.msg+'</div>';
+      +'<span class="'+colorMap[e.level]+'">'+prefix[e.level]+'</span> '+drillTag+e.msg+'</div>';
   }).join('');
 }
 // ── DEV SHORTCUT: simulate perm request (IT panel) ──
@@ -7595,6 +7618,7 @@ showPage('dashboard');
 setScenario('quake');
 renderGmailRows();
 renderLineCards();
+applyDevTasksVisibility(); // B8
 updateFooter();
 logSys('ok','DRMS v4 系統初始化完成。所有模組正常運行。');
 startRegPolling();
@@ -7654,3 +7678,199 @@ document.addEventListener('click',function(e){
     }
   });
 })();
+
+// ══ B1: Theme toggle ══
+function toggleTheme(){
+  var cur=document.documentElement.getAttribute('data-theme');
+  var next=cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('drms_theme',next);
+  var btn=document.getElementById('theme-btn');
+  if(btn) btn.textContent=next==='dark'?'☀':'🌙';
+}
+(function initTheme(){
+  var saved=localStorage.getItem('drms_theme')||'dark';
+  document.documentElement.setAttribute('data-theme',saved);
+  document.addEventListener('DOMContentLoaded',function(){
+    var btn=document.getElementById('theme-btn');
+    if(btn) btn.textContent=saved==='dark'?'☀':'🌙';
+  });
+})();
+
+// ══ B3: War view ══
+function renderWarView(pageId){
+  var pg=document.getElementById('page-'+pageId);
+  if(!pg) return;
+  if(!DATA._warStart) DATA._warStart=Date.now();
+  var warBar='<div id="war-status-bar" style="background:var(--red);color:#fff;padding:8px 20px;display:flex;align-items:center;gap:16px;font-size:12px;font-weight:700;border-radius:var(--r);margin-bottom:16px">'
+    +'<span>🔴 戰時</span>'
+    +'<span>'+(DATA._warScenario||'災害')+'</span>'
+    +'<span>'+(DATA._warLevel||'L1')+'</span>'
+    +'<span>在場 <b>'+(DATA.checkinLog?DATA.checkinLog.filter(function(c){return c.status==='in';}).length:0)+'</b> 人</span>'
+    +'<span id="wsb-elapsed" style="margin-left:auto;font-family:monospace"></span>'
+    +'</div>';
+  var isVol=(role==='vol');
+  var html=warBar;
+  if(isVol){
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+    var btns=[
+      {icon:'📋',label:'我的任務',fn:'showPage(\'rtsync\')',id:''},
+      {icon:'🆘',label:'SOS 求救（長按）',fn:'',id:'war-sos-btn'},
+      {icon:'✅',label:'簽到/簽退',fn:'warCheckin()',id:''},
+      {icon:'📦',label:'物資回報',fn:'showPage(\'warehouse\')',id:''},
+    ];
+    btns.forEach(function(b){
+      var attrs=b.id?'id="'+b.id+'"':'';
+      html+='<button class="btn btn-ghost" style="min-height:72px;flex-direction:column;gap:6px;font-size:13px;border-radius:var(--r);justify-content:center" '
+        +attrs+' onclick="'+b.fn+'">'
+        +'<span style="font-size:28px">'+b.icon+'</span>'+b.label+'</button>';
+    });
+    html+='</div>';
+  } else {
+    var pend=(DATA.tasks||[]).filter(function(t){return t.status==='pending';}).length;
+    html+='<div style="display:flex;flex-direction:column;gap:10px">';
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    html+='<button class="btn btn-blue" style="min-height:56px;flex-direction:column;gap:4px;justify-content:center" onclick="showPage(\'rtsync\')"><span style="font-size:20px">📋</span>任務池</button>';
+    html+='<button class="btn btn-green" style="min-height:56px;flex-direction:column;gap:4px;justify-content:center" onclick="showPage(\'vol_hub\')"><span style="font-size:20px">👥</span>點名</button>';
+    html+='<button class="btn btn-red" style="min-height:56px;flex-direction:column;gap:4px;justify-content:center" onclick="showPage(\'rtsync\')"><span style="font-size:20px">📢</span>緊急推播</button>';
+    html+='<button class="btn btn-amber" style="min-height:56px;flex-direction:column;gap:4px;justify-content:center" onclick="showPage(\'warehouse\')"><span style="font-size:20px">⚠</span>未回報狀態</button>';
+    html+='</div>';
+    html+='<div class="stat-card amber" style="padding:14px 16px"><div class="accent-bar"></div><div class="stat-lbl">待派任務數</div><div class="stat-val">'+pend+'</div></div>';
+    html+='</div>';
+  }
+  pg.innerHTML=html;
+  // Wire SOS long-press (1.5s)
+  var sosBtn=document.getElementById('war-sos-btn');
+  if(sosBtn){
+    var sosTimer=null;
+    sosBtn.addEventListener('pointerdown',function(){
+      sosTimer=setTimeout(function(){
+        triggerSOS('前線志工','長按 SOS 觸發！需要立即支援');
+        logSys('err','【SOS】長按觸發');
+      },1500);
+    });
+    sosBtn.addEventListener('pointerup',function(){ clearTimeout(sosTimer); });
+    sosBtn.addEventListener('pointerleave',function(){ clearTimeout(sosTimer); });
+  }
+  // Elapsed timer
+  clearInterval(window._wsbTimer);
+  window._wsbTimer=setInterval(function(){
+    var el=document.getElementById('wsb-elapsed'); if(!el){ clearInterval(window._wsbTimer); return; }
+    var sec=Math.floor((Date.now()-(DATA._warStart||Date.now()))/1000);
+    var h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+    el.textContent='已歷時 '+h+'h '+m+'m '+s+'s';
+  },1000);
+}
+
+function warCheckin(){
+  if(!DATA.checkinLog) DATA.checkinLog=[];
+  var last=DATA.checkinLog.filter(function(c){return c.role===role;}).pop();
+  var action=(last&&last.status==='in')?'out':'in';
+  var site=autoFillSite()||'現場';
+  DATA.checkinLog.push({role:role,status:action,site:site,time:new Date().toLocaleTimeString('zh-TW')});
+  toast(action==='in'?'✅ 已簽到：'+site:'👋 已簽退');
+  logSys('ok',(action==='in'?'【簽到】':'【簽退】')+role+' @ '+site);
+}
+
+// ══ B4: Location auto-fill ══
+function autoFillSite(){
+  if(DATA.checkinLog&&DATA.checkinLog.length){
+    var last=DATA.checkinLog[DATA.checkinLog.length-1];
+    if(last.site) return last.site;
+  }
+  var tasks=DATA.tasks||[];
+  for(var i=tasks.length-1;i>=0;i--){
+    if(tasks[i].site) return tasks[i].site;
+  }
+  return null;
+}
+
+// ══ B5: Broadcast templates with scenario linking ══
+var LOA_TEMPLATES_BY_SCENARIO={
+  quake:['結構受損回報 {{地點}} {{時間}}','撤離集合點確認 {{地點}} 負責人：{{負責人}}'],
+  flood:['撤離路線確認 {{地點}} {{時間}}','物資需求通報 {{地點}} 負責人：{{負責人}}'],
+  fire:['疏散引導通報 {{地點}} {{時間}}','傷亡人數回報 {{地點}} 負責人：{{負責人}}'],
+  wind:['避難所開設通知 {{地點}} {{時間}}','物資缺口通報 {{地點}} 負責人：{{負責人}}'],
+  landslide:['孤島聚落回報 {{地點}} {{時間}}','空投請求 {{地點}} 負責人：{{負責人}}'],
+  tsunami:['垂直避難廣播 {{地點}} {{時間}}','撤離完成確認 {{地點}} 負責人：{{負責人}}'],
+  epidemic:['居隔物資配送 {{地點}} {{時間}}','健康關懷回報 {{地點}} 負責人：{{負責人}}'],
+  compound:['跨區支援請求 {{地點}} {{時間}}','資源調度通報 {{地點}} 負責人：{{負責人}}'],
+  drought:['供水點公告 {{地點}} {{時間}}','弱勢配水回報 {{地點}} 負責人：{{負責人}}'],
+  war_s:['緊急集合通知 {{地點}} {{時間}}','撤離動線確認 {{地點}} 負責人：{{負責人}}'],
+};
+function resolveBroadcastTpl(tpl){
+  var site=autoFillSite()||'';
+  var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var person=role==='admin'?'總控':role;
+  return tpl.replace(/\{\{地點\}\}/g,site||'【請填地點】')
+            .replace(/\{\{時間\}\}/g,time)
+            .replace(/\{\{負責人\}\}/g,person);
+}
+
+// ══ B6: Drill log helpers ══
+function startDrillMode(){
+  _drillMode=true;
+  _preWarSnapshot=JSON.parse(JSON.stringify({tasks:DATA.tasks||[],checkinLog:DATA.checkinLog||[]}));
+  toast('🔶 演練模式啟動，記錄將標示 [演練]');
+  logSys('warn','【演練】演練開始');
+}
+function endDrillMode(){
+  if(!_drillMode){ toast('目前不在演練模式'); return; }
+  if(confirm('演練結束，是否清除演練資料？\n確認 → 還原演練前快照\n取消 → 保留')){
+    if(_preWarSnapshot){
+      DATA.tasks=_preWarSnapshot.tasks;
+      DATA.checkinLog=_preWarSnapshot.checkinLog;
+    }
+    logEntries=logEntries.filter(function(e){return !e.drill;});
+    renderSysLog();
+    toast('✅ 演練資料已清除，還原到演練前狀態');
+  } else {
+    toast('保留演練記錄');
+  }
+  _drillMode=false;
+}
+function renderSysLog(){
+  var el=document.getElementById('syslog'); if(!el) return;
+  var colorMap={ok:'slog-ok',warn:'slog-warn',err:'slog-err',info:'slog-info'};
+  var prefix2={ok:'✓',warn:'⚠',err:'✗',info:'ℹ'};
+  el.innerHTML=logEntries.map(function(e){
+    var drillTag=e.drill?'<span style="color:var(--amber);margin-right:4px">[演練]</span>':'';
+    return '<div class="syslog-entry"><span class="slog-time">'+e.time+'</span>'
+      +'<span class="'+colorMap[e.level]+'">'+prefix2[e.level]+'</span> '+drillTag+e.msg+'</div>';
+  }).join('');
+}
+
+// ══ B7: Hidden widget badge ══
+var _widgetCounters={};
+var _origShowWidget=showWidget;
+function notifyHiddenWidget(id,delta){
+  if(delta===undefined) delta=1;
+  if(!hiddenWidgets.has(id)) return;
+  _widgetCounters[id]=(_widgetCounters[id]||0)+delta;
+  renderRestoreArea();
+}
+var _origRenderRestoreArea=renderRestoreArea;
+renderRestoreArea=function(){
+  var area=document.getElementById('restore-area');
+  if(!area) return;
+  area.innerHTML='';
+  hiddenWidgets.forEach(function(id){
+    var pill=document.createElement('div');
+    pill.className='restore-pill';
+    var cnt=_widgetCounters[id]||0;
+    pill.innerHTML='＋ '+(WIDGET_NAMES[id]||id)+(cnt>0?'<span style="margin-left:6px;background:var(--red);color:#fff;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">'+cnt+'</span>':'');
+    pill.onclick=function(){
+      _widgetCounters[id]=0;
+      showWidget(id);
+    };
+    area.appendChild(pill);
+  });
+};
+
+// ══ B8: Hide w-devtasks for non-IT/sysadmin roles ══
+function applyDevTasksVisibility(){
+  var el=document.getElementById('w-devtasks');
+  if(!el) return;
+  var show=(role==='admin'||role==='it');
+  el.style.display=show?'':'none';
+}

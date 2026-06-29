@@ -23,11 +23,14 @@
   </div>
   <div style="flex:1"></div>
   <div class="role-wrap">
+    <button id="theme-btn" onclick="toggleTheme()" title="切換深色/淺色模式" style="display:flex;align-items:center;padding:6px 10px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--text3);font-size:14px;cursor:pointer;transition:all .2s;margin-right:4px">🌙</button>
     <select class="role-sel" id="role-sel" onchange="setRole(this.value)" style="margin-right:8px">
       <option value="admin">🎖 總控</option>
       <option value="it">🔧 IT 志工</option>
       <option value="staff">📋 行政組</option>
       <option value="logistics">📦 物資組</option>
+      <option value="vol">👐 前線志工</option>
+      <option value="leader">📣 組長/調度</option>
     </select>
     <button id="sync-btn"
       style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--text3);font-family:'Noto Sans TC','Inter',sans-serif;font-size:12px;cursor:pointer;font-weight:500;transition:all .2s;user-select:none;white-space:nowrap"
