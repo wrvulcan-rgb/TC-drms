@@ -8172,3 +8172,432 @@ function cycleSquadStatus(idx){
 
 // closeModal is defined earlier in the file
 
+
+// ══ Phase 1-A：梯次排班 ══
+function renderTierScheduler(){
+  var el=document.getElementById('tier-scheduler-content');
+  if(!el) return;
+  var tiers=DATA.tiers||[];
+  var squads=DATA.squads||[];
+  var statusLabel={confirmed:'已確認',planning:'籌備中',closed:'已結束'};
+  var statusColor={confirmed:'badge-green',planning:'badge-yellow',closed:'badge-gray'};
+
+  var html='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">';
+  html+='<button class="btn btn-blue" onclick="showTierForm()">➕ 建立梯次</button>';
+  html+='</div>';
+
+  // 梯次看板分三欄
+  var groups={confirmed:[],planning:[],closed:[]};
+  tiers.forEach(function(t){ (groups[t.status]||groups.planning).push(t); });
+
+  var cols=[
+    {key:'confirmed',label:'✅ 已確認',color:'#2ecc71'},
+    {key:'planning', label:'🔄 籌備中',color:'#3498db'},
+    {key:'closed',   label:'🔒 已結束',color:'#95a5a6'},
+  ];
+
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
+  cols.forEach(function(col){
+    html+='<div><div style="font-weight:700;color:'+col.color+';border-bottom:2px solid '+col.color+';padding-bottom:4px;margin-bottom:8px">'+col.label+'</div>';
+    if(!groups[col.key].length) html+='<div style="color:var(--text4);font-size:13px">無</div>';
+    groups[col.key].forEach(function(t){
+      var sqNames=t.squads.map(function(sid){
+        var s=squads.find(function(x){return x.id===sid;});
+        return s?s.name:sid;
+      }).join('、')||'（未配班組）';
+      html+='<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="showTierDetail(\''+t.id+'\')">';
+      html+='<div style="font-weight:700">'+t.id+' <span class="badge '+statusColor[t.status]+'">'+statusLabel[t.status]+'</span></div>';
+      html+='<div style="font-size:12px;color:var(--text4);margin-top:4px">📅 '+t.date+' '+t.startTime+'~'+t.endTime+'</div>';
+      html+='<div style="font-size:12px;margin-top:2px">📍 '+t.briefingPoint+' '+t.briefingTime+'集合</div>';
+      html+='<div style="font-size:12px;margin-top:2px">👥 '+sqNames+'</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+
+  el.innerHTML=html;
+}
+
+function showTierForm(){
+  showModal('➕ 建立新梯次',
+    '<label style="font-size:12px;color:var(--text3)">日期</label>'
+    +'<input class="inp" id="tf-date" type="date" value="2026-06-29" style="width:100%;margin-bottom:8px">'
+    +'<label style="font-size:12px;color:var(--text3)">開始時間</label>'
+    +'<input class="inp" id="tf-start" type="time" value="08:00" style="width:100%;margin-bottom:8px">'
+    +'<label style="font-size:12px;color:var(--text3)">結束時間</label>'
+    +'<input class="inp" id="tf-end" type="time" value="14:00" style="width:100%;margin-bottom:8px">'
+    +'<label style="font-size:12px;color:var(--text3)">集合點</label>'
+    +'<input class="inp" id="tf-bp" placeholder="集合點" style="width:100%;margin-bottom:8px">'
+    +'<label style="font-size:12px;color:var(--text3)">集合時間</label>'
+    +'<input class="inp" id="tf-bt" type="time" value="07:30" style="width:100%;margin-bottom:12px">'
+    +'<button class="btn btn-blue" style="width:100%" onclick="submitTierForm()">建立</button>');
+}
+
+function submitTierForm(){
+  var date=document.getElementById('tf-date').value;
+  var start=document.getElementById('tf-start').value;
+  var end=document.getElementById('tf-end').value;
+  var bp=document.getElementById('tf-bp').value.trim();
+  var bt=document.getElementById('tf-bt').value;
+  if(!bp){toast('⚠ 請填寫集合點');return;}
+  if(!DATA.tiers) DATA.tiers=[];
+  var id='TIER-'+(DATA.tiers.length+1);
+  DATA.tiers.push({id:id,date:date,startTime:start,endTime:end,squads:[],vehicles:[],briefingPoint:bp,briefingTime:bt,leaderId:'',status:'planning'});
+  saveData(); closeModal();
+  renderTierScheduler();
+  toast('✅ 梯次 '+id+' 已建立');
+}
+
+function showTierDetail(tierId){
+  var t=(DATA.tiers||[]).find(function(x){return x.id===tierId;});
+  if(!t) return;
+  var squads=DATA.squads||[];
+  var assignedNames=t.squads.map(function(sid){
+    var s=squads.find(function(x){return x.id===sid;});
+    return s?s.name:sid;
+  });
+  var availSq=squads.filter(function(s){return t.squads.indexOf(s.id)===-1;});
+
+  var html='<div style="margin-bottom:12px">';
+  html+='<b>已加入班組：</b> '+(assignedNames.length?assignedNames.join('、'):'（無）')+'</div>';
+  html+='<div style="margin-bottom:8px"><b>加入班組：</b></div>';
+  html+='<select class="inp" id="td-sq" style="width:100%;margin-bottom:8px"><option value="">-- 選擇班組 --</option>';
+  availSq.forEach(function(s){html+='<option value="'+s.id+'">'+s.name+'</option>';});
+  html+='</select>';
+  html+='<button class="btn btn-blue" style="width:100%;margin-bottom:12px" onclick="addSquadToTier(\''+tierId+'\')">➕ 加入班組</button>';
+  if(t.status!=='confirmed'){
+    html+='<button class="btn btn-green" style="width:100%" onclick="confirmTier(\''+tierId+'\')">✅ 確認梯次</button>';
+  } else {
+    html+='<div class="badge badge-green">梯次已確認</div>';
+  }
+  showModal('梯次詳情：'+tierId, html);
+}
+
+function addSquadToTier(tierId){
+  var t=(DATA.tiers||[]).find(function(x){return x.id===tierId;});
+  var sqId=document.getElementById('td-sq').value;
+  if(!t||!sqId){toast('⚠ 請選擇班組');return;}
+  if(t.squads.indexOf(sqId)===-1) t.squads.push(sqId);
+  saveData(); closeModal(); renderTierScheduler();
+  toast('✅ 班組已加入 '+tierId);
+}
+
+function confirmTier(tierId){
+  var t=(DATA.tiers||[]).find(function(x){return x.id===tierId;});
+  if(!t) return;
+  t.status='confirmed'; saveData(); closeModal(); renderTierScheduler();
+  toast('✅ '+tierId+' 已確認');
+}
+
+// ══ Phase 1-B：車輛派遣 ══
+function renderVehicleDispatch(){
+  var el=document.getElementById('vehicle-dispatch-content');
+  if(!el) return;
+  var vehicles=DATA.vehicles||[];
+  var tiers=DATA.tiers||[];
+  var squads=DATA.squads||[];
+
+  var statusLabel={available:'可用',assigned:'已指派',  'en-route':'出發中',returned:'已返回'};
+  var statusColor={available:'#2ecc71',assigned:'#3498db','en-route':'#e67e22',returned:'#95a5a6'};
+
+  var html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px">';
+  vehicles.forEach(function(v){
+    var c=statusColor[v.status]||'#999';
+    var lbl=statusLabel[v.status]||v.status;
+    html+='<div class="card" style="border-left:4px solid '+c+'">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center">';
+    html+='<b>'+v.id+'</b><span style="background:'+c+';color:#fff;border-radius:12px;padding:2px 8px;font-size:11px">'+lbl+'</span>';
+    html+='</div>';
+    html+='<div style="font-size:13px;margin-top:6px">🚌 '+v.type+' | '+v.plate+'</div>';
+    html+='<div style="font-size:12px;color:var(--text3)">👨‍✈️ '+v.driver.name+' '+v.driver.phone+'</div>';
+    html+='<div style="font-size:12px;color:var(--text3)">容量：'+v.capacity+' 人</div>';
+    if(v.assignedTier) html+='<div style="font-size:12px;margin-top:4px">梯次：'+v.assignedTier+'</div>';
+    if(v.departureTime) html+='<div style="font-size:12px">出發：'+v.departureTime+'</div>';
+    if(v.returnTime) html+='<div style="font-size:12px">返回：'+v.returnTime+'</div>';
+    if(v.cargo.length){
+      html+='<div style="font-size:11px;margin-top:4px;color:var(--text4)">物資：'+v.cargo.map(function(c){return c.name+'×'+c.qty;}).join('、')+'</div>';
+    }
+    // 司機操作按鈕
+    html+='<div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">';
+    if(v.status==='assigned'){
+      html+='<button class="btn btn-blue" style="font-size:11px;padding:3px 8px" onclick="vhCheckout(\''+v.id+'\')">📍 出發打卡</button>';
+    }
+    if(v.status==='en-route'){
+      html+='<button class="btn btn-green" style="font-size:11px;padding:3px 8px" onclick="vhArrive(\''+v.id+'\')">✅ 抵達打卡</button>';
+      html+='<button class="btn btn-ghost" style="font-size:11px;padding:3px 8px" onclick="vhReturn(\''+v.id+'\')">🔙 返回打卡</button>';
+    }
+    html+='</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // 車輛配對表單
+  html+='<div class="card"><div style="font-weight:700;margin-bottom:10px">🔗 車輛配對指派</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">';
+  html+='<div><label style="font-size:12px;color:var(--text3)">選擇梯次</label>';
+  html+='<select class="inp" id="vd-tier" style="width:100%"><option value="">-- 梯次 --</option>';
+  tiers.forEach(function(t){html+='<option value="'+t.id+'">'+t.id+' ('+t.date+' '+t.startTime+')</option>';});
+  html+='</select></div>';
+  html+='<div><label style="font-size:12px;color:var(--text3)">選擇車輛</label>';
+  html+='<select class="inp" id="vd-vh" style="width:100%"><option value="">-- 車輛 --</option>';
+  vehicles.filter(function(v){return v.status==='available';}).forEach(function(v){
+    html+='<option value="'+v.id+'">'+v.id+' '+v.type+' '+v.plate+'</option>';
+  });
+  html+='</select></div>';
+  html+='<div><button class="btn btn-blue" onclick="assignVehicle()">指派</button></div>';
+  html+='</div></div>';
+
+  el.innerHTML=html;
+}
+
+function assignVehicle(){
+  var tierId=document.getElementById('vd-tier').value;
+  var vhId=document.getElementById('vd-vh').value;
+  if(!tierId||!vhId){toast('⚠ 請選擇梯次和車輛');return;}
+  var v=(DATA.vehicles||[]).find(function(x){return x.id===vhId;});
+  if(!v){toast('⚠ 找不到車輛');return;}
+  v.status='assigned'; v.assignedTier=tierId;
+  saveData(); renderVehicleDispatch();
+  toast('✅ '+vhId+' 已指派給 '+tierId);
+}
+
+function vhCheckout(vhId){
+  var v=(DATA.vehicles||[]).find(function(x){return x.id===vhId;});
+  if(!v) return;
+  var now=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  v.status='en-route'; v.departureTime=now;
+  saveData(); renderVehicleDispatch();
+  toast('🚌 '+vhId+' 出發打卡 '+now);
+}
+
+function vhArrive(vhId){
+  var v=(DATA.vehicles||[]).find(function(x){return x.id===vhId;});
+  if(!v) return;
+  toast('✅ '+vhId+' 已抵達現場');
+}
+
+function vhReturn(vhId){
+  var v=(DATA.vehicles||[]).find(function(x){return x.id===vhId;});
+  if(!v) return;
+  var now=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  v.status='returned'; v.returnTime=now;
+  saveData(); renderVehicleDispatch();
+  toast('🔙 '+vhId+' 返回打卡 '+now);
+}
+
+// ══ Phase 1-C：作戰指揮圖 ══
+function renderCommandMap(){
+  var el=document.getElementById('command-map-content');
+  if(!el) return;
+  var squads=DATA.squads||[];
+  var tasks=DATA.taskPool||[];
+
+  // 定義區域
+  var zones=[
+    {id:'Z1',name:'竹崎區',color:'#e8f4f8',x:0,y:0,w:2,h:2},
+    {id:'Z2',name:'梅山區',color:'#f0f8e8',x:2,y:0,w:2,h:2},
+    {id:'Z3',name:'大埔區',color:'#f8f0e8',x:0,y:2,w:2,h:2},
+    {id:'Z4',name:'阿里山區',color:'#f8e8f8',x:2,y:2,w:2,h:2},
+  ];
+
+  // 班組位置映射（簡化示意）
+  var squadZone={
+    'SQ-001':'Z1','SQ-002':'Z3','SQ-003':'Z2','SQ-004':'Z4'
+  };
+  var sqStatusColor={standby:'#3498db',deployed:'#2ecc71',returning:'#e67e22'};
+  var sqStatusLabel={standby:'待命',deployed:'部署中',returning:'返途'};
+
+  var taskZone={
+    'TSK-0041':'Z1','TSK-0042':'Z2','TSK-0043':'Z3','TSK-0044':'Z1','TSK-0045':'Z3'
+  };
+  var prioColor={'P0':'#e74c3c','P1':'#e74c3c','P2':'#e67e22','P3':'#3498db'};
+
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:8px;margin-bottom:16px">';
+
+  zones.forEach(function(z){
+    var zoneSq=squads.filter(function(s){return squadZone[s.id]===z.id;});
+    var zoneTasks=tasks.filter(function(t){
+      return taskZone[t.id]===z.id&&(t.status==='open'||t.status==='claimed');
+    });
+    // 人力空白警示
+    var hasDeployed=zoneSq.some(function(s){return s.status==='deployed';});
+    var hasOpenTask=zoneTasks.length>0;
+    var warn=(!hasDeployed&&hasOpenTask);
+
+    html+='<div style="background:'+z.color+';border:2px solid '+(warn?'#e74c3c':'#ddd')+';border-radius:12px;padding:12px;min-height:120px;position:relative">';
+    if(warn) html+='<div style="position:absolute;top:4px;right:8px;font-size:11px;color:#e74c3c;font-weight:700">⚠ 人力空白</div>';
+    html+='<div style="font-weight:700;font-size:14px;margin-bottom:8px">'+z.name+'</div>';
+
+    // 班組圓點
+    html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
+    zoneSq.forEach(function(s){
+      var c=sqStatusColor[s.status]||'#999';
+      html+='<div title="'+s.name+' ('+sqStatusLabel[s.status]+')" style="width:28px;height:28px;background:'+c+';border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;cursor:pointer">'+s.name.slice(0,2)+'</div>';
+    });
+    if(!zoneSq.length) html+='<div style="font-size:12px;color:var(--text4)">無班組</div>';
+    html+='</div>';
+
+    // 任務熱力點
+    html+='<div style="display:flex;flex-wrap:wrap;gap:4px">';
+    zoneTasks.forEach(function(t){
+      var c=prioColor[t.priority]||'#999';
+      var anim=t.priority==='P0'?'animation:blink 1s infinite;':'';
+      html+='<div title="'+t.id+' '+t.title+' ('+t.priority+')" style="width:12px;height:12px;background:'+c+';border-radius:50%;'+anim+'"></div>';
+    });
+    html+='</div>';
+
+    // 一鍵增援
+    var standbySquads=squads.filter(function(s){return s.status==='standby'&&squadZone[s.id]!==z.id;});
+    var urgentTasks=zoneTasks.filter(function(t){return t.priority==='P0'||t.priority==='P1';});
+    if(urgentTasks.length&&standbySquads.length){
+      html+='<button class="btn btn-blue" style="font-size:11px;padding:3px 8px;margin-top:8px" onclick="reinforceZone(\''+z.id+'\')">🆘 一鍵增援</button>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // 圖例
+  html+='<div class="card" style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px">';
+  html+='<div style="font-weight:700;width:100%;margin-bottom:4px">圖例</div>';
+  html+='<div><b>班組狀態</b></div>';
+  html+='<div><span style="display:inline-block;width:12px;height:12px;background:#3498db;border-radius:50%;vertical-align:middle"></span> 待命</div>';
+  html+='<div><span style="display:inline-block;width:12px;height:12px;background:#2ecc71;border-radius:50%;vertical-align:middle"></span> 部署中</div>';
+  html+='<div><span style="display:inline-block;width:12px;height:12px;background:#e67e22;border-radius:50%;vertical-align:middle"></span> 返途</div>';
+  html+='<div style="width:100%"><b>任務優先級</b></div>';
+  html+='<div><span style="display:inline-block;width:12px;height:12px;background:#e74c3c;border-radius:50%;vertical-align:middle"></span> P0/P1（緊急）</div>';
+  html+='<div><span style="display:inline-block;width:12px;height:12px;background:#e67e22;border-radius:50%;vertical-align:middle"></span> P2（重要）</div>';
+  html+='<div><span style="display:inline-block;width:12px;height:12px;background:#3498db;border-radius:50%;vertical-align:middle"></span> P3（一般）</div>';
+  html+='</div>';
+
+  el.innerHTML=html;
+}
+
+function reinforceZone(zoneId){
+  var squads=DATA.squads||[];
+  var zoneMap={'Z1':'竹崎區','Z2':'梅山區','Z3':'大埔區','Z4':'阿里山區'};
+  var squadZone={'SQ-001':'Z1','SQ-002':'Z3','SQ-003':'Z2','SQ-004':'Z4'};
+  var standby=squads.filter(function(s){return s.status==='standby'&&squadZone[s.id]!==zoneId;});
+  if(!standby.length){toast('⚠ 無待命班組可增援');return;}
+  var s=standby[0];
+  s.status='deployed';
+  // 更新映射（簡化：移動到目標區）
+  squadZone[s.id]=zoneId;
+  saveData(); renderCommandMap();
+  toast('✅ '+s.name+' 已增援 '+zoneMap[zoneId]);
+}
+
+// ══ Phase 1-D：交接日誌 ══
+function renderHandover(){
+  var el=document.getElementById('handover-content');
+  if(!el) return;
+  var handovers=DATA.handovers||[];
+  var tiers=DATA.tiers||[];
+  var tasks=DATA.taskPool||[];
+
+  // 收班摘要：自動抓取未完成任務
+  var openTasks=tasks.filter(function(t){return t.status==='open'||t.status==='in-progress';});
+
+  var html='<div style="margin-bottom:16px">';
+  html+='<div class="card" style="background:var(--bg2);margin-bottom:12px">';
+  html+='<div style="font-weight:700;margin-bottom:8px">📊 收班自動摘要</div>';
+  html+='<div style="font-size:13px">未完成任務：<b style="color:#e74c3c">'+openTasks.length+' 件</b></div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">';
+  openTasks.forEach(function(t){
+    html+='<span class="badge badge-yellow">'+t.id+' '+t.title+'</span>';
+  });
+  html+='</div></div>';
+
+  // 新增交接記錄按鈕
+  html+='<button class="btn btn-blue" style="margin-bottom:16px" onclick="showHandoverForm()">📝 填寫交接日誌</button>';
+
+  // 歷史記錄
+  html+='<div style="font-weight:700;margin-bottom:8px">📋 交接歷史</div>';
+  if(!handovers.length) html+='<div style="color:var(--text4);font-size:13px">尚無記錄</div>';
+
+  handovers.forEach(function(h){
+    var locked=h.status==='signed';
+    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+(locked?'#2ecc71':'#e67e22')+'">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center">';
+    html+='<b>'+h.id+'</b>';
+    html+='<span class="badge '+(locked?'badge-green':'badge-yellow')+'">'+(locked?'已簽署':'草稿')+'</span>';
+    html+='</div>';
+    html+='<div style="font-size:12px;color:var(--text3);margin-top:4px">'+h.createdAt+' 由 '+h.createdBy+' 建立</div>';
+    html+='<div style="font-size:13px;margin-top:6px">'+h.fromTier+' → '+h.toTier+'</div>';
+    if(h.unfinishedTasks.length){
+      html+='<div style="font-size:12px;margin-top:4px">未完成任務：'+h.unfinishedTasks.join('、')+'</div>';
+    }
+    if(h.supplyDiff.length){
+      html+='<div style="font-size:12px;margin-top:2px">物資差異：';
+      h.supplyDiff.forEach(function(d){
+        html+=d.item+' 差 '+d.diff+' '+' ';
+      });
+      html+='</div>';
+    }
+    if(h.safetyNotes){
+      html+='<div style="font-size:12px;margin-top:2px;color:#e67e22">⚠ 安全備注：'+h.safetyNotes+'</div>';
+    }
+    if(h.nextTierBrief){
+      html+='<div style="font-size:12px;margin-top:4px;background:var(--bg2);padding:6px;border-radius:6px">下梯次交辦：'+h.nextTierBrief+'</div>';
+    }
+    if(!locked){
+      html+='<button class="btn btn-green" style="margin-top:8px;font-size:12px" onclick="signHandover(\''+h.id+'\')">✍ 簽署確認</button>';
+    } else {
+      html+='<div style="font-size:12px;margin-top:6px;color:var(--text4)">已由 '+h.signedBy+' 簽署（見證：'+h.witnessId+'）</div>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+
+  el.innerHTML=html;
+}
+
+function showHandoverForm(){
+  var tiers=DATA.tiers||[];
+  var html='<div>';
+  html+='<label style="font-size:12px;color:var(--text3)">交班梯次</label>';
+  html+='<select class="inp" id="hf-from" style="width:100%;margin-bottom:8px">';
+  tiers.forEach(function(t){html+='<option value="'+t.id+'">'+t.id+'</option>';});
+  html+='</select>';
+  html+='<label style="font-size:12px;color:var(--text3)">接班梯次</label>';
+  html+='<select class="inp" id="hf-to" style="width:100%;margin-bottom:8px">';
+  tiers.forEach(function(t){html+='<option value="'+t.id+'">'+t.id+'</option>';});
+  html+='</select>';
+  html+='<label style="font-size:12px;color:var(--text3)">安全備注</label>';
+  html+='<textarea class="inp" id="hf-safety" rows="3" style="width:100%;margin-bottom:8px" placeholder="現場安全狀況、注意事項..."></textarea>';
+  html+='<label style="font-size:12px;color:var(--text3)">下梯次交辦事項</label>';
+  html+='<textarea class="inp" id="hf-brief" rows="3" style="width:100%;margin-bottom:12px" placeholder="未完成任務說明、重要交辦..."></textarea>';
+  html+='<button class="btn btn-blue" style="width:100%" onclick="submitHandoverForm()">建立交接日誌</button>';
+  html+='</div>';
+  showModal('📝 填寫交接日誌', html);
+}
+
+function submitHandoverForm(){
+  var from=document.getElementById('hf-from').value;
+  var to=document.getElementById('hf-to').value;
+  var safety=document.getElementById('hf-safety').value;
+  var brief=document.getElementById('hf-brief').value;
+  if(!DATA.handovers) DATA.handovers=[];
+  var openTasks=(DATA.taskPool||[]).filter(function(t){return t.status==='open'||t.status==='in-progress';});
+  var id='HO-'+(DATA.handovers.length+1).toString().padStart(3,'0');
+  var now=new Date().toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  DATA.handovers.unshift({
+    id:id,fromTier:from,toTier:to,
+    createdAt:now,createdBy:DATA.registry&&DATA.registry.userName||'班長',
+    unfinishedTasks:openTasks.map(function(t){return t.id;}),
+    supplyDiff:[],pendingCases:[],
+    safetyNotes:safety,signedBy:'',witnessId:'',
+    status:'draft',nextTierBrief:brief
+  });
+  saveData(); closeModal(); renderHandover();
+  toast('✅ 交接日誌 '+id+' 已建立');
+}
+
+function signHandover(hoId){
+  var h=(DATA.handovers||[]).find(function(x){return x.id===hoId;});
+  if(!h){toast('⚠ 找不到記錄');return;}
+  h.status='signed';
+  h.signedBy=DATA.registry&&DATA.registry.userName||'班長';
+  saveData(); renderHandover();
+  toast('✅ 交接日誌 '+hoId+' 已簽署鎖定');
+}
