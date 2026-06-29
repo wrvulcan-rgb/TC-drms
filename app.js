@@ -2178,6 +2178,10 @@ function renderMonitor(){
       +'</div>';
     }).join('');
   }
+
+  // ── 熱力圖 + 人力分布 ──
+  var monHeatmap=document.getElementById('monitor-heatmap');
+  if(monHeatmap) monHeatmap.innerHTML=renderSquadHeatmap();
 }
 
 function monitorFetchQuake(){
@@ -4095,6 +4099,7 @@ const GROUPS=[
   {id:'food',icon:'🍱',name:'餐飲物資',email:'food@tzuchi-chiayi.org.tw',linked:false,line:''},
 ];
 let role='admin',state='peace',activePage='dashboard';
+let DRILL_MODE=false;
 
 var navDragSrc=null;
 function toggleNavCollapse(){
@@ -6858,7 +6863,7 @@ function renderVolHub(){
     var b=document.getElementById('vhtab-'+x); if(b) b.className='btn '+(x===VH_TAB?'btn-blue':'btn-ghost');
     var p=document.getElementById('vh-'+x); if(p) p.style.display=(x===VH_TAB?'':'none');
   });
-  if(VH_TAB==='checkin'){ renderRegistry(); renderRegFlow(); renderRegStats(); loadFormPreview(); }
+  if(VH_TAB==='checkin'){ renderRegistry(); renderRegFlow(); renderRegStats(); loadFormPreview(); checkLongShiftWarning(); }
   else if(VH_TAB==='medical'){ renderMedicalCheckin(); }
   else if(VH_TAB==='roster'){ renderSheetReg(); }
 }
@@ -9116,4 +9121,110 @@ function ledgerStep4Next(){
   logSys('ok','【金援帳本】新增 '+newId+'：'+_ledgerForm.recipient+' NT$'+_ledgerForm.amount+' ('+_ledgerForm.type+') 已寫入帳本');
   toast('✅ 金援發放 '+newId+' 已記錄，NT$'+_ledgerForm.amount.toLocaleString());
   LEDGER_STEP=5; renderReliefLedger();
+}
+
+// ══════════ Phase 5：演習模式 ══════════
+function toggleDrillMode(){
+  DRILL_MODE=!DRILL_MODE;
+  var banner=document.getElementById('drill-banner');
+  if(banner) banner.style.display=DRILL_MODE?'flex':'none';
+  toast(DRILL_MODE?'🎯 演習模式已開啟 — 所有操作不影響真實資料':'⬜ 演習模式已關閉');
+  logSys(DRILL_MODE?'warn':'ok', DRILL_MODE?'【演習開始】系統進入演習模式':'【演習結束】已退出演習模式');
+  if(!DRILL_MODE) generateDrillReport();
+}
+
+var _drillLog=[];
+function drillLog(msg){ if(DRILL_MODE) _drillLog.push({time:new Date().toLocaleTimeString('zh-TW'),msg:msg}); }
+
+function generateDrillReport(){
+  if(!_drillLog.length) return;
+  var lines=_drillLog.map(function(l){return l.time+' — '+l.msg;}).join('\n');
+  showModal('📊 演習報告','本次演習共記錄 '+_drillLog.length+' 個操作節點：',lines);
+  _drillLog=[];
+}
+
+// ══════════ 全域監控熱力圖 ══════════
+function renderSquadHeatmap(){
+  var tasks=DATA.taskPool||[];
+  var squads=DATA.squads||[];
+  var openTasks=tasks.filter(function(t){return t.status==='open';});
+  var standbys=squads.filter(function(s){return s.status==='standby';});
+
+  var html='<div class="card" style="margin-top:14px"><div class="card-title">🔥 任務熱力圖 + 人力分布</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">';
+
+  var zones=['A區','B區','C區','D區'];
+  zones.forEach(function(zone){
+    var zSquad=squads.find(function(s){return s.zone===zone;});
+    var hasDeployed=zSquad&&zSquad.status==='deployed';
+    var warn=!hasDeployed&&openTasks.length>0;
+    html+='<div style="background:var(--bg2);border-radius:8px;padding:12px;border:2px solid '+(warn?'var(--red-border)':'var(--border)')+';text-align:center">';
+    html+='<div style="font-size:18px;margin-bottom:4px">'+(warn?'⚠️':'✅')+'</div>';
+    html+='<div style="font-weight:700;font-size:13px">'+zone+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3)">'+(zSquad?zSquad.name:'無班組')+'</div>';
+    html+='<div style="font-size:10px;margin-top:4px;color:'+(hasDeployed?'var(--green)':'var(--text4)')+'">'+(zSquad?({standby:'待命',deployed:'出勤',returning:'返回',off:'休息'}[zSquad.status]||'-'):'-')+'</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // 警示
+  var warnings=squads.filter(function(s){return s.status==='standby'&&openTasks.length>0;});
+  if(warnings.length>0&&openTasks.length>0){
+    html+='<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:6px;padding:10px;color:var(--red);font-size:12px">⚠ 共 '+openTasks.length+' 個任務待派，'+standbys.length+' 個班組待命中 — 建議立即指派</div>';
+  } else {
+    html+='<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:6px;padding:10px;color:var(--green);font-size:12px">✅ 人力部署正常</div>';
+  }
+
+  // 任務優先度分布
+  html+='<div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">';
+  ['P0','P1','P2','P3'].forEach(function(p){
+    var cnt=tasks.filter(function(t){return t.priority===p&&t.status==='open';}).length;
+    var colors={P0:'red',P1:'red',P2:'amber',P3:'blue'};
+    var labels={P0:'SOS',P1:'急',P2:'一般',P3:'待後'};
+    html+='<div class="stat-card '+colors[p]+'" style="padding:10px;text-align:center;position:relative"><div class="accent-bar"></div>';
+    html+='<div style="font-size:18px;font-weight:700">'+cnt+'</div>';
+    html+='<div style="font-size:10px">'+p+' '+labels[p]+'</div></div>';
+  });
+  html+='</div></div>';
+  return html;
+}
+
+// ══════════ 即時調度中台視角切換 ══════════
+var RT_HQ_VIEW='hq';
+function setRTHQView(v){
+  RT_HQ_VIEW=v;
+  ['hq','leader'].forEach(function(x){
+    var b=document.getElementById('rtsview-'+x);
+    if(b) b.className='btn '+(x===v?'btn-blue':'btn-ghost');
+  });
+  var hint=document.getElementById('rt-view-hint');
+  if(hint) hint.innerHTML=v==='leader'
+    ?'<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--amber);margin-bottom:10px">🪖 班長視角：只顯示本班相關任務和人力</div>'
+    :'';
+  renderRTSync();
+}
+
+// ══════════ 志工超時警示 ══════════
+function checkLongShiftWarning(){
+  var now=new Date();
+  var warnings=[];
+  var members=DATA.registry.innerMembers||[];
+  members.forEach(function(m){
+    if(!m.checkin||!m.checkinTime) return;
+    var parts=m.checkinTime.split(':');
+    if(parts.length!==2) return;
+    var h=parseInt(parts[0]),mn=parseInt(parts[1]);
+    var checkinDate=new Date();
+    checkinDate.setHours(h,mn,0,0);
+    var diffH=(now-checkinDate)/3600000;
+    if(diffH>8) warnings.push(m.name+'（'+m.checkinTime+' 報到，已超 '+Math.floor(diffH)+'h）');
+  });
+  var el=document.getElementById('long-shift-warn');
+  if(el){
+    if(warnings.length){
+      el.innerHTML='<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:6px;padding:10px;font-size:12px;color:var(--amber);margin-bottom:10px">⚠ 超時志工（8h+）：'+warnings.join('、')+'</div>';
+    } else {
+      el.innerHTML='';
+    }
+  }
 }

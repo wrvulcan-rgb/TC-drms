@@ -10,6 +10,11 @@
 </head>
 <body>
 
+<div id="drill-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#f59e0b;color:#fff;font-weight:700;font-size:13px;padding:6px 16px;justify-content:center;align-items:center;gap:12px">
+  🎯 演習模式中 — 所有操作僅為演練，不影響真實資料
+  <button onclick="toggleDrillMode()" style="background:rgba(0,0,0,0.2);border:none;color:#fff;padding:2px 10px;border-radius:4px;cursor:pointer;font-size:11px">結束演習</button>
+</div>
+
 <!-- TOPBAR -->
 <div class="hdr">
   <div style="display:flex;align-items:center;gap:10px">
@@ -463,6 +468,7 @@
 
   <!-- 子分頁：報名與報到 -->
   <div id="vh-checkin" class="vh-panel">
+  <div id="long-shift-warn"></div>
   <div style="font-size:11px;color:var(--text4);margin-bottom:10px">🔓 平行作業模式 — 以下四項可同時進行、隨時切換，不分先後順序</div>
   <div id="reg-flow-tabs" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
     <button class="btn btn-blue" id="rflow-signup" onclick="setRegFlow('signup')">📝 開啟報名</button>
@@ -581,6 +587,7 @@
       <div style="font-size:10px;color:var(--text4);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">⚠ 緊急操作（警報/SOS/點名）已移至「即時調度中台 → 緊急」，由現場指揮層發起</div>
     </div>
   </div>
+  <div id="monitor-heatmap"></div>
 </div>
 
 <!-- ══ 後台維運 ══ -->
@@ -743,6 +750,13 @@
         <div id="todo-list"></div>
       </div>
     </div>
+  </div>
+  <div class="card" style="border:2px solid var(--amber-border);max-width:460px;margin-top:14px">
+    <div class="card-title">🎯 演習模式</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">
+      開啟後所有操作記入演習日誌，不影響真實資料。結束時自動產生演習報告。
+    </div>
+    <button class="btn btn-ghost" onclick="toggleDrillMode()">切換演習模式</button>
   </div>
 </div>
 
@@ -984,6 +998,11 @@
 
 <div class="page" id="page-rtsync">
   <div class="pg-hdr"><div><div class="pg-title">⚡ 即時調度中台</div><div class="pg-sub">多點同步作業 · 開兩個分頁即可見即時連動（本機版，可無痛切換 Firebase）</div></div></div>
+  <div id="rts-view-switcher" style="display:flex;gap:6px;margin-bottom:10px">
+    <button class="btn btn-blue" id="rtsview-hq" onclick="setRTHQView('hq')">🏛 HQ視角</button>
+    <button class="btn btn-ghost" id="rtsview-leader" onclick="setRTHQView('leader')">🪖 班長視角</button>
+  </div>
+  <div id="rt-view-hint"></div>
   <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
     <button class="btn btn-blue" id="rttab-tasks"     onclick="setRTTab('tasks')">🎯 派任務</button>
     <button class="btn btn-ghost" id="rttab-report"   onclick="setRTTab('report')">📡 看進度</button>
