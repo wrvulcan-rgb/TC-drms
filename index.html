@@ -960,8 +960,18 @@
 
 <!-- ══ 系統架構說明 ══ -->
 <!-- ══ 系統架構說明（inline） ══ -->
-<div class="page" id="page-arch_doc" style="padding:0;overflow:auto">
+<div class="page" id="page-arch_doc" style="padding:0;overflow:auto;display:flex;flex-direction:column">
 <link rel="stylesheet" href="arch-style.css">
+
+<!-- ── 版本切換 Tab ── -->
+<div id="arch-tab-bar" style="display:flex;align-items:center;gap:0;background:#F0F0F2;border-bottom:1px solid #DCDCE0;flex-shrink:0">
+  <button id="arch-tab-v1" onclick="switchArchTab('v1')" style="padding:10px 22px;font-size:13px;font-weight:700;border:none;border-bottom:3px solid #C8A2C8;background:#fff;color:#C8A2C8;cursor:pointer;font-family:inherit">🗺️ 現有架構 <span style="font-size:10px;opacity:.7">v4.0</span></button>
+  <button id="arch-tab-v2" onclick="switchArchTab('v2')" style="padding:10px 22px;font-size:13px;font-weight:700;border:none;border-bottom:3px solid transparent;background:transparent;color:#888;cursor:pointer;font-family:inherit">🪖 班長制強化版 <span style="font-size:10px;opacity:.7">v5.0</span></button>
+  <div style="flex:1"></div>
+  <div style="font-size:11px;color:#aaa;padding:0 16px">點選左右 Tab 切換兩個版本</div>
+</div>
+
+<div id="arch-panel-v1" style="flex:1;overflow:auto;display:flex;flex-direction:column">
 <div id="arch-root">
 <div class="wrap">
   <div class="head">
@@ -1057,7 +1067,121 @@
   </div>
 </div>
 <script src="arch-script.js"></script>
+</div><!-- /#arch-root -->
+</div><!-- /#arch-panel-v1 -->
+
+<!-- ══ V2 強化版面板 ══ -->
+<div id="arch-panel-v2" style="flex:1;overflow:auto;display:none">
+<div id="arch2-root">
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>🪖 班長制強化架構 <span class="ver" id="arch2-ver"></span></h1>
+      <div class="hint">新增：班組管理、任務池（Uber接案）、梯次排班、作戰指揮圖、交接日誌、金援帳本、人員意外、智慧媒合。拖曳排版 · 點節點或線看說明 · ▶ 故事導覽。</div>
+    </div>
+    <div class="toolbar">
+      <button class="tbtn play" onclick="arch2_storyStart()">▶ 故事導覽</button>
+      <button class="tbtn" onclick="arch2_resetLayout()">↺ 重置佈局</button>
+      <button class="tbtn" onclick="arch2_exportLayout()">⬇ 匯出座標</button>
+      <button class="tbtn" onclick="arch2_importLayout()">⬆ 匯入座標</button>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="lg"><span class="d" style="background:var(--green)"></span>已開通</div>
+    <div class="lg"><span class="d" style="background:var(--amber)"></span>部分</div>
+    <div class="lg"><span class="d" style="background:var(--red)"></span>未開通</div>
+    <div class="lg"><span class="ln"></span>現行</div>
+    <div class="lg"><span class="ln dash"></span>規劃/次要</div>
+    <div class="lg">→ 單向 · ↔ 雙向</div>
+  </div>
+
+  <div class="views" id="arch2-views">
+    <button class="vpill act" data-view="decider" onclick="arch2_setView('decider')">👔 決策者<span class="vsub">救災怎麼跑</span></button>
+    <button class="vpill" data-view="volunteer" onclick="arch2_setView('volunteer')">🙋 志工<span class="vsub">我的一條線</span></button>
+    <button class="vpill" data-view="tech" onclick="arch2_setView('tech')">🔧 技術維運<span class="vsub">資料與待修</span></button>
+    <button class="vpill" data-view="health" onclick="arch2_setView('health')">🩺 健檢<span class="vsub">補/整合/風險</span></button>
+    <button class="vpill" data-view="all" onclick="arch2_setView('all')">◍ 全部</button>
+  </div>
+
+  <div class="main-layout">
+    <div class="stage-col">
+      <div class="stage" id="arch2-stage">
+        <svg class="edges" id="arch2-edges" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="story-bar" id="arch2-storyBar">
+        <div class="story-step" id="arch2-storyStep">1 / N</div>
+        <div class="story-text" id="arch2-storyText"></div>
+        <div class="story-nav">
+          <button class="snav" id="arch2-sPrev" onclick="arch2_storyPrev()">‹</button>
+          <button class="snav" id="arch2-sNext" onclick="arch2_storyNext()">›</button>
+          <button class="snav" onclick="arch2_storyEnd()">✕</button>
+        </div>
+      </div>
+    </div>
+    <div class="detail" id="arch2-detail">
+      <div class="detail-empty"><div class="detail-placeholder-icon">🪖</div>點擊任一節點或連線<br>查看設計說明與理念</div>
+    </div>
+  </div>
+  <div class="note">v5.0 班長制強化版：新增班組/任務池/梯次/指揮圖/交接/金援/意外/媒合引擎。原有功能全部保留。</div>
+</div><!-- /.wrap -->
+</div><!-- /#arch2-pvMask placeholder -->
+<div id="arch2-pvMask" onclick="if(event.target===this)arch2_pvHide()">
+  <div id="arch2-pvBox">
+    <div id="arch2-pvHead"><h3 id="arch2-pvTitle">現況示意</h3><span class="pvtag">示意圖 · 非實際資料</span><button id="arch2-pvClose" onclick="arch2_pvHide()">✕</button></div>
+    <div id="arch2-pvBody"></div>
+  </div>
 </div>
+<div id="arch2-fbDock">
+  <button id="arch2-fbToggle" onclick="arch2_fbT()">📝 寫回饋</button>
+  <div id="arch2-fbPanel">
+    <h4>給開發者的回饋（v5.0 強化版）</h4>
+    <div class="fbsub">看完心智圖後，把想法寫成提交碼傳給負責人</div>
+    <label>暱稱</label>
+    <input id="arch2-fbNick" placeholder="例：花蓮張師兄">
+    <label>針對哪個模組</label>
+    <select id="arch2-fbNode"></select>
+    <label>回饋類型</label>
+    <select id="arch2-fbType">
+      <option value="現況不符">現況不符</option>
+      <option value="缺功能">缺功能</option>
+      <option value="建議改善">建議改善</option>
+      <option value="疑問">疑問</option>
+      <option value="肯定">這樣很好</option>
+    </select>
+    <label>具體內容</label>
+    <textarea id="arch2-fbText" rows="5"></textarea>
+    <div class="fbwarn">⚠ 請勿填入個資</div>
+    <button id="arch2-fbGen" onclick="arch2_fbGenCode()">產生提交碼</button>
+    <div id="arch2-fbOut">
+      <label>提交碼</label>
+      <div id="arch2-fbCode"></div>
+      <div class="fbrow">
+        <button onclick="arch2_fbCopy()">📋 複製</button>
+        <button onclick="arch2_fbDownload()">⬇ 下載</button>
+      </div>
+    </div>
+    <div id="arch2-fbFlash"></div>
+  </div>
+</div>
+<script src="arch-script-v2.js"></script>
+</div><!-- /#arch2-root -->
+</div><!-- /#arch-panel-v2 -->
+
+<script>
+function switchArchTab(ver) {
+  document.getElementById('arch-panel-v1').style.display = ver === 'v1' ? 'flex' : 'none';
+  document.getElementById('arch-panel-v2').style.display = ver === 'v2' ? 'flex' : 'none';
+  var t1 = document.getElementById('arch-tab-v1');
+  var t2 = document.getElementById('arch-tab-v2');
+  t1.style.borderBottomColor = ver === 'v1' ? '#C8A2C8' : 'transparent';
+  t1.style.background = ver === 'v1' ? '#fff' : 'transparent';
+  t1.style.color = ver === 'v1' ? '#C8A2C8' : '#888';
+  t2.style.borderBottomColor = ver === 'v2' ? '#059669' : 'transparent';
+  t2.style.background = ver === 'v2' ? '#fff' : 'transparent';
+  t2.style.color = ver === 'v2' ? '#059669' : '#888';
+}
+document.getElementById('arch-panel-v2').style.flexDirection = 'column';
+</script>
 
 </div><!-- /main -->
 
