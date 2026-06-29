@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>慈濟 DRMS v4</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=20260628g">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="hdr">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="nav-collapse-btn" onclick="toggleNavCollapse()" title="收合/展開主選單">☰</button>
+    <div class="logo-icon">🏥</div>
+    <div><div class="logo-text">慈濟 DRMS</div><div class="logo-sub">v4.0 · 災害應變中心</div></div>
+  </div>
+  <div class="state-tog">
+    <button class="sbtn sp" id="btn-p" onclick="setS('peace')"><span class="sdot"></span>平時</button>
+    <button class="sbtn" id="btn-w" onclick="setS('war')"><span class="sdot" style="background:var(--text4)"></span>戰時</button>
+  </div>
+  <div style="flex:1"></div>
+  <div class="role-wrap">
+    <select class="role-sel" id="role-sel" onchange="setRole(this.value)" style="margin-right:8px">
+      <option value="admin">🎖 總控</option>
+      <option value="it">🔧 IT 志工</option>
+      <option value="staff">📋 行政組</option>
+      <option value="logistics">📦 物資組</option>
+    </select>
+    <button id="sync-btn"
+      style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--text3);font-family:'Noto Sans TC','Inter',sans-serif;font-size:12px;cursor:pointer;font-weight:500;transition:all .2s;user-select:none;white-space:nowrap"
+      onclick="handleSyncClick()"
+      onmousedown="startSyncHold()"
+      onmouseup="clearSyncHold()"
+      onmouseleave="clearSyncHold()"
+      ontouchstart="startSyncHold(event)"
+      ontouchend="clearSyncHold()"
+      title="短按：手動同步 | 長按：設定自動更新">
+      <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text4);flex-shrink:0"></span>
+      <span id="sync-lbl">同步</span>
+    </button>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="nav" id="nav"></div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- ══════════════ DASHBOARD PAGE ══════════════ -->
+<div class="page act" id="page-dashboard">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">📊 總控儀表板</div>
+      <div class="pg-sub" id="dash-sub">即時災情 · 大埔地震模擬演練</div>
+    </div>
+    <div id="edit-btn-wrap" style="display:none">
+      <button class="btn btn-purple" id="edit-toggle-btn" onclick="toggleEditMode()">✏️ 編輯儀表板</button>
+    </div>
+  </div>
+
+  <!-- EDIT TOOLBAR -->
+  <div class="edit-toolbar" id="edit-toolbar">
+    <span class="edit-toolbar-title">✏️ 編輯模式</span>
+    <span class="edit-hint">點擊 ✎ 編輯內容 · ⠿ 拖曳排序 · × 隱藏模組</span>
+    <div id="restore-area" style="display:flex;gap:6px;flex-wrap:wrap;margin-left:4px"></div>
+    
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--purple-border);width:100%;margin-top:4px">
+      <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:130px"><span style="font-size:9px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.06em">左上主標題</span><input class="inp" id="cfg-sys-title" style="font-size:11px;padding:5px 8px" onfocus="this.select()" oninput="updateConfig()"></div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:130px"><span style="font-size:9px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.06em">左上副標題</span><input class="inp" id="cfg-sys-subtitle" style="font-size:11px;padding:5px 8px" onfocus="this.select()" oninput="updateConfig()"></div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:130px"><span style="font-size:9px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.06em">儀表板大標題</span><input class="inp" id="cfg-dash-title" style="font-size:11px;padding:5px 8px" onfocus="this.select()" oninput="updateConfig()"></div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:130px"><span style="font-size:9px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.06em">儀表板副標題</span><input class="inp" id="cfg-dash-sub" style="font-size:11px;padding:5px 8px" onfocus="this.select()" oninput="updateConfig()"></div>
+    </div>
+    <button class="btn btn-ghost" style="border-color:var(--red-border);color:var(--red);font-size:11px" onclick="resetAll()">↺ 恢復預設</button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="toggleEditMode()">✓ 完成編輯</button>
+  </div>
+
+  <!-- ── WIDGET: Scenario Simulator ── -->
+  <div class="widget" id="w-sim" style="margin-bottom:14px">
+    <div class="widget-inner">
+      <div class="widget-chrome"></div>
+      <div class="widget-label">scenario</div>
+      <div class="widget-toolbar">
+        <div class="wt-btn wt-drag" title="拖曳排序">⠿</div>
+        <div class="wt-btn wt-edit" title="編輯情境" onclick="openSimEdit()">✎</div>
+        <div class="wt-btn wt-hide" title="隱藏" onclick="hideWidget('w-sim')">×</div>
+      </div>
+      <div class="sim-bar">
+        <div class="sim-header">
+          <span style="font-size:12px;font-weight:700;color:var(--text)">🎯 災型與實戰變化球模擬器</span>
+          <span class="sim-tag">Scenario Simulator</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--text4);font-family:monospace" id="sim-active-lbl">當前：地震</span>
+        </div>
+        <div class="sim-btns">
+          <button class="sim-btn quake" onclick="setScenario('quake')"><span class="sico">🏚️</span><div><div>地震</div><span class="ssub">Quake</span></div></button>
+          <button class="sim-btn wind" onclick="setScenario('wind')"><span class="sico">🌀</span><div><div>風災</div><span class="ssub">Typhoon</span></div></button>
+          <button class="sim-btn flood" onclick="setScenario('flood')"><span class="sico">🌊</span><div><div>水災</div><span class="ssub">Flood</span></div></button>
+          <button class="sim-btn fire" onclick="setScenario('fire')"><span class="sico">🔥</span><div><div>火災/爆炸</div><span class="ssub">Fire/Blast</span></div></button>
+          <button class="sim-btn landslide" onclick="setScenario('landslide')"><span class="sico">⛰️</span><div><div>土石流</div><span class="ssub">Landslide</span></div></button>
+          <button class="sim-btn compound" onclick="setScenario('compound')"><span class="sico">🌐</span><div><div>複合災害</div><span class="ssub">Compound</span></div></button>
+          <button class="sim-btn drought" onclick="setScenario('drought')"><span class="sico">🏜️</span><div><div>乾旱</div><span class="ssub">Drought</span></div></button>
+          <button class="sim-btn epidemic" onclick="setScenario('epidemic')"><span class="sico">🦠</span><div><div>疫情</div><span class="ssub">Epidemic</span></div></button>
+          <button class="sim-btn tsunami" onclick="setScenario('tsunami')"><span class="sico">🌊</span><div><div>海嘯</div><span class="ssub">Tsunami</span></div></button>
+          <button class="sim-btn war-s" onclick="setScenario('war_s')"><span class="sico">⚔️</span><div><div>動亂</div><span class="ssub">Unrest</span></div></button>
+        </div><span class="ssub">Conflict</span></div></button>
+        </div>
+        <div id="war-subs" style="display:none;margin-top:10px">
+          <div style="font-size:10px;color:var(--text4);font-weight:600;margin-bottom:6px">選擇變化球情境：</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="war-sub sel" onclick="setWarSub('overflow',this)">🌊 人力過多</button>
+            <button class="war-sub" onclick="setWarSub('shortage',this)">⚡ 人力不足</button>
+            <button class="war-sub" onclick="setWarSub('supplies',this)">📦 物資過量</button>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;background:var(--bg3);padding:10px;border-radius:var(--r-sm);border:1px solid var(--border)">
+          <input class="inp" style="flex:1;font-size:12px" id="ai-challenge-input" placeholder="搜尋功能 或 輸入情境描述（通訊斷了、人手不夠…）" oninput="aiSearchFeature(this.value)" autocomplete="off">
+          <button class="btn btn-primary" style="white-space:nowrap;font-size:12px" onclick="runAIAnalysis()" disabled title="功能開發中">🤖 AI 戰術分析</button>
+        </div>
+        <div id="ai-feature-results" style="margin-top:8px"></div>
+        <div class="bug-panel" id="bug-panel"></div>
+      </div>
+      <div class="inline-edit-panel" id="iep-w-sim" style="padding:16px">
+        <div class="iep-header">
+          <span class="iep-title">✎ 編輯情境設定</span>
+          <div class="iep-close" onclick="closeEdit('w-sim')">✕</div>
+        </div>
+        <div id="iep-sim-fields"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-blue" onclick="addScenario()" style="flex:1;justify-content:center">＋ 新增情境</button>
+          <button class="btn btn-primary" onclick="saveSimEdit()" style="flex:1;justify-content:center">✓ 儲存</button>
+          <button class="btn btn-ghost" onclick="closeEdit('w-sim')" style="flex:1;justify-content:center">取消</button>
+        </div>
+      </div>
+
+  <!-- ── WIDGET: Stat Cards (each card independently draggable) ── -->
+  <div id="w-stats-row" class="kpi-row" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px">
+    <div class="widget stat-widget" id="w-stat-0" style="position:relative">
+      <div class="widget-chrome"></div>
+      <div class="widget-label" style="top:4px;left:6px;font-size:8px">stat-0</div>
+      <div class="widget-toolbar" style="top:4px;right:4px">
+        <div class="wt-btn wt-drag" style="width:22px;height:22px;font-size:10px">⠿</div>
+        <div class="wt-btn wt-edit" style="width:22px;height:22px;font-size:10px" onclick="openStatEdit(0)">✎</div>
+        <div class="wt-btn wt-hide" style="width:22px;height:22px;font-size:10px" onclick="hideWidget('w-stat-0')">×</div>
+      </div>
+      <div id="w-stat-0-content"></div>
+      <div class="inline-edit-panel" id="iep-w-stat-0"><div class="iep-header"><span class="iep-title">✎ 統計卡片 1</span><div class="iep-close" onclick="closeEdit('w-stat-0')">✕</div></div><div id="iep-stat-0-fields"></div><div class="iep-actions"><button class="btn btn-primary" onclick="saveStat(0)">✓ 儲存</button><button class="btn btn-ghost" onclick="closeEdit('w-stat-0')">取消</button></div></div>
+    </div>
+    <div class="widget stat-widget" id="w-stat-1" style="position:relative">
+      <div class="widget-chrome"></div>
+      <div class="widget-label" style="top:4px;left:6px;font-size:8px">stat-1</div>
+      <div class="widget-toolbar" style="top:4px;right:4px">
+        <div class="wt-btn wt-drag" style="width:22px;height:22px;font-size:10px">⠿</div>
+        <div class="wt-btn wt-edit" style="width:22px;height:22px;font-size:10px" onclick="openStatEdit(1)">✎</div>
+        <div class="wt-btn wt-hide" style="width:22px;height:22px;font-size:10px" onclick="hideWidget('w-stat-1')">×</div>
+      </div>
+      <div id="w-stat-1-content"></div>
+      <div class="inline-edit-panel" id="iep-w-stat-1"><div class="iep-header"><span class="iep-title">✎ 統計卡片 2</span><div class="iep-close" onclick="closeEdit('w-stat-1')">✕</div></div><div id="iep-stat-1-fields"></div><div class="iep-actions"><button class="btn btn-primary" onclick="saveStat(1)">✓ 儲存</button><button class="btn btn-ghost" onclick="closeEdit('w-stat-1')">取消</button></div></div>
+    </div>
+    <div class="widget stat-widget" id="w-stat-2" style="position:relative">
+      <div class="widget-chrome"></div>
+      <div class="widget-label" style="top:4px;left:6px;font-size:8px">stat-2</div>
+      <div class="widget-toolbar" style="top:4px;right:4px">
+        <div class="wt-btn wt-drag" style="width:22px;height:22px;font-size:10px">⠿</div>
+        <div class="wt-btn wt-edit" style="width:22px;height:22px;font-size:10px" onclick="openStatEdit(2)">✎</div>
+        <div class="wt-btn wt-hide" style="width:22px;height:22px;font-size:10px" onclick="hideWidget('w-stat-2')">×</div>
+      </div>
+      <div id="w-stat-2-content"></div>
+      <div class="inline-edit-panel" id="iep-w-stat-2"><div class="iep-header"><span class="iep-title">✎ 統計卡片 3</span><div class="iep-close" onclick="closeEdit('w-stat-2')">✕</div></div><div id="iep-stat-2-fields"></div><div class="iep-actions"><button class="btn btn-primary" onclick="saveStat(2)">✓ 儲存</button><button class="btn btn-ghost" onclick="closeEdit('w-stat-2')">取消</button></div></div>
+    </div>
+    <div class="widget stat-widget" id="w-stat-3" style="position:relative">
+      <div class="widget-chrome"></div>
+      <div class="widget-label" style="top:4px;left:6px;font-size:8px">stat-3</div>
+      <div class="widget-toolbar" style="top:4px;right:4px">
+        <div class="wt-btn wt-drag" style="width:22px;height:22px;font-size:10px">⠿</div>
+        <div class="wt-btn wt-edit" style="width:22px;height:22px;font-size:10px" onclick="openStatEdit(3)">✎</div>
+        <div class="wt-btn wt-hide" style="width:22px;height:22px;font-size:10px" onclick="hideWidget('w-stat-3')">×</div>
+      </div>
+      <div id="w-stat-3-content"></div>
+      <div class="inline-edit-panel" id="iep-w-stat-3"><div class="iep-header"><span class="iep-title">✎ 統計卡片 4</span><div class="iep-close" onclick="closeEdit('w-stat-3')">✕</div></div><div id="iep-stat-3-fields"></div><div class="iep-actions"><button class="btn btn-primary" onclick="saveStat(3)">✓ 儲存</button><button class="btn btn-ghost" onclick="closeEdit('w-stat-3')">取消</button></div></div>
+    </div>
+    <div class="widget stat-widget" id="w-stat-4" style="position:relative">
+      <div class="widget-chrome"></div>
+      <div class="widget-label" style="top:4px;left:6px;font-size:8px">stat-4</div>
+      <div class="widget-toolbar" style="top:4px;right:4px">
+        <div class="wt-btn wt-drag" style="width:22px;height:22px;font-size:10px">⠿</div>
+        <div class="wt-btn wt-edit" style="width:22px;height:22px;font-size:10px" onclick="openStatEdit(4)">✎</div>
+        <div class="wt-btn wt-hide" style="width:22px;height:22px;font-size:10px" onclick="hideWidget('w-stat-4')">×</div>
+      </div>
+      <div id="w-stat-4-content"></div>
+      <div class="inline-edit-panel" id="iep-w-stat-4"><div class="iep-header"><span class="iep-title">✎ 統計卡片 5</span><div class="iep-close" onclick="closeEdit('w-stat-4')">✕</div></div><div id="iep-stat-4-fields"></div><div class="iep-actions"><button class="btn btn-primary" onclick="saveStat(4)">✓ 儲存</button><button class="btn btn-ghost" onclick="closeEdit('w-stat-4')">取消</button></div></div>
+    </div>
+  </div>
+
+  <!-- ── ROW 2: 2-col ── -->
+  <div class="g2" style="margin-bottom:14px">
+    <!-- 災害範圍 -->
+    <div class="widget" id="w-disaster" style="position:relative">
+      <div class="widget-chrome"></div>
+      <div class="widget-label">disaster</div>
+      <div class="widget-toolbar">
+        <div class="wt-btn wt-drag">⠿</div>
+        <div class="wt-btn wt-edit" onclick="openEdit('w-disaster')">✎</div>
+        <div class="wt-btn wt-hide" onclick="hideWidget('w-disaster')">×</div>
+      </div>
+      <div class="card" id="w-disaster-content"></div>
+      <div class="inline-edit-panel" id="iep-w-disaster">
+        <div class="iep-header"><span class="iep-title">✎ 編輯 災害範圍動態</span><div class="iep-close" onclick="closeEdit('w-disaster')">✕</div></div>
+        <div id="iep-disaster-fields"></div>
+        <div class="iep-actions"><button class="btn btn-primary" onclick="saveDisaster()">✓ 儲存</button><button class="btn btn-ghost" onclick="closeEdit('w-disaster')">取消</button></div>
+      </div>
+    </div>
+    <!-- 地圖 -->
+    <div class="widget" id="w-map" style="position:relative">
+      <div class="widget-chrome"></div>
+      <div class="widget-label">map</div>
+      <div class="widget-toolbar">
+        <div class="wt-btn wt-drag">⠿</div>
+        <div class="wt-btn wt-edit" onclick="openEdit('w-map')">✎</div>
+        <div class="wt-btn wt-hide" onclick="hideWidget('w-map')">×</div>
+      </div>
+      <div class="card" id="w-map-content"></div>
+      <div class="inline-edit-panel" id="iep-w-map">
+        <div class="iep-header"><span class="iep-title">✎ 編輯 地圖進度</span><div class="iep-close" onclick="closeEdit('w-map')">✕</div></div>
+        <div id="iep-map-fields"></div>
+        <div class="iep-actions"><button class="btn btn-primary" onclick="saveMap()">✓ 儲存</button><button class="btn btn-ghost" onclick="closeEdit('w-map')">取消</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROW 3: 3-col ── -->
+  <div class="g3">
+    <!-- 緊急通報 -->
+    <div class="widget" id="w-alerts" style="position:relative">
+      <div class="widget-chrome"></div>
+      <div class="widget-label">alerts</div>
+      <div class="widget-toolbar">
+        <div class="wt-btn wt-drag">⠿</div>
+        <div class="wt-btn wt-edit" onclick="openEdit('w-alerts')">✎</div>
+        <div class="wt-btn wt-hide" onclick="hideWidget('w-alerts')">×</div>
+      </div>
+      <div class="card" id="w-alerts-content"></div>
+      <div class="inline-edit-panel" id="iep-w-alerts">
+        <div class="iep-header"><span class="iep-title">✎ 編輯 緊急通報</span><div class="iep-close" onclick="closeEdit('w-alerts')">✕</div></div>
+        <div id="iep-alerts-fields"></div>
+        <div class="iep-actions"><button class="btn btn-primary" onclick="saveAlerts()">✓ 儲存</button><button class="btn btn-ghost" onclick="closeEdit('w-alerts')">取消</button></div>
+      </div>
+    </div>
+    <!-- 人力 -->
+    <div class="widget" id="w-manpower" style="position:relative">
+      <div class="widget-chrome"></div>
+      <div class="widget-label">manpower</div>
+      <div class="widget-toolbar">
+        <div class="wt-btn wt-drag">⠿</div>
+        <div class="wt-btn wt-edit" onclick="openEdit('w-manpower')">✎</div>
+        <div class="wt-btn wt-hide" onclick="hideWidget('w-manpower')">×</div>
+      </div>
+      <div class="card" id="w-manpower-content"></div>
+      <div class="inline-edit-panel" id="iep-w-manpower">
+        <div class="iep-header"><span class="iep-title">✎ 編輯 人力報到</span><div class="iep-close" onclick="closeEdit('w-manpower')">✕</div></div>
+        <div id="iep-manpower-fields"></div>
+        <div class="iep-actions"><button class="btn btn-primary" onclick="saveManpower()">✓ 儲存</button><button class="btn btn-ghost" onclick="closeEdit('w-manpower')">取消</button></div>
+      </div>
+    </div>
+    <!-- AI -->
+    <div class="widget" id="w-ai" style="position:relative">
+      <div class="widget-chrome"></div>
+      <div class="widget-label">ai-predict</div>
+      <div class="widget-toolbar">
+        <div class="wt-btn wt-drag">⠿</div>
+        <div class="wt-btn wt-edit" onclick="openEdit('w-ai')">✎</div>
+        <div class="wt-btn wt-hide" onclick="hideWidget('w-ai')">×</div>
+      </div>
+      <div class="card" id="w-ai-content"></div>
+      <div class="inline-edit-panel" id="iep-w-ai">
+        <div class="iep-header"><span class="iep-title">✎ 編輯 AI 人力預估</span><div class="iep-close" onclick="closeEdit('w-ai')">✕</div></div>
+        <div id="iep-ai-fields"></div>
+        <div class="iep-actions"><button class="btn btn-primary" onclick="saveAI()">✓ 儲存</button><button class="btn btn-ghost" onclick="closeEdit('w-ai')">取消</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION DIVIDER ══ -->
+  <div id="w-datasrc" class="widget dash-section" style="margin-top:22px;position:relative">
+    <div class="widget-chrome"></div>
+    <div class="widget-label">DATA端</div>
+    <div class="widget-toolbar">
+      <div class="wt-btn wt-drag">⠿</div>
+      <div class="wt-btn wt-hide" onclick="hideWidget('w-datasrc')">×</div>
+    </div>
+    <div class="section-header" style="background:linear-gradient(135deg,#EFF6FF,#F0F9FF);border:1px solid var(--blue-border);border-radius:var(--r);padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">📡</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--blue)">DATA 端 — 資料接收與整理</div>
+        <div style="font-size:11px;color:var(--text4);font-family:monospace">政府公告 · 新聞來源 · 總指揮中心指令</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+        <span style="font-size:10px;color:var(--text4);font-family:monospace">最後更新 14:37</span>
+        <button class="btn btn-blue" style="padding:4px 10px;font-size:11px" onclick="refreshDataSrc()">↻ 重新整理</button>
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="openDataSrcSettings()">⚙ 來源設定</button>
+      </div>
+    </div>
+    <div id="w-datasrc-content"></div>
+  </div>
+
+  <div id="w-field" class="widget dash-section" style="margin-top:22px;position:relative">
+    <div class="widget-chrome"></div>
+    <div class="widget-label">現場端</div>
+    <div class="widget-toolbar">
+      <div class="wt-btn wt-drag">⠿</div>
+      <div class="wt-btn wt-hide" onclick="hideWidget('w-field')">×</div>
+    </div>
+    <div class="section-header" style="background:linear-gradient(135deg,#ECFDF5,#F0FDF4);border:1px solid var(--green-border);border-radius:var(--r);padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">🏕</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--green)">現場端 — 即時現況回報</div>
+        <div style="font-size:11px;color:var(--text4);font-family:monospace">Google Sheets 同步 · 收容所 · 物資</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+        <span style="font-size:10px;font-family:monospace" id="field-sync-time">⬤ 同步於 14:37</span>
+        <button class="btn btn-green" style="padding:4px 10px;font-size:11px" onclick="syncSheets()">↻ 同步 Sheets</button>
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="openFieldSettings()">⚙ 設定試算表</button>
+      </div>
+    </div>
+    <div id="w-field-content"></div>
+  </div>
+
+  <div id="w-tasks" class="widget dash-section" style="margin-top:22px;position:relative">
+    <div class="widget-chrome"></div>
+    <div class="widget-label">任務端</div>
+    <div class="widget-toolbar">
+      <div class="wt-btn wt-drag">⠿</div>
+      <div class="wt-btn wt-hide" onclick="hideWidget('w-tasks')">×</div>
+    </div>
+    <div class="section-header" style="background:linear-gradient(135deg,#F5F3FF,#FDF4FF);border:1px solid var(--purple-border);border-radius:var(--r);padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">🎯</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--purple)">任務端 — 任務建立與監控</div>
+        <div style="font-size:11px;color:var(--text4);font-family:monospace">建立任務 · 指派 · Line OA 推播 · 即時追蹤</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+        <button class="btn btn-purple" style="padding:4px 12px;font-size:11px;font-weight:600" onclick="openNewTask()">＋ 建立任務</button>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div class="card-title">🖥 系統事件紀錄</div>
+        <div class="syslog" id="syslog"></div>
+      </div>
+    </div>
+    <div id="w-tasks-content"></div>
+  </div>
+
+  <!-- ══ IT 待辦需求追蹤 ══ -->
+  <div id="w-devtasks" class="widget dash-section" style="margin-top:22px;position:relative">
+    <div class="widget-chrome"></div>
+    <div class="widget-label">IT待辦</div>
+    <div class="widget-toolbar">
+      <div class="wt-btn wt-drag">⠿</div>
+      <div class="wt-btn wt-hide" onclick="hideWidget('w-devtasks')">×</div>
+    </div>
+    <div class="section-header" style="background:linear-gradient(135deg,#FFF7ED,#FFFBF5);border:1px solid var(--amber-border);border-radius:var(--r);padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">🛠</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--amber)">IT 待辦需求追蹤</div>
+        <div style="font-size:11px;color:var(--text4);font-family:monospace">功能需求 · Bug 回報 · 可指派給 IT 人員</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+        <span id="dt-badge" style="font-size:11px;font-family:monospace;color:var(--text3)"></span>
+        <button class="btn btn-ghost btn-xs" style="border-color:var(--amber-border);color:var(--amber)" onclick="toggleDTForm()">＋ 新增需求</button>
+      </div>
+    </div>
+
+    <!-- 新增表單 -->
+    <div class="dt-add-form" id="dt-add-form">
+      <div class="dt-form-row">
+        <input class="inp" id="dt-inp-title" placeholder="需求說明 / Bug 描述" style="flex:1;min-width:180px;font-size:12px;padding:6px 10px">
+        <select class="dt-sel" id="dt-inp-mod">
+          <option value="">— 模組 —</option>
+          <option>dashboard</option><option>monitor</option><option>rtsync</option><option>relief_req</option>
+          <option>vol_hub</option><option>coord</option><option>warehouse</option><option>sorting</option>
+          <option>persons</option><option>shelter_mgt</option>
+          <option>assets</option><option>line_oa</option><option>drive</option><option>admin</option>
+          <option>arch_doc</option><option>arch7</option><option>intake</option>
+          <option>全系統</option>
+        </select>
+        <select class="dt-sel" id="dt-inp-pri">
+          <option value="hi">🔴 高</option>
+          <option value="md" selected>🟡 中</option>
+          <option value="lo">🟢 低</option>
+        </select>
+        <input class="inp" id="dt-inp-ass" placeholder="指派給（IT 姓名）" style="width:130px;font-size:12px;padding:6px 10px">
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-amber btn-xs" onclick="submitDTTask()" style="background:var(--amber);color:#fff;border-color:var(--amber)">✓ 新增</button>
+        <button class="btn btn-ghost btn-xs" onclick="toggleDTForm()">取消</button>
+      </div>
+    </div>
+
+    <div id="dt-list"></div>
+  </div>
+
+  <div class="footer" style="margin-top:20px"><span>合心 行政組系統 · 大埔地震（模擬演練）</span><span id="footer-phil" style="color:var(--text3);font-family:'Noto Sans TC',sans-serif"></span><span id="footer-mode">full · peacetime</span></div>
+</div>
+
+<!-- ══ 志工報名 ══ -->
+<!-- ══ 志工人力中心（reg + sheet_reg + vms 三合一）══ -->
+<div class="page" id="page-vol_hub">
+  <div class="pg-hdr"><div><div class="pg-title">🧑‍🤝‍🧑 志工人力中心</div><div class="pg-sub">報名報到 · 名冊總表 · 管理指派（共用同一份 Master 名冊）</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="vhtab-checkin" onclick="setVolHubTab('checkin')">📋 志工報到</button>
+    <button class="btn btn-ghost" id="vhtab-medical" onclick="setVolHubTab('medical')">🏥 醫護報到</button>
+    <button class="btn btn-ghost" id="vhtab-roster" onclick="setVolHubTab('roster')">📊 名冊總表</button>
+    <button class="btn btn-ghost" id="vhtab-manage" onclick="setVolHubTab('manage')">👥 管理指派</button>
+  </div>
+
+  <!-- 子分頁：報名與報到 -->
+  <div id="vh-checkin" class="vh-panel">
+  <div style="font-size:11px;color:var(--text4);margin-bottom:10px">🔓 平行作業模式 — 以下四項可同時進行、隨時切換，不分先後順序</div>
+  <div id="reg-flow-tabs" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="rflow-signup" onclick="setRegFlow('signup')">📝 開啟報名</button>
+    <button class="btn btn-ghost" id="rflow-checkin" onclick="setRegFlow('checkin')">📋 現場報到</button>
+  </div>
+  <div id="reg-flow-content" style="margin-bottom:16px"></div>
+  <div id="registry-content" style="margin-bottom:16px"></div>
+  <div class="dual">
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">📊 今日報名 / 報到統計</div>
+        <div id="reg-stats-grid"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">👥 各組別人數</div>
+        <div id="reg-group-grid"></div>
+      </div>
+    </div>
+    <div class="phone-frame">
+      <div class="phone-bar"><span>📱</span><span>報名表單預覽</span><span style="margin-left:auto;color:var(--accent);font-size:10px;font-weight:600" id="preview-event-tag">明日場</span></div>
+      <div class="phone-body" id="form-preview-body" style="padding:14px">
+        <div style="font-size:11px;color:var(--text4);text-align:center;padding:20px 0">預覽載入中…</div>
+      </div>
+      <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:6px">
+        <button class="btn btn-ghost btn-xs" style="flex:1" onclick="openFormDesigner()">✏ 編輯題目</button>
+        <button class="btn btn-blue btn-xs" style="flex:1" onclick="publishForm()">📤 發佈表單</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- 子分頁：醫護人員報到（原型 D） -->
+  <div id="vh-medical" class="vh-panel" style="display:none">
+    <div id="medical-checkin-content"></div>
+  </div>
+
+  <!-- 子分頁：報名資料總表（Google Sheets 對接） -->
+  <div id="vh-roster" class="vh-panel" style="display:none">
+    <div style="font-size:11px;color:var(--text4);margin-bottom:4px">Google Sheets 對接 · 慈誠委員 + 社區志工 — 與報到、管理指派共用同一份名冊</div>
+    <div id="sheet-reg-content" style="margin-top:4px"></div>
+  </div>
+
+  <!-- 子分頁：志工管理與指派 -->
+  <div id="vh-manage" class="vh-panel" style="display:none">
+    <div class="card">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input class="inp" placeholder="🔍 搜尋志工姓名" style="max-width:180px">
+        <select class="inp" style="max-width:130px"><option>全部組別</option><option>醫護組</option><option>後勤組</option></select>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>#</th><th>姓名</th><th>組別</th><th>地點</th><th>時數</th><th>狀態</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--text4);font-family:monospace">001</td><td style="font-weight:500">林○○</td><td>醫護組</td><td>竹崎收容所</td><td>16h</td><td><span class="badge badge-green">服勤中</span></td></tr>
+          <tr><td style="color:var(--text4);font-family:monospace">002</td><td style="font-weight:500">陳○○</td><td>後勤組</td><td>梅山國小</td><td>12h</td><td><span class="badge badge-green">服勤中</span></td></tr>
+          <tr><td style="color:var(--text4);font-family:monospace">003</td><td style="font-weight:500">張○○</td><td>重機具</td><td>竹崎鄉</td><td>8h</td><td><span class="badge badge-amber">待命</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 全域監控 ══ -->
+<div class="page" id="page-monitor">
+  <div class="pg-hdr"><div><div class="pg-title">🖥️ 全域監控</div><div class="pg-sub">高層決策視圖 · 大方向掌握，不涉細節操作</div></div></div>
+
+  <!-- 即時地圖 + 資料列表 -->
+  <div class="m-r-card" style="margin-bottom:16px;padding:0;overflow:hidden;display:grid;grid-template-columns:1fr 220px">
+    <!-- 左：正方形地圖 -->
+    <div style="position:relative;height:340px">
+      <div id="monitor-map" style="width:100%;height:340px"></div>
+      <div style="position:absolute;bottom:8px;left:8px;z-index:500;display:flex;flex-direction:column;gap:4px;pointer-events:none">
+        <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:8px;height:8px;border-radius:50%;background:rgba(248,113,113,0.85);display:inline-block"></span>地震</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:8px;height:8px;border-radius:50%;background:rgba(74,222,128,0.85);display:inline-block"></span>志工站</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:8px;height:8px;border-radius:50%;background:rgba(251,191,36,0.85);display:inline-block"></span>收容所</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:8px;height:8px;border-radius:50%;background:rgba(129,140,248,0.85);display:inline-block"></span>物資站</span>
+      </div>
+    </div>
+    <!-- 右：資料列表 -->
+    <div style="padding:12px 14px;display:flex;flex-direction:column;gap:0;overflow-y:auto;max-height:340px;min-width:0;border-left:1px solid rgba(100,116,139,0.15)">
+      <div style="font-size:10px;font-weight:700;color:#475569;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px"><span class="m-live-tag">LIVE</span> 即時事件</div>
+      <div id="monitor-map-list">
+        <div style="color:#475569;font-size:11px">載入中…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 高層 KPI -->
+  <div id="monitor-kpi" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
+
+  <div class="g2" style="margin-bottom:16px">
+    <!-- 即時情資彙整 -->
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--blue)"></span>📰 即時情資彙整（政府公告 · 新聞 · 指令）</div>
+      <div id="monitor-feed"></div>
+    </div>
+    <!-- 前線需求大方向 -->
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--amber)"></span>📡 前線需求大方向</div>
+      <div id="monitor-needs"></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <!-- 即時影像 -->
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--green)"></span>📹 現場即時影像</div>
+      <div id="monitor-cctv" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+    </div>
+    <!-- 連線狀態（精簡） -->
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--green)"></span>外部系統連線狀態</div>
+      <div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">內政部警報 API</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">正常</span></div>
+      <div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">縣政府應變中心</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">正常</span></div>
+      <div class="conn-row"><div class="conn-dot warn"></div><span style="flex:1;font-size:12px;font-weight:500">現場消防員傳輸</span><span style="font-size:10px;font-family:monospace;color:var(--amber)">延遲 320ms</span></div>
+      <div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">Line OA 推播</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">正常</span></div>
+      <div style="font-size:10px;color:var(--text4);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">⚠ 緊急操作（警報/SOS/點名）已移至「即時調度中台 → 緊急」，由現場指揮層發起</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 後台維運 ══ -->
+<div class="page" id="page-admin">
+  <div class="pg-hdr"><div><div class="pg-title">🔧 系統管理</div><div class="pg-sub">角色權限 · 模組管理 · API · 系統設定 · Gmail · Line OA · 版本控制</div></div></div>
+  <div id="admin-gate">
+    <div class="tabs">
+      <div class="tab act-tab" onclick="switchTab('t-perm')">🛡 角色權限</div>
+      <div class="tab" onclick="switchTab('t-mod')">🧩 模組與 API</div>
+      <div class="tab" onclick="switchTab('t-gmail')">📧 Gmail 設定</div>
+      <div class="tab" onclick="switchTab('t-line')">💬 Line OA 串接</div>
+      <div class="tab" onclick="switchTab('t-sys')">⚙️ 系統元件</div>
+      <div class="tab" onclick="switchTab('t-ver')">🗂 版本控制</div>
+      <div class="tab" onclick="switchTab('t-todo')">📌 開發待辦</div>
+    </div>
+
+    <!-- TAB: 角色權限（原功能後台）-->
+    <div class="tab-panel act-tp" id="t-perm">
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px">
+        <button class="btn btn-primary" onclick="addRole()">＋ 新增角色</button>
+        <button class="btn btn-ghost" onclick="saveAllPerms()">💾 儲存設定</button>
+      </div>
+      <!-- LEGEND -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)">
+        <span style="font-size:11px;font-weight:600;color:var(--text3);margin-right:4px;align-self:center">全責規範：</span>
+        <span class="perm-legend p0">P0 可刪除/新增</span>
+        <span class="perm-legend p1">P1 可編輯/挪移</span>
+        <span class="perm-legend p2">P2 可修正細項（網址/備註）</span>
+        <span class="perm-legend p3">P3 僅能閱讀</span>
+        <span class="perm-legend p4">P4 無權限</span>
+      </div>
+      <!-- ROLE PERMISSION MATRIX -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">⚡ 中樞神經 — 動態任務權限與個資隔離模擬器</div>
+        <div style="font-size:11px;color:var(--text4);margin-bottom:12px">模擬大型災防（安心關懷家訪）時，動態核發臨時權限金鑰並隔離個資</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+          <div><div class="iep-lbl" style="margin-top:0">選取動線</div>
+            <select class="inp" id="ddr-route"><option>動線A（竹崎）</option><option>動線B（梅山）</option><option>動線C（大埔）</option></select></div>
+          <div><div class="iep-lbl" style="margin-top:0">指派組別</div>
+            <select class="inp" id="ddr-group"><option>行政組 1 隊</option><option>醫護組 C 隊</option><option>後勤組 B 隊</option></select></div>
+          <div><div class="iep-lbl" style="margin-top:0">臨時權限</div>
+            <select class="inp" id="ddr-perm"><option>P2 修正</option><option>P1 編輯</option><option>P3 閱讀</option></select></div>
+          <button class="btn btn-purple" style="white-space:nowrap" onclick="execDynamicDispatch()">🔑 核發金鑰並推播</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:0">角色全責規範矩陣</div>
+        <div style="font-size:11px;color:var(--text4);margin-bottom:16px">點擊格子切換權限等級 · 平時模組：總控 P0，其他角色預設 P1</div>
+        <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px">
+          <div class="ptab act-ptab" onclick="switchPTab('peacetime')">🟢 平時模組</div>
+          <div class="ptab" onclick="switchPTab('wartime')">🔴 戰時模組</div>
+        </div>
+        <div id="perm-matrix"></div>
+      </div>
+    </div>
+
+    <!-- TAB: 模組與 API -->
+    <div class="tab-panel" id="t-mod">
+      <!-- MODULE MANAGER -->
+      <div class="card" style="margin-bottom:20px;border:1px solid var(--purple-border)">
+        <div class="card-title" style="color:var(--purple)">🧩 模組管理 — 開關各功能頁面</div>
+        <div id="module-mgr-list"></div>
+      </div>
+      <!-- WAR MODULE DEFAULTS -->
+      <div class="card" style="margin-bottom:20px;border:1px solid var(--red-border)">
+        <div class="card-title" style="color:var(--red)">⚔️ 戰時各災型預設開放模組</div>
+        <div id="war-module-settings"></div>
+      </div>
+      <!-- API SETTINGS -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:16px;justify-content:space-between"><span>🔌 API 串接設定 <span style="font-size:9px;padding:2px 7px;border-radius:6px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);font-family:monospace;font-weight:700;margin-left:6px">後台限定</span></span><button class="btn btn-blue" id="api-test-btn" onclick="triggerAllApiTests()" style="padding:4px 12px;font-size:11px;margin-left:auto">↻ 批次測試所有 API</button></div>
+        <div id="api-rows"></div>
+        <button class="btn btn-blue" style="margin-top:10px" onclick="addAPI()">＋ 新增 API 端點</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="t-gmail">
+      <div class="g2">
+        <div class="card"><div class="card-title">各組 Gmail 帳號</div><div id="gmail-rows"></div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-primary" onclick="toast('✅ 設定已儲存')">💾 儲存</button><button class="btn btn-blue" onclick="toast('📤 測試信件已發送')">📤 測試</button></div></div>
+        <div class="card"><div class="card-title">Workspace 狀態</div><div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">Google Drive API</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">已授權</span></div><div class="conn-row"><div class="conn-dot ok"></div><span style="flex:1;font-size:12px;font-weight:500">Gmail API</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">已授權</span></div><div class="conn-row"><div class="conn-dot warn"></div><span style="flex:1;font-size:12px;font-weight:500">Google Sheets</span><span style="font-size:10px;font-family:monospace;color:var(--amber)">需重新授權</span></div></div>
+      </div>
+    </div>
+    <div class="tab-panel" id="t-line">
+      <div class="g2">
+        <div class="card"><div class="card-title">Line OA 頻道設定</div><div id="line-group-cards"></div></div>
+        <div class="card"><div class="card-title">廣播推播</div><div class="inp-lbl" style="margin-top:0">目標</div><select class="inp" id="bc-target"><option>📢 全部組別</option><option>🏥 醫護組</option><option>🚛 後勤組</option></select><div class="inp-lbl">訊息</div><textarea class="inp" id="bc-msg" style="min-height:80px" placeholder="推播內容..."></textarea><button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center" onclick="sendBroadcast()">📤 送出推播</button></div>
+      </div>
+    </div>
+    <div class="tab-panel" id="t-sys">
+      <div class="card" style="max-width:560px;margin-bottom:14px;border:1px solid var(--green-border)">
+        <div class="card-title">🗄 版本備份與系統還原</div>
+        <div id="version-panel"></div>
+      </div>
+      <div class="card" style="max-width:460px">
+        <div class="card-title">功能元件</div>
+        <div class="drag-item" draggable="true"><span>📊</span><span style="flex:1;font-size:12px;font-weight:500">數據儀表板</span><span style="color:var(--text4)">⠿</span></div>
+        <div class="drag-item" draggable="true"><span>🤖</span><span style="flex:1;font-size:12px;font-weight:500">Gemini AI</span><span style="color:var(--text4)">⠿</span></div>
+        <div class="drag-item" draggable="true"><span>📱</span><span style="flex:1;font-size:12px;font-weight:500">Line OA 整合</span><span style="color:var(--text4)">⠿</span></div>
+        <button class="btn btn-blue" style="margin-top:10px">＋ 新增 AI Agent</button>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="inp-lbl" style="margin-top:0">Google Sheets 網址/ID 設定</div>
+          <input class="inp" id="cfg-sheet-url" placeholder="請貼上完整的 Google Sheets 網址或表單 ID" oninput="updateSheetUrl(this.value)">
+          <div class="inp-lbl">資料更新頻率</div>
+          <select class="inp" id="cfg-refresh-rate" onchange="changeRefreshRate(this.value)">
+            <option value="10000">⚡ 10 秒 (戰時緊急)</option>
+            <option value="30000" selected>⏱ 30 秒 (標準模擬)</option>
+            <option value="60000">📅 1 分鐘 (平時運作)</option>
+            <option value="300000">💤 5 分鐘 (節能模式)</option>
+          </select>
+          <button class="btn btn-green" style="margin-top:8px;width:100%;justify-content:center" onclick="syncSheets()">↻ 立即同步一次</button>
+          <div class="inp-lbl">🌐 對外志工 GAS URL（doGet + ?email=xxx）</div>
+          <input class="inp" id="cfg-gas-url" placeholder="https://script.google.com/macros/s/部署ID/exec" oninput="DATA.registry.gasUrl=this.value;saveData()">
+          <div class="inp-lbl" style="margin-top:8px">🏛 對內慈誠 GAS URL（doPost + 編號+姓名驗證）</div>
+          <input class="inp" id="cfg-inner-gas-url" placeholder="https://script.google.com/macros/s/另一部署ID/exec" oninput="DATA.registry.innerGasUrl=this.value;saveData()">
+          <div style="font-size:9px;color:var(--text4);margin-top:4px;font-family:monospace">對內 QR = URL + ?type=inner → LIFF 彈窗 → doPost 驗證編號姓名</div>
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="card-title" style="margin-bottom:10px">🗺 本會作業區對照表</div>
+          <div id="org-zones-content" style="margin-bottom:14px"></div>
+          <div class="card-title" style="margin-bottom:10px">🧪 戰時模擬工具</div>
+          <button class="btn btn-amber" style="width:100%;justify-content:center;margin-bottom:6px" onclick="simPermRequest()">模擬前線發送提權請求</button>
+          <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="showPage('monitor')">📋 查看系統事件紀錄</button>
+        </div>
+      </div>
+      <div style="max-width:460px;margin-top:14px">
+        <div class="card" style="margin-bottom:14px">
+      <div class="card-title">📡 戰時跨站熱修補與異地同步</div>
+      <div class="iep-lbl" style="margin-top:0">目標端點</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;margin-bottom:4px" id="hotfix-targets">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border2);border-radius:var(--r-sm);font-size:11px;background:var(--bg3)"><input type="checkbox" value="梅山分會" checked style="accent-color:var(--green)"> 梅山分會 <span style="color:var(--green);font-size:9px">🟢</span></label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border2);border-radius:var(--r-sm);font-size:11px;background:var(--bg3)"><input type="checkbox" value="大埔前線" checked style="accent-color:var(--green)"> 大埔前線 <span style="color:var(--green);font-size:9px">🟢</span></label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border2);border-radius:var(--r-sm);font-size:11px;background:var(--bg3)"><input type="checkbox" value="竹崎收容所" checked style="accent-color:var(--amber)"> 竹崎收容所 <span style="color:var(--amber);font-size:9px">🟡</span></label>
+      </div>
+      <div class="iep-lbl">異常模組</div>
+      <select class="inp" id="hotfix-module"><option>Line OA 報到元件</option><option>Google Sheets 數據端</option><option>地圖繪製層</option><option>警報推播模組</option></select>
+      <div class="iep-lbl">修正細節說明</div>
+      <input class="inp" id="hotfix-desc" placeholder="例：修復 Line 報到個資加密斷聯問題">
+      <div class="iep-lbl">修補 Payload</div>
+      <textarea class="inp" id="hotfix-payload" style="min-height:60px;font-family:'JetBrains Mono',monospace;font-size:10px">{"patch_type":"hotfix","target":"line-oa","key_rotation":true}</textarea>
+      <button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center;font-size:12px" onclick="dispatchHotfix()">⚡ 廣播派送修補並強制異地同步</button>
+    </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="t-ver">
+      <div class="card" style="max-width:520px">
+        <div class="card-title">版本控制</div>
+        <div class="ver-row"><span class="ver-num">v4.0.0</span><span style="flex:1;font-size:12px;font-weight:500">全模組化編輯儀表板</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">今天</span></div>
+        <div class="ver-row"><span class="ver-num">v3.0.0</span><span style="flex:1;font-size:12px;font-weight:500">白底重設計 + 儀表板自訂</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">06-04 22:00</span></div>
+        <div class="ver-row"><span class="ver-num">v2.1.3</span><span style="flex:1;font-size:12px;font-weight:500">Scenario Simulator</span><span style="font-size:10px;font-family:monospace;color:var(--text4)">06-04 14:20</span></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn btn-amber" onclick="toast('⚠ 確認回滾至 v3.0.0')" style="flex:1;justify-content:center">⟲ Rollback</button>
+          <button class="btn btn-ghost" onclick="toast('✓ 已備份至 Google Drive')" style="flex:1;justify-content:center">📤 備份</button>
+        </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="t-todo">
+      <div class="card" style="max-width:760px">
+        <div class="card-title" style="justify-content:space-between"><span>📌 開發待辦清單（超出當前範圍但重要的事項）</span><button class="btn btn-blue btn-xs" onclick="addTodo()">＋ 新增</button></div>
+        <div style="font-size:11px;color:var(--text4);margin-bottom:14px;line-height:1.7">由 Claude 主動維護記錄。每項含背景、為何重要、技術方向。可直接編輯或刪除。</div>
+        <div id="todo-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="page" id="page-case_mgt">
+  <div class="pg-hdr"><div><div class="pg-title">🗂️ 個案管理系統</div><div class="pg-sub">個案訪視紀錄 · 動線規劃</div></div></div>
+  <div id="case-mgt-content"></div>
+</div>
+
+<div class="page" id="page-care_rec">
+  <div class="pg-hdr"><div><div class="pg-title">💚 關懷行動紀錄</div><div class="pg-sub">訪視 · 線上 · 定點 · 法訊</div></div></div>
+  <div id="care-rec-content"></div>
+</div>
+
+<div class="page" id="page-warehouse">
+  <div class="pg-hdr"><div><div class="pg-title">📦 物資倉儲管理</div><div class="pg-sub">三級分類造冊 · 大車物流調度</div></div></div>
+  <div id="warehouse-content"></div>
+</div>
+
+<div class="page" id="page-shelter_mgt">
+  <div class="pg-hdr"><div><div class="pg-title">🏕️ 安置收容管理</div><div class="pg-sub">災民造冊 · 慰問金 · 清掃修繕</div></div></div>
+  <div id="shelter-mgt-content"></div>
+</div>
+
+<!-- ══ 民眾求助通報（災民端入口 + 收件匣）══ -->
+<div class="page" id="page-relief_req">
+  <div class="pg-hdr"><div><div class="pg-title">🆘 民眾求助通報</div><div class="pg-sub">受災民眾自主報案 · 收件匣 → 一鍵轉即時調度中台</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="rrtab-inbox" onclick="setReliefTab('inbox')">📥 求助收件匣</button>
+    <button class="btn btn-ghost" id="rrtab-map" onclick="setReliefTab('map')">🗺️ 受困分佈</button>
+    <button class="btn btn-ghost" id="rrtab-form" onclick="setReliefTab('form')">📱 民眾填報預覽</button>
+  </div>
+  <div id="relief-req-content"></div>
+</div>
+
+<!-- ══ 跨單位資源協調台 ══ -->
+<div class="page" id="page-coord">
+  <div class="pg-hdr"><div><div class="pg-title">🤝 跨單位資源協調台</div><div class="pg-sub">政府 · NGO · 企業 · 宮廟橫向協調 · 避免物資重複與遺漏</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="cotab-match" onclick="setCoordTab('match')">🔗 缺口媒合看板</button>
+    <button class="btn btn-ghost" id="cotab-partner" onclick="setCoordTab('partner')">🏢 外部單位資源</button>
+    <button class="btn btn-ghost" id="cotab-zone" onclick="setCoordTab('zone')">📍 村里責任分區</button>
+  </div>
+  <div id="coord-content"></div>
+</div>
+
+<!-- ══ 災後重建與長期陪伴（舊頁保留，已由 page-persons 整合） ══ -->
+<div class="page" id="page-rebuild">
+  <div class="pg-hdr"><div><div class="pg-title">🏠 災後重建與長期陪伴</div><div class="pg-sub">緊急安置 → 組合屋 → 修繕 → 重建 · 中長期心理重建追蹤</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="rbtab-progress" onclick="setRebuildTab('progress')">🏗️ 重建進度</button>
+    <button class="btn btn-ghost" id="rbtab-care" onclick="setRebuildTab('care')">💚 長期關懷排程</button>
+    <button class="btn btn-ghost" id="rbtab-psych" onclick="setRebuildTab('psych')">🧠 心理重建追蹤</button>
+  </div>
+  <div id="rebuild-content"></div>
+</div>
+
+<!-- ══ 個案全程陪伴（整合：個案管理 + 關懷行動 + 災後重建） ══ -->
+<div class="page" id="page-persons">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">🫂 個案全程陪伴</div>
+      <div class="pg-sub">急救期 → 安置期 → 重建期 · 個案卡 · 關懷紀錄 · 重建追蹤 · 安置收容 · 祝福金</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue"  id="prtab-cases"   onclick="setPersonsTab('cases')">🗂️ 個案名單</button>
+    <button class="btn btn-ghost" id="prtab-care"    onclick="setPersonsTab('care')">💚 關懷紀錄</button>
+    <button class="btn btn-ghost" id="prtab-rebuild" onclick="setPersonsTab('rebuild')">🏗️ 重建追蹤</button>
+    <button class="btn btn-ghost" id="prtab-shelter" onclick="setPersonsTab('shelter')">🏕️ 安置收容</button>
+    <button class="btn btn-ghost" id="prtab-welfare" onclick="setPersonsTab('welfare')">💰 祝福金</button>
+  </div>
+  <div id="persons-content"></div>
+</div>
+
+<!-- WARTIME SCENARIO OVERLAY -->
+<div class="wt-overlay" id="wt-overlay">
+  <!-- Step 1: 選災型 -->
+  <div id="wt-step1">
+    <h1>🚨 戰時實戰模式已啟動</h1>
+    <p>平時資料已轉唯讀鎖定。請選擇當前發生的災難類型：</p>
+    <div class="scen-grid">
+      <button class="scen-btn" id="scen-quake"  onclick="wtPickScenario('quake')"><span class="sico2">🏚️</span><span>地震</span></button>
+      <button class="scen-btn" id="scen-wind"   onclick="wtPickScenario('wind')"><span class="sico2">🌀</span><span>風災</span></button>
+      <button class="scen-btn" id="scen-flood"  onclick="wtPickScenario('flood')"><span class="sico2">🌊</span><span>水災</span></button>
+      <button class="scen-btn" id="scen-fire"   onclick="wtPickScenario('fire')"><span class="sico2">🔥</span><span>火災/爆炸</span></button>
+      <button class="scen-btn" id="scen-landslide" onclick="wtPickScenario('landslide')"><span class="sico2">⛰️</span><span>土石流/山崩</span></button>
+      <button class="scen-btn" id="scen-compound" onclick="wtPickScenario('compound')"><span class="sico2">🌐</span><span>複合型災害</span></button>
+      <button class="scen-btn" id="scen-drought" onclick="wtPickScenario('drought')"><span class="sico2">🏜️</span><span>乾旱/缺水</span></button>
+      <button class="scen-btn" id="scen-epidemic" onclick="wtPickScenario('epidemic')"><span class="sico2">🦠</span><span>疫情/傳染病</span></button>
+      <button class="scen-btn" id="scen-tsunami" onclick="wtPickScenario('tsunami')"><span class="sico2">🌊</span><span>海嘯</span></button>
+      <button class="scen-btn" id="scen-war_s"  onclick="wtPickScenario('war_s')"><span class="sico2">⚔️</span><span>動亂</span></button>
+    </div>
+    <button class="btn btn-ghost" style="margin-top:20px;color:#475569;border-color:#334155" onclick="closeOverlay()">略過，稍後選擇</button>
+  </div>
+  <!-- Step 1b: 選受災等級 -->
+  <div id="wt-step1b" style="display:none;width:100%;max-width:680px">
+    <h1 id="wt-s1b-title">選擇受災規模</h1>
+    <p style="margin-bottom:20px">不同規模啟用不同延伸功能，選擇後可再微調：</p>
+    <div style="display:grid;grid-template-columns:1fr;gap:12px;width:100%;margin-bottom:20px">
+      <button class="lvl-btn" onclick="wtPickLevel('L1')">
+        <span class="lvl-tag" style="background:#3B82F6">L1</span>
+        <span class="lvl-body"><b>輕度 / 局部 <span id="lvl-cnt-L1" style="font-weight:400;color:#6ee7b7;font-size:12px"></span></b><small>單一社區、小範圍 — 核心調度與物資</small></span>
+      </button>
+      <button class="lvl-btn" onclick="wtPickLevel('L2')">
+        <span class="lvl-tag" style="background:#F59E0B">L2</span>
+        <span class="lvl-body"><b>中度 / 區域 <span id="lvl-cnt-L2" style="font-weight:400;color:#6ee7b7;font-size:12px"></span></b><small>跨里、需收容 — 加開安置、個案、關懷</small></span>
+      </button>
+      <button class="lvl-btn" onclick="wtPickLevel('L3')">
+        <span class="lvl-tag" style="background:#EF4444">L3</span>
+        <span class="lvl-body"><b>重度 / 大規模 <span id="lvl-cnt-L3" style="font-weight:400;color:#6ee7b7;font-size:12px"></span></b><small>跨鄉鎮、長期 — 全模組啟用</small></span>
+      </button>
+      <button class="lvl-btn" onclick="wtPickLevel('manual')" style="border-style:dashed">
+        <span class="lvl-tag" style="background:#64748B">🔧</span>
+        <span class="lvl-body"><b>全手動</b><small>不套預設，自行逐項勾選模組</small></span>
+      </button>
+    </div>
+    <button class="btn btn-ghost" style="color:#475569;border-color:#334155" onclick="wtBackToStep1()">← 重選災難類型</button>
+  </div>
+  <!-- Step 2: 確認模組 -->
+  <div id="wt-step2" style="display:none;width:100%;max-width:680px">
+    <h1 id="wt-s2-title">🏚️ 地震</h1>
+    <p style="margin-bottom:16px">以下為預設開放模組，可依現場調整後套用：</p>
+    <div id="wt-mod-checks" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-bottom:20px"></div>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button class="btn btn-ghost" style="color:#475569;border-color:#334155" onclick="wtBackToLevel()">← 返回</button>
+      <button class="btn btn-primary" style="padding:10px 32px;font-size:13px" onclick="wtConfirmAndLaunch()">⚡ 套用並進入戰時模式</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERM REQUEST BANNER -->
+<div class="perm-banner" id="perm-banner">
+  <div class="perm-banner-title">⚡ 前線功能組 — 提權請求</div>
+  <div class="perm-banner-body" id="perm-banner-body"></div>
+  <div class="perm-banner-actions">
+    <button class="btn btn-green" onclick="approvePerm(true)">🟢 核准並推播 Line OA</button>
+    <button class="btn btn-ghost" onclick="approvePerm(false)">拒絕</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div style="font-size:15px;font-weight:700;margin-bottom:10px" id="modal-title"></div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.7" id="modal-body"></div>
+    <div style="background:var(--bg3);border-radius:var(--r-sm);padding:10px;font-size:11px;color:var(--text3);font-family:monospace;white-space:pre-wrap" id="modal-detail"></div>
+    <button class="btn btn-ghost" style="margin-top:14px;width:100%;justify-content:center" onclick="closeModal()">關閉</button>
+  </div>
+
+<div id="line-oa-panel" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);align-items:flex-start;justify-content:flex-end">
+  <div style="width:420px;max-width:100vw;height:100vh;background:var(--bg2);border-left:1px solid var(--border);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div style="width:36px;height:36px;background:#06C755;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px">💬</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:700">Line OA 總控</div><div style="font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace">慈濟 DRMS · 官方帳號</div></div>
+      <button onclick="closeLineOAPanel()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text4);padding:4px">✕</button>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+      <button class="loa-tab act-loa" onclick="switchLOATab('push',this)">📤 推播</button>
+      <button class="loa-tab" onclick="switchLOATab('checkin',this)">✅ 報到</button>
+      <button class="loa-tab" onclick="switchLOATab('rollcall',this)">🚨 點名</button>
+      <button class="loa-tab" onclick="switchLOATab('task',this)">🎯 派工</button>
+      <button class="loa-tab" onclick="switchLOATab('supply',this)">📦 物資</button>
+    </div>
+    <div id="loa-body" style="flex:1;overflow-y:auto;padding:14px"></div>
+    <div style="border-top:1px solid var(--border);padding:8px 12px;flex-shrink:0;max-height:80px;overflow-y:auto;background:#0F172A" id="loa-log">
+      <div style="font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace">等待操作…</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="page" id="page-line_oa">
+  <div class="pg-hdr"><div><div class="pg-title">📱 Line OA 手機模擬</div><div class="pg-sub">不同角色看到的 Line 畫面 · 真實 Webhook 串接規格預覽</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue"  id="loatab-vol"    onclick="setLOARole('vol')">🧑 志工端</button>
+    <button class="btn btn-ghost" id="loatab-staff"  onclick="setLOARole('staff')">📋 幹部端</button>
+    <button class="btn btn-ghost" id="loatab-driver" onclick="setLOARole('driver')">🚛 物流端</button>
+    <button class="btn btn-ghost" id="loatab-flow"   onclick="setLOARole('flow')">🔗 資料流說明</button>
+  </div>
+  <div id="line-oa-content"></div>
+</div>
+
+<div class="page" id="page-drive">
+  <div class="pg-hdr"><div><div class="pg-title">📸 照片回報與自動分類</div><div class="pg-sub">Line OA 回傳 → Google Drive → 自動分類</div></div></div>
+  <div id="drive-content" style="margin-top:4px"></div>
+</div>
+
+
+<div class="page" id="page-sorting">
+  <div class="pg-hdr"><div><div class="pg-title">🧰 物資整理站</div><div class="pg-sub">收件 → 拆箱分類 → 報廢/覆核 → 重包裝 → 入庫</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap" id="sort-tabs">
+    <button class="btn btn-blue" id="stab-board" onclick="setSortTab('board')">📊 作業看板</button>
+    <button class="btn btn-ghost" id="stab-intake" onclick="setSortTab('intake')">📥 收件登記</button>
+    <button class="btn btn-ghost" id="stab-sort" onclick="setSortTab('sort')">✂️ 拆箱分類台</button>
+    <button class="btn btn-ghost" id="stab-discard" onclick="setSortTab('discard')">🗑 報廢/覆核</button>
+    <button class="btn btn-ghost" id="stab-repack" onclick="setSortTab('repack')">🎁 重包裝站</button>
+  </div>
+  <div id="sorting-content"></div>
+</div>
+
+<div class="page" id="page-assets">
+  <div class="pg-hdr"><div><div class="pg-title">🛏 慈濟資產調度</div><div class="pg-sub">可重複物資 · 調用 → 運送 → 歸還循環追蹤</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="atab-overview" onclick="setAssetTab('overview')">📋 資產總覽</button>
+    <button class="btn btn-ghost" id="atab-loan" onclick="setAssetTab('loan')">📤 前線調用</button>
+    <button class="btn btn-ghost" id="atab-transit" onclick="setAssetTab('transit')">🚚 運送追蹤</button>
+    <button class="btn btn-ghost" id="atab-return" onclick="setAssetTab('return')">↩️ 歸還盤點</button>
+  </div>
+  <div id="assets-content"></div>
+</div>
+
+<!-- ══ 原型 A：資源台帳 ══ -->
+<div class="page" id="page-resources">
+  <div class="pg-hdr"><div><div class="pg-title">🗄️ 資源台帳</div><div class="pg-sub">物資倉儲 · 慈濟資產 · 物資整理站 · 跨單位協調 · 香積餐食（原型 A）</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue"  id="restab-warehouse" onclick="setResourcesTab('warehouse')">📦 物資供需</button>
+    <button class="btn btn-ghost" id="restab-assets"    onclick="setResourcesTab('assets')">🛏 資產借調</button>
+    <button class="btn btn-ghost" id="restab-sorting"   onclick="setResourcesTab('sorting')">🧰 整理站</button>
+    <button class="btn btn-ghost" id="restab-coord"     onclick="setResourcesTab('coord')">🤝 跨單位協調</button>
+    <button class="btn btn-ghost" id="restab-kitchen"   onclick="setResourcesTab('kitchen')">🍲 香積餐食</button>
+  </div>
+  <div id="resources-content"></div>
+</div>
+
+<!-- ══ 原型 B：需求通報池 ══ -->
+<div class="page" id="page-needs">
+  <div class="pg-hdr"><div><div class="pg-title">📥 需求通報池</div><div class="pg-sub">民眾求助 · 廚房需求 · 勘察回報 · 醫療需求（入口皆為 Line OA）（原型 B）</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue"  id="needtab-people"  onclick="setNeedsTab('people')">🆘 民眾通報</button>
+    <button class="btn btn-ghost" id="needtab-kitchen" onclick="setNeedsTab('kitchen')">🍱 廚房需求</button>
+    <button class="btn btn-ghost" id="needtab-survey"  onclick="setNeedsTab('survey')">🔍 勘察回報</button>
+    <button class="btn btn-ghost" id="needtab-medical" onclick="setNeedsTab('medical')">🏥 醫療需求</button>
+  </div>
+  <div id="needs-content"></div>
+</div>
+
+<div class="page" id="page-rtsync">
+  <div class="pg-hdr"><div><div class="pg-title">⚡ 即時調度中台</div><div class="pg-sub">多點同步作業 · 開兩個分頁即可見即時連動（本機版，可無痛切換 Firebase）</div></div></div>
+  <div style="display:flex;gap:6px;margin:8px 0 14px;flex-wrap:wrap">
+    <button class="btn btn-blue" id="rttab-tasks"     onclick="setRTTab('tasks')">🎯 派任務</button>
+    <button class="btn btn-ghost" id="rttab-report"   onclick="setRTTab('report')">📡 看進度</button>
+    <button class="btn btn-ghost" id="rttab-close"    onclick="setRTTab('close')">📋 結案</button>
+    <button class="btn btn-ghost" id="rttab-emergency" onclick="setRTTab('emergency')" style="border-color:var(--red-border);color:var(--red)">🚨 緊急</button>
+    <button class="btn btn-ghost" id="rttab-loa"       onclick="setRTTab('loa')">📱 Line 串接</button>
+    <button class="btn btn-ghost" style="margin-left:auto" onclick="resetRTDB()">↺ 重置</button>
+  </div>
+  <div id="rtsync-content"></div>
+
+<div id="sos-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(180,0,0,.92);align-items:center;justify-content:center;flex-direction:column;animation:sosFlash 1s infinite">
+  <div style="font-size:80px;margin-bottom:10px">🆘</div>
+  <div style="color:#fff;font-size:32px;font-weight:800;letter-spacing:2px;margin-bottom:8px">緊急求救訊號</div>
+  <div id="sos-detail" style="color:#fff;font-size:16px;margin-bottom:24px;text-align:center;padding:0 20px"></div>
+  <button onclick="dismissSOS()" style="padding:14px 40px;font-size:16px;font-weight:700;background:#fff;color:#c00;border:none;border-radius:10px;cursor:pointer">已知悉 · 派遣救援</button>
+</div>
+</div>
+
+<!-- ══ 系統架構說明 ══ -->
+<!-- ══ 系統架構說明（inline） ══ -->
+<div class="page" id="page-arch_doc" style="padding:0;overflow:auto">
+<link rel="stylesheet" href="arch-style.css">
+<div id="arch-root">
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>🗺️ 系統架構心智圖 <span class="ver" id="arch-ver"></span></h1>
+      <div class="hint">即時調度中台鎖定中央，其餘放射環繞（上=發起 / 下=結案歸檔 / 左=慈濟 / 右=志工現場）。拖曳排版 · 點節點或線看說明 · ▶ 故事導覽逐段講解。</div>
+    </div>
+    <div class="toolbar">
+      <button class="tbtn play" onclick="arch_storyStart()">▶ 故事導覽</button>
+      <button class="tbtn" onclick="arch_resetLayout()">↺ 重置佈局</button>
+      <button class="tbtn" onclick="arch_exportLayout()">⬇ 匯出座標</button>
+      <button class="tbtn" onclick="arch_importLayout()">⬆ 匯入座標</button>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="lg"><span class="d" style="background:var(--green)"></span>已開通</div>
+    <div class="lg"><span class="d" style="background:var(--amber)"></span>部分</div>
+    <div class="lg"><span class="d" style="background:var(--red)"></span>未開通</div>
+    <div class="lg"><span class="ln"></span>現行</div>
+    <div class="lg"><span class="ln dash"></span>規劃/次要</div>
+    <div class="lg">→ 單向 · ↔ 雙向</div>
+  </div>
+
+  <div class="views" id="arch-views">
+    <button class="vpill act" data-view="decider" onclick="arch_setView('decider')">👔 決策者<span class="vsub">救災怎麼跑</span></button>
+    <button class="vpill" data-view="volunteer" onclick="arch_setView('volunteer')">🙋 志工<span class="vsub">我的一條線</span></button>
+    <button class="vpill" data-view="tech" onclick="arch_setView('tech')">🔧 技術維運<span class="vsub">資料與待修</span></button>
+    <button class="vpill" data-view="health" onclick="arch_setView('health')">🩺 健檢<span class="vsub">補/整合/風險</span></button>
+    <button class="vpill" data-view="all" onclick="arch_setView('all')">◍ 全部</button>
+  </div>
+
+  <div class="main-layout">
+    <div class="stage-col">
+      <div class="stage" id="arch-stage">
+        <svg class="edges" id="arch-edges" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="story-bar" id="arch-storyBar">
+        <div class="story-step" id="arch-storyStep">1 / N</div>
+        <div class="story-text" id="arch-storyText"></div>
+        <div class="story-nav">
+          <button class="snav" id="arch-sPrev" onclick="arch_storyPrev()">‹</button>
+          <button class="snav" id="arch-sNext" onclick="arch_storyNext()">›</button>
+          <button class="snav" onclick="arch_storyEnd()">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail" id="arch-detail">
+      <div class="detail-empty"><div class="detail-placeholder-icon">🗺️</div>點擊任一節點或連線<br>查看設計說明與理念</div>
+    </div>
+  </div><!-- /.main-layout -->
+  <div class="note">Preview：場域化 + 放射 + 後端合併 + 故事導覽。階段2 將加三視角切換與新增連線。座標存本機。不影響主系統。</div>
+</div>
+
+</div>
+<div id="arch-pvMask" onclick="if(event.target===this)arch_pvHide()">
+  <div id="arch-pvBox">
+    <div id="arch-pvHead"><h3 id="arch-pvTitle">現況示意</h3><span class="pvtag">示意圖 · 非實際資料</span><button id="arch-pvClose" onclick="arch_pvHide()">✕</button></div>
+    <div id="arch-pvBody"></div>
+  </div>
+</div>
+
+<div id="arch-fbDock">
+  <button id="arch-fbToggle" onclick="arch_fbT()">📝 寫回饋</button>
+  <div id="arch-fbPanel">
+    <h4>給開發者的回饋</h4>
+    <div class="fbsub">看完心智圖/現況示意後，把想法寫成提交碼傳給負責人</div>
+    <label>暱稱（方便辨識是誰）</label>
+    <input id="arch-fbNick" placeholder="例：花蓮張師兄">
+    <label>針對哪個模組／節點</label>
+    <select id="arch-fbNode"></select>
+    <label>回饋類型</label>
+    <select id="arch-fbType">
+      <option value="現況不符">現況不符（實際做法不一樣）</option>
+      <option value="缺功能">缺功能（少了我要的東西）</option>
+      <option value="建議改善">建議改善</option>
+      <option value="疑問">疑問／看不懂</option>
+      <option value="肯定">這樣很好，保留</option>
+    </select>
+    <label>具體內容</label>
+    <textarea id="arch-fbText" rows="5" placeholder="描述實際流程、痛點或建議。請勿填服務對象姓名或個資。"></textarea>
+    <div class="fbwarn">⚠ 請勿填入個案姓名、個資、隱私，只描述流程與需求</div>
+    <button id="arch-fbGen" onclick="arch_fbGenCode()">產生提交碼</button>
+    <div id="arch-fbOut">
+      <label style="margin-top:4px">你的提交碼（複製後傳給負責人）</label>
+      <div id="arch-fbCode"></div>
+      <div class="fbrow">
+        <button onclick="arch_fbCopy()">📋 複製</button>
+        <button onclick="arch_fbDownload()">⬇ 下載 .txt</button>
+      </div>
+    </div>
+    <div id="arch-fbFlash"></div>
+  </div>
+</div>
+<script src="arch-script.js"></script>
+</div>
+
+</div><!-- /main -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="app.js?v=20260629b"></script>
+</body>
+</html>

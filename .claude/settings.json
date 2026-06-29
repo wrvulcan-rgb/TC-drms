@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /home/user/TC-drms && git diff --quiet && git diff --cached --quiet || (git add -A && git commit -m 'auto-sync' && git push origin main)"
+          }
+        ]
+      }
+    ]
+  }
+}
