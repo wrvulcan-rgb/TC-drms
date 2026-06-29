@@ -435,6 +435,3 @@ background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans TC',-apple
 #arch2-fbOut .fbrow{display:flex;gap:8px;margin-top:9px}
 #arch2-fbOut button{flex:1;border:1px solid var(--border2);background:var(--bg);color:var(--text);padding:8px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
 #arch2-fbFlash{font-size:11px;font-weight:700;color:var(--green);margin-top:8px;min-height:14px}
-
-/* 現場指揮層場域 */
-.zone.field { background: rgba(16,185,129,.06); border-color: rgba(16,185,129,.25); }

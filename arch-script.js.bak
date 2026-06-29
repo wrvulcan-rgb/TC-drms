@@ -6,8 +6,7 @@ var ZONES=[
   {cls:'vol', lbl:'志工端 · 前線',     x:54, y:4,  w:44, h:42},
   {cls:'ppl', lbl:'鄉親端 · 受助',     x:54, y:48, w:30, h:30},
   {cls:'gov', lbl:'政府',             x:88, y:50, w:10, h:26},
-  {cls:'back',lbl:'後端服務層',         x:30, y:82, w:44, h:15},
-  {cls:'field', lbl:'現場指揮層 · 班組/梯次', x:46, y:4, w:52, h:40}
+  {cls:'back',lbl:'後端服務層',         x:30, y:82, w:44, h:15}
 ];
 
 // ── 節點：rtsync 鎖中央(50,50)，放射環繞 ──
@@ -83,40 +82,7 @@ var NODES=[
   {id:'backend',  nm:'後端服務層', ico:'\uD83D\uDDC4\uFE0F', x:50, y:89, status:'partial', kind:'backend',
     script:'後端服務層的設計是分三個階段走，而不是一開始就上最複雜的架構。第一階段：localStorage，讓系統在沒有網路的現場也能運作，所有狀態存在本機，連線後再上傳。這是最務實的選擇，因為災區網路不穩定是常態。第二階段：Google Sheets + GAS，讓報名和個案資料有雲端備份，幹部能從任何電腦查閱。第三階段：Firebase RTDB，支援多個站點的幹部同時操作、即時看到同一份資料，介面已預留，等需求確認後啟用。最需要立即處理的問題是：志工的身分證號、電話等個資目前明文存放在 localStorage 和 Sheets，僅靠前端遮蔽，沒有加密。這是 P1 最高優先的資安待修項。',
     desc:'資料存放與同步層。點開看子項：本機儲存、雲端後端、即時同步。',
-    subs:['localStorage（本機資料/版本備份/場次/遙測，離線可用）','GAS + Sheets（報名/個案後端，待設定 /exec）','Firebase RTDB（多人共編，規劃中）']},
-
-  /* ── 現場指揮層：班長制核心 ── */
-  {id:'squad', nm:'班組管理', ico:'🪖', x:60, y:18, status:'planned', kind:'core',
-    script:'班組是這次架構強化的最核心新增。原有系統的任務分到「人名」，但慈濟真實出班是以「班組」為單位：班長帶 5-10 人，統一接單、統一執行、統一回報。班組管理建立三層指揮鏈（總指揮→區隊長→班長→班員），讓每一筆人力都知道自己屬於哪個班、班屬於哪個梯次、梯次屬於哪個區域。這是所有後續功能（任務池、梯次排班、作戰指揮圖）的資料地基，不建就全卡。',
-    desc:'三層指揮鏈。DATA.squads：班長/班員/配屬車輛/責任區/梯次/狀態/技能標籤。志工報到後自動歸隊，班長手機即時看到本班人數。'},
-
-  {id:'taskpool', nm:'任務池', ico:'📋', x:75, y:22, status:'planned', kind:'core',
-    script:'任務池是 Uber 接案模式的實體。HQ 建立任務後進入池中，班長手機依「距離/技能/容量」排序看到最適合自己的任務，一鍵接單。三種模式可切換：自由搶單（資源充足時）、HQ 指派（緊急任務）、智慧媒合（系統推薦，班長確認）。關鍵設計：指派優先，15 分鐘無人接才開放搶單；隱藏搶單競爭數字，避免慈濟文化排斥競爭感。接單後自動推播給所有班員。',
-    desc:'Uber 接案介面。Task 含：類型/地點GPS/所需技能/優先級P0-P3/狀態/接單班組/完成照片。班長一鍵接，班員自動收 LINE 推播。'},
-
-  {id:'tier', nm:'梯次排班', ico:'📅', x:58, y:32, status:'planned', kind:'core',
-    script:'梯次是慈濟出班的基本單位，但原有系統沒有這個概念。梯次排班模組讓幹部在出班前排好「誰幾點去哪、開哪台車、集合在哪」。DATA.tiers 綁定班組+車輛+集合點+帶隊幹部，確認後推播給所有班長。系統同時檢查：每班是否有配屬車輛？若缺車，自動從可用車輛池建議配對。類 Google Calendar 時間軸 UI，班組用色塊標示，可拖移調整。',
-    desc:'梯次三要素：時間/班組/車輛。確認後推播班長。系統自動檢查車輛缺口並建議配對。'},
-
-  {id:'cmdmap', nm:'作戰指揮圖', ico:'🗺️', x:72, y:34, status:'planned', kind:'core',
-    script:'HQ 需要一個畫面同時看到「所有班現在在哪、做什麼、狀態如何」。作戰指揮圖在地圖底圖上疊加班組色塊（待命/執行中/移動中/SOS）、任務熱力圖（紅黃綠點）和人力空白區警示。當某班觸發 SOS，系統自動建議「最近待命班→支援」，HQ 一鍵確認即觸發雙邊通知。這個頁面是給指揮官看的，不是給志工用的。',
-    desc:'地圖底圖 + 班組即時狀態色塊 + 任務熱力圖。人力空白區自動警示。一鍵增援觸發雙邊 LINE 通知。'},
-
-  {id:'handover', nm:'交接日誌', ico:'🤝', x:60, y:46, status:'planned', kind:'core',
-    script:'梯次交接一直靠 LINE 群口頭交接，資訊大量流失。交接日誌在收班時自動從系統抓取快照：未完成任務（附進度和現場備注）、物資差異（借出 vs 歸還 diff）、待追蹤紅標個案、現場安全狀況。班長只需確認並填補空白欄位，不從零開始打字。交接記錄存檔不可修改，並推播給下梯所有班長。每梯次收班強制走完此流程。',
-    desc:'收班強制流程。系統自動生成快照：未完任務/物資差異/待追個案/現場安全。班長確認→推播下梯→不可修改存檔。'},
-
-  {id:'relief_ledger', nm:'金援帳本', ico:'💰', x:76, y:46, status:'planned', kind:'core',
-    script:'慈濟現金發放缺乏完整簽收鏈，是公信力風險。金援帳本建立嚴格的發放流程：從個案自動帶入受災戶資訊（不允許手動輸入對象）→身份確認→雙人見證→受災戶手機簽名→存證照（含時間戳浮水印）→寫入不可刪除帳本。自動 Gmail 給財務組（附 PDF）。月底自動生成發放總表 CSV 供對帳。同一個案再次發放需幹部額外授權。',
-    desc:'發放五步驟：身份確認→金額→受災戶簽名→雙人見證→存證照。不可刪帳本。Gmail 自動推財務。月報 CSV 匯出。'},
-
-  {id:'incident', nm:'人員意外', ico:'🚑', x:58, y:58, status:'planned', kind:'core',
-    script:'志工在現場受傷是慈濟出班一定會遇到的情境，但原有系統完全沒有這個流程。人員意外模組讓班長即時回報：傷者姓名/情況/GPS/任務ID，自動通知總指揮和傷者緊急聯絡人，生成事故記錄（保險理賠用）。報到時間戳+GPS+任務ID構成不可竄改的「出班證明」，確保保險理賠有據可查。',
-    desc:'傷亡即時回報→通知總指揮+緊急聯絡人。自動生成事故記錄（含時間戳/GPS/任務ID）。保險理賠不可竄改依據。'},
-
-  {id:'matchengine', nm:'智慧媒合引擎', ico:'🤖', x:72, y:58, status:'planned', kind:'future',
-    script:'智慧媒合是 Phase 4 的功能，需要至少 3 次真實出班資料才有意義，做早了是空殼。媒合評分公式：score = (1/距離)×0.4 + 技能匹配×0.3 + 可用容量/需求人數×0.2 + (1/當前負載)×0.1。任務發布時自動計算 Top3 推薦班組並附推薦原因，班長可接受或拒絕。當某班 SOS 或有人離隊，重新計算是否需要支援。這個引擎讓調度從「幹部拍腦袋」進化為「資料驅動」。',
-    desc:'Phase 4。媒合評分：距離40%+技能30%+容量20%+負載10%。任務發布自動推薦Top3。SOS觸發重新媒合。需3次以上真實出班資料。'}
+    subs:['localStorage（本機資料/版本備份/場次/遙測，離線可用）','GAS + Sheets（報名/個案後端，待設定 /exec）','Firebase RTDB（多人共編，規劃中）']}
 ];
 
 // ── 連線 ──
@@ -195,70 +161,7 @@ var EDGES=[
     flow:'規劃中與政府對接。傳輸：與 EMIC 雙向交換災情/資源。尚未實作，虛線。'},
   {from:'rtsync',to:'backend',label:'同步 ↔',bi:true,dash:true,
     talk:'調度中台和後端之間的雙向同步（Firebase RTDB）解決的是多站點協作問題。當救災規模擴大，多個行政區的幹部需要同時操作同一套系統時，localStorage 就不夠用了——不同電腦的資料會脫節。Firebase 多人共編介面已預留，等使用需求確認後啟用，讓系統從「單點工具」進化成「分散式指揮平台」。',
-    flow:'雙向(規劃)。多站點即時共編：任務/人力/設備經 Firebase RTDB 雙向同步。介面已預留未啟用，虛線。'},
-
-  /* ── 人力鏈（Person→Squad→Task） ── */
-  {from:'reg', to:'squad', label:'歸隊',
-    talk:'志工報到後不只是「進名冊」，而是立刻歸隊到對應班組。這條線讓班長手機即時看到本班人數，任務執行人力也同步更新。',
-    flow:'報到資料寫入後，查詢 DATA.squads[].members 確認歸屬，班組 currentLoad +1，班長端即時更新。'},
-
-  {from:'squad', to:'taskpool', label:'接單', bi:true,
-    talk:'班長從任務池接單（或被 HQ 指派），接單後任務狀態從 open→claimed，班員同步收到 LINE 推播。這是 Uber 模式的核心迴路。',
-    flow:'雙向。去程(HQ→班組)：指派任務。回程(班組→任務池)：班長搶單，更新 task.claimedBy 和 claimedAt。'},
-
-  {from:'tier', to:'squad', label:'排定梯次',
-    talk:'梯次確認後，班組知道自己幾點去哪裡、開哪台車。梯次是出班的時間骨架，班組是執行單位，這條線把時間和人力綁在一起。',
-    flow:'梯次建立後推播給班長（LINE OA）。DATA.tiers[].squads 指向對應班組，班長端顯示梯次資訊。'},
-
-  /* ── 後勤鏈（Vehicle→Squad→Task） ── */
-  {from:'tier', to:'vms', label:'車輛配對', dash:true,
-    talk:'梯次建立時，系統同時檢查每個班組是否有配屬車輛。缺車時自動建議配對，確認後推播給司機。',
-    flow:'梯次建立→檢查 DATA.vehicles 可用清單→缺車警示+配對建議→確認後 vehicle.assignedTier 寫入。'},
-
-  {from:'vms', to:'squad', label:'車輛派遣',
-    talk:'司機打卡出發後，班長手機收到預計抵達時間。車輛抵達後班員掃碼上車確認，物資裝載觸發倉儲扣庫存。',
-    flow:'vehicle.status = en-route → 班長端推播。抵達後班員確認 → vehicle.cargo 掃描 → 倉儲自動扣庫存。'},
-
-  /* ── 需求鏈（Case→Task→Squad） ── */
-  {from:'fieldgroup', to:'taskpool', label:'分診建任務',
-    talk:'勘災組到場填寫分診標籤後，系統自動生成對應任務進入任務池：紅標→P0/P1立即任務，黃標→P2一般任務，綠標→電話追蹤任務。這條線讓「個案需求」直接驅動「人力派遣」，中間不需要人工中轉。',
-    flow:'Case.triageTag 寫入後自動建 Task，status=open，依顏色設優先級，推入任務池。Case.status 跟隨 Task 更新。'},
-
-  {from:'taskpool', to:'fieldgroup', label:'任務完成更新', dash:true,
-    talk:'任務完成回報後，對應個案狀態自動更新，完成照片與入場照片自動配對成 Before/After，同時判斷是否需要追蹤任務（48h 後自動觸發）。',
-    flow:'task.status=done → 更新 case.status → Before/After 照片配對 → 若需追蹤，48h 後自動建追蹤任務推入任務池。'},
-
-  /* ── 交接鏈 ── */
-  {from:'rtsync', to:'handover', label:'收班快照',
-    talk:'每梯次收班觸發交接流程。調度中台自動抓取當下狀態快照，班長不需從零打字，只需確認並補充空白欄位。',
-    flow:'收班動作 → 系統抓取：未完 Task（status=in-progress）、物資差異（cargo diff）、紅標未結 Case。班長確認→存檔→推播下梯。'},
-
-  {from:'handover', to:'squad', label:'下梯交接',
-    talk:'交接記錄推播給下一梯的所有班長，讓他們在接任務前就知道前一梯的現場狀況、未完成工作和待追蹤個案。',
-    flow:'交接記錄存檔後推播給 TIER-N+1 的所有班長 LINE OA。下梯班長接單時可看到前一梯的 fieldNotes。'},
-
-  /* ── 金援鏈 ── */
-  {from:'fieldgroup', to:'relief_ledger', label:'核准發放',
-    talk:'個案達到金援核准狀態後，自動帶入受災戶資訊建立 RF 單，不允許手動輸入發放對象，防止錯誤發放。',
-    flow:'case.status=approved → 自動建 RF 單，帶入 case.recipient/idLastFour。發放五步驟完成後寫不可刪帳本。'},
-
-  {from:'relief_ledger', to:'backend', label:'帳務存檔',
-    talk:'每筆發放記錄寫入後端後，自動 Gmail 通知財務組（附 PDF），月底自動匯出總表 CSV。帳本只可新增，不可刪除或修改。',
-    flow:'RF 單確認 → 寫不可刪帳本 → Gmail 推財務組（附 PDF）→ 月底自動 CSV 匯出供對帳。'},
-
-  /* ── 人員意外鏈 ── */
-  {from:'squad', to:'incident', label:'意外回報',
-    talk:'班長在現場回報人員意外，觸發自動通知和保險記錄生成。報到時間戳+GPS+任務ID構成不可竄改的保險理賠依據。',
-    flow:'班長觸發 → 建 MedicalIncident → 通知總指揮+傷者緊急聯絡人 → 生成事故記錄（含報到時間戳/GPS/任務ID）。'},
-
-  /* ── 智慧媒合（Phase 4，虛線） ── */
-  {from:'matchengine', to:'taskpool', label:'媒合推薦', dash:true,
-    talk:'智慧媒合引擎分析歷史出班資料，在任務發布時自動推薦最適合的班組，並在 SOS 或人員離隊時重新計算支援建議。Phase 4 功能，需有足夠真實資料才有意義。',
-    flow:'任務發布 → 媒合評分（距離/技能/容量/負載）→ Top3 推薦→ HQ 確認或班長接受。SOS 觸發重算。'},
-
-  {from:'backend', to:'matchengine', label:'歷史資料', dash:true,
-    talk:'智慧媒合需要從後端讀取歷史出班記錄：每個班組的任務類型、完成時間、人力效率，才能做出有意義的預測。',
-    flow:'後端歷史記錄 → 媒合引擎學習模式：每人/每班在不同任務類型的平均效率，用於任務耗時預估和備料建議。'}
+    flow:'雙向(規劃)。多站點即時共編：任務/人力/設備經 Firebase RTDB 雙向同步。介面已預留未啟用，虛線。'}
 ];
 
 // ── 三視角：每視角的節點集 + 專屬故事腳本 ──
@@ -266,7 +169,7 @@ var EDGES=[
 var VIEWS={
   decider:{
     label:'決策者',
-    nodes:['drill','activate','volunteer','dashboard','staff','rtsync','reg','fieldgroup','sorting','warehouse','story','lineoa','squad','taskpool','tier','cmdmap','handover','relief_ledger'],
+    nodes:['drill','activate','volunteer','dashboard','staff','rtsync','reg','fieldgroup','sorting','warehouse','story','lineoa'],
     stories:[
       {step:'啟動',on:['activate','volunteer','drill','dashboard'],
         text:'災害發生，當區志工觸發戰時啟動，系統一鍵切戰時模式，總控儀表板亮起 — 這是所有決策的起點。'},
@@ -281,18 +184,12 @@ var VIEWS={
       {step:'物資',on:['sorting','warehouse','rtsync'],
         text:'一般物資由志工整理入庫、依需求調撥，缺料即時補。'},
       {step:'交代',on:['rtsync','story'],
-        text:'每場救災自動串成故事線時間軸 — 做了什麼、誰做的、成效如何，可匯出成完整紀錄向外說明。'},
-      {step:'班組指揮',on:['squad','taskpool','tier','cmdmap'],
-        text:'梯次排班確認誰幾點去哪，班長從任務池一鍵接單，作戰指揮圖讓 HQ 同時看到所有班的即時狀態——從「指揮官拍腦袋」到「資料驅動調度」。'},
-      {step:'交接閉環',on:['handover','squad','rtsync'],
-        text:'每梯收班，系統自動生成交接快照：未完任務、物資差異、待追蹤個案。下梯班長接任前已知前一梯的所有現場狀況，資訊不再靠口頭傳話。'},
-      {step:'帳務透明',on:['relief_ledger','fieldgroup','backend'],
-        text:'金援發放有完整簽收鏈：身份確認、雙人見證、受災戶簽名、存證照、自動 Gmail 給財務。每一筆發放都可追溯，讓慈濟的公信力有資料支撐。'}
+        text:'每場救災自動串成故事線時間軸 — 做了什麼、誰做的、成效如何，可匯出成完整紀錄向外說明。'}
     ]
   },
   volunteer:{
     label:'志工',
-    nodes:['volunteer','lineoa','reg','rtsync','fieldgroup','sorting','warehouse','drive','squad','taskpool','handover','incident'],
+    nodes:['volunteer','lineoa','reg','rtsync','fieldgroup','sorting','warehouse','drive'],
     stories:[
       {step:'我報到',on:['volunteer','lineoa'],
         text:'我用手機開 Line OA，完成報到，系統就知道我到了。'},
@@ -310,7 +207,7 @@ var VIEWS={
   },
   tech:{
     label:'技術維運',
-    nodes:['lineoa','rtsync','backend','story','sysadmin','monitor','emic','dashboard','squad','taskpool','tier','cmdmap','handover','relief_ledger','incident','matchengine'],
+    nodes:['lineoa','rtsync','backend','story','sysadmin','monitor','emic','dashboard'],
     stories:[
       {step:'入口',on:['lineoa','rtsync','dashboard'],
         text:'前端是單檔 HTML，無框架。使用者操作與 Line OA 回報都先進即時調度中台這個前端樞紐。'},
@@ -351,15 +248,7 @@ var HEALTH={
   backend:{s:'risk',issue:'個資（身分證/電話）明文存 localStorage 與 Sheets，僅前端遮蔽未加密（P1 最高優先）。多人共編 Firebase 已預留未啟用。'},
   emic:{s:'todo',issue:'政府 EMIC 與警報 API 尚未串接，近期不做可考慮再縮小或移除。'},
   drill:{s:'done',issue:'平時演練啟動正常。'},
-  activate:{s:'done',issue:'戰時啟動正常。'},
-  squad:        {s:'todo', issue:'Phase 0-A 核心。DATA.squads schema 尚未建立。志工報到歸隊邏輯、班長手機介面待開發。所有後續功能的地基。'},
-  taskpool:     {s:'todo', issue:'Phase 0-B 核心。Task 資料模型需擴充（status/claimedBy/location/requiredSkills）。班長視角任務池頁面待開發。'},
-  tier:         {s:'todo', issue:'Phase 1-A。梯次排班頁面、車輛缺口自動檢查、班長確認推播待開發。'},
-  cmdmap:       {s:'todo', issue:'Phase 1-C。需要地圖底圖 API（建議 Leaflet.js，免費）。班組即時 GPS 定位、熱力圖層待開發。'},
-  handover:     {s:'todo', issue:'Phase 1-D。收班流程強制走完、快照自動生成邏輯、存檔不可修改機制待開發。'},
-  relief_ledger:{s:'todo', issue:'Phase 3-A。發放五步驟流程、canvas 簽名、不可刪帳本、Gmail PDF 推送待開發。帳務嚴謹，技術難度中等。'},
-  incident:     {s:'todo', issue:'Phase 1-D 附帶。人員意外回報表單、緊急聯絡人通知、保險記錄 PDF 生成待開發。'},
-  matchengine:  {s:'todo', issue:'Phase 4，最後做。需 3+ 次真實出班資料。媒合評分公式已設計，待實作。做早了是空殼。'}
+  activate:{s:'done',issue:'戰時啟動正常。'}
 };
 var HEALTH_LBL={done:'完成',todo:'待補',risk:'風險',merge:'可整合'};
 // 整合群組灰框（健檢視角顯示，標記建議不動結構）
