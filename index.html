@@ -25,6 +25,7 @@
   <div class="role-wrap">
     <select class="role-sel" id="role-sel" onchange="setRole(this.value)" style="margin-right:8px">
       <option value="admin">🎖 總控</option>
+      <option value="sysadmin">⚙ 系統管理員</option>
       <option value="it">🔧 IT 志工</option>
       <option value="staff">📋 行政組</option>
       <option value="logistics">📦 物資組</option>
@@ -532,12 +533,12 @@
   <div class="pg-hdr"><div><div class="pg-title">🔧 系統管理</div><div class="pg-sub">角色權限 · 模組管理 · API · 系統設定 · Gmail · Line OA · 版本控制</div></div></div>
   <div id="admin-gate">
     <div class="tabs">
-      <div class="tab act-tab" onclick="switchTab('t-perm')">🛡 角色權限</div>
-      <div class="tab" onclick="switchTab('t-mod')">🧩 模組與 API</div>
+      <div class="tab act-tab" id="admtab-perm" onclick="switchTab('t-perm')">🛡 角色權限</div>
+      <div class="tab" id="admtab-mod" onclick="switchTab('t-mod')">🧩 模組與 API</div>
       <div class="tab" onclick="switchTab('t-gmail')">📧 Gmail 設定</div>
       <div class="tab" onclick="switchTab('t-line')">💬 Line OA 串接</div>
       <div class="tab" onclick="switchTab('t-sys')">⚙️ 系統元件</div>
-      <div class="tab" onclick="switchTab('t-ver')">🗂 版本控制</div>
+      <div class="tab" id="admtab-ver" onclick="switchTab('t-ver')">🗂 版本控制</div>
       <div class="tab" onclick="switchTab('t-todo')">📌 開發待辦</div>
     </div>
 

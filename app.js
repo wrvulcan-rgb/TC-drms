@@ -3599,7 +3599,7 @@ function saveAI(){
 //  EDIT MODE TOGGLE
 // ══════════════════════════════════════════════════════
 function toggleEditMode(){
-  if(role!=='admin') return;
+  if(role!=='sysadmin'){ toast('權限不足','error'); return; }
   editMode=!editMode;
   const btn=document.getElementById('edit-toggle-btn');
   const toolbar=document.getElementById('edit-toolbar');
@@ -3872,10 +3872,11 @@ function renderNav(){
   var lastGroup=null;
   // 依角色決定 group 顯示順序
   var groupOrder={
-    'it':      ['後台系統','今日行動','現場管理'],
-    'admin':   ['後台系統','今日行動','現場管理'],
-    'staff':   ['今日行動','現場管理','後台系統'],
-    'logistics':['今日行動','現場管理','後台系統'],
+    'it':        ['後台系統','今日行動','現場管理'],
+    'admin':     ['後台系統','今日行動','現場管理'],
+    'sysadmin':  ['後台系統','今日行動','現場管理'],
+    'staff':     ['今日行動','現場管理','後台系統'],
+    'logistics': ['今日行動','現場管理','後台系統'],
   }[role]||['今日行動','現場管理','後台系統'];
   var groupColor={'今日行動':'var(--blue)','現場管理':'var(--green)','後台系統':'var(--text4)'};
   // 依 groupOrder 重排
@@ -3996,33 +3997,46 @@ function showPage(id){
   }
   if(id==='admin') renderOrgZones();
   const ebw=document.getElementById('edit-btn-wrap');
-  if(ebw) ebw.style.display=(id==='dashboard'&&role==='admin')?'block':'none';
+  if(ebw) ebw.style.display=(id==='dashboard'&&(role==='admin'||role==='sysadmin'))?'block':'none';
 }
 function checkAdminGate(){
   const gate=document.getElementById('admin-gate');
   if(!gate) return;
-  if(role!=='admin'){
-    gate.innerHTML='<div class="no-acc"><div class="ic">🔒</div><h2>此頁面僅限總控</h2><p>請切換角色後重試</p></div>';
+  if(role!=='admin'&&role!=='sysadmin'){
+    gate.innerHTML='<div class="no-acc"><div class="ic">🔒</div><h2>此頁面僅限總控或系統管理員</h2><p>請切換角色後重試</p></div>';
+    return;
   }
+  // 角色權限、API設定、版本控制 三個後台 tab 僅 sysadmin 可見
+  var isSysadmin=(role==='sysadmin');
+  ['admtab-perm','admtab-mod','admtab-ver'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.style.display=isSysadmin?'':'none';
+  });
 }
 function setRole(r){
   role=r;
   if(editMode) toggleEditMode();
-  if(activePage==='admin'&&r!=='admin') activePage='dashboard';
+  if(activePage==='admin'&&r!=='admin'&&r!=='sysadmin') activePage='dashboard';
   var pval=(PERMS_PEACE[role]&&PERMS_PEACE[role][activePage])||'P1';
-  if(role==='admin') pval='P0';
+  if(role==='admin'||role==='sysadmin') pval='P0';
   if(pval==='P4') activePage='dashboard';
+  sessionStorage.setItem('drms_role', role);
   showPage(activePage);
   updateFooter();
   renderGmailRows();
   renderLineCards();
 }
 function setS(s){
+  if(role==='sysadmin'&&s==='war'){
+    toast('⚠ 請切換至總控角色','error');
+    return;
+  }
   if(role!=='admin'&&role!=='it'){
     toast('⚠ 權限不足，只有總控或 IT 志工可切換應變狀態');
     return;
   }
   state=s;
+  sessionStorage.setItem('drms_state', state);
   document.getElementById('btn-p').className='sbtn'+(s==='peace'?' sp':'');
   document.getElementById('btn-w').className='sbtn'+(s==='war'?' sw':'');
   updateFooter();
