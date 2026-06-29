@@ -398,9 +398,17 @@ background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans TC',-apple
 #arch-fbFlash{font-size:11px;font-weight:700;color:var(--green);margin-top:8px;min-height:14px}
 
 
-/* 現場指揮層場域 - v2 only */
-#arch2-root .zone.field { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.22); }
-#arch2-root .zone.field .zone-lbl { color: rgb(5,150,105); }
+/* 五鏈場域 - v2 Task中心架構 */
+#arch2-root .zone.chain1{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2)}
+#arch2-root .zone.chain1 .zone-lbl{color:#3B82F6}
+#arch2-root .zone.chain2{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2)}
+#arch2-root .zone.chain2 .zone-lbl{color:#EF4444}
+#arch2-root .zone.chain3{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2)}
+#arch2-root .zone.chain3 .zone-lbl{color:#22C55E}
+#arch2-root .zone.chain4{background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.2)}
+#arch2-root .zone.chain4 .zone-lbl{color:#F97316}
+#arch2-root .zone.chain5{background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.2)}
+#arch2-root .zone.chain5 .zone-lbl{color:#EAB308}
 
 /* ══ arch2 standalone elements (pvMask, fbDock) ══ */
 #arch2-pvMask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;backdrop-filter:blur(2px)}
