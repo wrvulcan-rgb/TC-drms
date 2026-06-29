@@ -6058,6 +6058,21 @@ var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','
 function saveData(){
   var payload = {};
   for(var i=0;i<DATA_KEYS.length;i++) payload[DATA_KEYS[i]] = DATA[DATA_KEYS[i]];
+  // sensitive fields: 從 localStorage payload 移除 idno/phone，改存 sessionStorage
+  var sensitive={};
+  if(payload.registry&&payload.registry.volunteers){
+    var vols=payload.registry.volunteers.map(function(v,idx){
+      sensitive[idx]={idno:v.idno||'',phone:v.phone||''};
+      var clean={}; for(var k in v) if(k!=='idno'&&k!=='phone') clean[k]=v[k];
+      return clean;
+    });
+    payload={};
+    for(var i=0;i<DATA_KEYS.length;i++) payload[DATA_KEYS[i]]=DATA[DATA_KEYS[i]];
+    payload.registry=JSON.parse(JSON.stringify(DATA.registry));
+    payload.registry.volunteers=vols;
+  }
+  try{ sessionStorage.setItem('drms_sensitive', JSON.stringify(sensitive)); }catch(e){}
+
   try{
     // 寫入前先把「目前版本」推入備份輪替（雙檔：backup_1 為前一版、backup_2 為前兩版）
     var prev = localStorage.getItem('drms_data');
@@ -6526,6 +6541,15 @@ function loadData(){
     for(var i=0;i<DATA_KEYS.length;i++){
       if(saved[DATA_KEYS[i]]) DATA[DATA_KEYS[i]] = saved[DATA_KEYS[i]];
     }
+    // 還原 sensitive fields from sessionStorage
+    try{
+      var sens=JSON.parse(sessionStorage.getItem('drms_sensitive')||'{}');
+      if(DATA.registry&&DATA.registry.volunteers){
+        DATA.registry.volunteers.forEach(function(v,idx){
+          if(sens[idx]){ v.idno=sens[idx].idno||''; v.phone=sens[idx].phone||''; }
+        });
+      }
+    }catch(se){}
   }catch(e){}
 }
 function resetAll(){
