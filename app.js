@@ -3033,6 +3033,109 @@ DATA.registry={
     {name:'劉庭瑋',email:'demo008@example.com',idno:'A000000008',birth:'1985/09/27',phone:'0900-000-008',diet:'全素',slot:'僅限下午',lift:'一般搬運 (約 10kg)',gender:'女',age:41,checkin:'',checkinTime:''},
   ]
 };
+
+// ══════════════════════════════════════════════════════
+//  Phase 0-A：班組（Squad）與梯次（Tier）資料模型
+// ══════════════════════════════════════════════════════
+DATA.squads=[
+  {id:'SQ-001',name:'醫護一班',
+   leader:{memberId:'CI-001',name:'林師姐',phone:'0900-000-101'},
+   members:['CI-001','CI-006','CI-008'],
+   zone:'A區',tier:1,
+   status:'standby', // standby / deployed / returning / off
+   capacity:8, currentLoad:0,
+   specialty:['醫護','急救'],activeTask:null},
+  {id:'SQ-002',name:'後勤一班',
+   leader:{memberId:'CI-002',name:'陳師兄',phone:'0900-000-102'},
+   members:['CI-002','CI-005'],
+   zone:'B區',tier:1,
+   status:'standby',
+   capacity:8,currentLoad:0,
+   specialty:['搬運','物資配送'],activeTask:null},
+  {id:'SQ-003',name:'行政組',
+   leader:{memberId:'CI-003',name:'張師姐',phone:'0900-000-103'},
+   members:['CI-003','CI-007'],
+   zone:'C區',tier:1,
+   status:'standby',
+   capacity:6,currentLoad:0,
+   specialty:['行政','關懷'],activeTask:null},
+  {id:'SQ-004',name:'重機具班',
+   leader:{memberId:'CI-004',name:'王師兄',phone:'0900-000-104'},
+   members:['CI-004'],
+   zone:'D區',tier:1,
+   status:'standby',
+   capacity:6,currentLoad:0,
+   specialty:['重機具','清掃','搬運'],activeTask:null},
+];
+DATA.tiers=[
+  {id:'TIER-1',date:'2026-06-29',startTime:'08:00',endTime:'14:00',
+   squads:['SQ-001','SQ-002','SQ-003','SQ-004'],
+   vehicles:[],
+   briefingPoint:'慈濟嘉義聯絡處',briefingTime:'07:30',
+   leaderId:'CI-001',status:'confirmed'},
+  {id:'TIER-2',date:'2026-06-29',startTime:'14:00',endTime:'20:00',
+   squads:[],vehicles:[],
+   briefingPoint:'慈濟嘉義聯絡處',briefingTime:'13:30',
+   leaderId:'',status:'planning'},
+];
+
+// ── 擴充 Task 種子資料（新格式欄位）──
+(function(){
+  var newTasks=[
+    {id:'TSK-0041',title:'信義路三段清掃淤泥',
+     type:'清掃',icon:'🧹',
+     location:{addr:'竹崎鄉文峰村信義路三段12號',lat:23.52,lng:120.45},
+     requiredSkills:['清掃'],estimatedHours:3,
+     priority:'P1',status:'open',
+     claimedBy:null,claimedAt:null,
+     reportedBy:'LINE-OA',
+     attachments:[],completionPhotos:[],
+     fieldNotes:'',needsCount:4,
+     squadId:null,created:'07:45'},
+    {id:'TSK-0042',title:'梅山鄉獨居老人關懷訪視',
+     type:'關懷',icon:'💚',
+     location:{addr:'梅山鄉太平村中正路88號',lat:23.58,lng:120.57},
+     requiredSkills:['關懷'],estimatedHours:2,
+     priority:'P2',status:'open',
+     claimedBy:null,claimedAt:null,
+     reportedBy:'個案管理',
+     attachments:[],completionPhotos:[],
+     fieldNotes:'',needsCount:2,
+     squadId:null,created:'08:10'},
+    {id:'TSK-0043',title:'大埔活動中心物資搬運',
+     type:'搬運',icon:'🚛',
+     location:{addr:'大埔鄉和平村活動中心',lat:23.27,lng:120.55},
+     requiredSkills:['搬運'],estimatedHours:4,
+     priority:'P1',status:'claimed',
+     claimedBy:'SQ-002',claimedAt:'08:30',
+     reportedBy:'HQ',
+     attachments:[],completionPhotos:[],
+     fieldNotes:'',needsCount:6,
+     squadId:'SQ-002',created:'08:00'},
+    {id:'TSK-0044',title:'竹崎國小發放物資包',
+     type:'物資配送',icon:'📦',
+     location:{addr:'竹崎鄉竹崎國小',lat:23.52,lng:120.48},
+     requiredSkills:['物資配送'],estimatedHours:2,
+     priority:'P2',status:'open',
+     claimedBy:null,claimedAt:null,
+     reportedBy:'HQ',
+     attachments:[],completionPhotos:[],
+     fieldNotes:'',needsCount:3,
+     squadId:null,created:'08:20'},
+    {id:'TSK-0045',title:'SOS：大埔獨居老人受困',
+     type:'搶救',icon:'🆘',
+     location:{addr:'大埔鄉同仁村3號',lat:23.26,lng:120.54},
+     requiredSkills:['急救','搶救'],estimatedHours:1,
+     priority:'P0',status:'open',
+     claimedBy:null,claimedAt:null,
+     reportedBy:'LINE-OA',
+     attachments:[],completionPhotos:[],
+     fieldNotes:'',needsCount:2,
+     squadId:null,created:'09:05'},
+  ];
+  if(!DATA.taskPool) DATA.taskPool=newTasks;
+})();
+
 DATA.assets={
   catalog:[
     {id:'BED', name:'福慧床',   icon:'🛏',code:'BED',total:50,repair:2,unit:'張'},
@@ -3882,6 +3985,7 @@ var RTDB_SEED={
 RTDB.seed(RTDB_SEED);
 
 const NAV_CFG=[
+  {id:'squad_leader',icon:'🪖',label:'班長作戰台',     tag:'core', group:'今日行動',roles:['admin','staff','logistics']},
   {id:'vol_hub',    icon:'🧑‍🤝‍🧑',label:'報到系統',      tag:'core', group:'今日行動',roles:['admin','staff','logistics']},
   {id:'rtsync',     icon:'⚡',label:'即時調度中台',    tag:'core', group:'今日行動',roles:['admin','it','staff','logistics']},
   {id:'needs',      icon:'📥',label:'需求通報池',      tag:'core', group:'今日行動',roles:['admin','it','staff','logistics']},
@@ -3996,6 +4100,7 @@ function showPage(id){
       pg.innerHTML='<div class="no-acc"><div class="ic">🔒</div><h2>權限不足</h2><p>您在此模組的全責規範為 P4（無權限）</p></div>';
     }
   }
+  if(id==='squad_leader') renderSquadLeader();
   if(id==='vol_hub') renderVolHub();
   if(id==='admin'){
     checkAdminGate();
@@ -4624,6 +4729,9 @@ function cancelInnerCheckin(code){
   var m=d.innerMembers.find(function(x){return x.code===code;});
   if(!m||!m.checkin) return;
   m.checkin=false; m.checkinTime='';
+  // 同步扣除班組人數
+  var sq=DATA.squads&&DATA.squads.find(function(s){return s.members.indexOf(code)>-1;});
+  if(sq) sq.currentLoad=Math.max(0,sq.currentLoad-1);
   logSys('warn','【報到回退】'+code+' '+m.name+' 已取消報到');
   toast('↺ '+m.name+' 報到已取消');
   renderRegistry();
@@ -4734,10 +4842,13 @@ function innerCheckIn(code,name){
   if(m.checkin){toast('ℹ '+m.name+' 已報到（'+m.checkinTime+'）');return;}
   m.checkin='已報到'; m.checkinTime=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   DATA.registry.stats.innerChecked++;
+  // 自動歸隊到班組
+  var sq=DATA.squads&&DATA.squads.find(function(s){return s.members.indexOf(m.code)>-1;});
+  if(sq){ if(sq.members.indexOf(m.code)>-1) sq.currentLoad=Math.min(sq.currentLoad+1,sq.capacity); }
   renderRegistry(); saveData();
-  logSys('ok','【對內報到】'+m.name+'（'+code+'）'+m.group+' 報到完成');
-  toast('✅ 阿彌陀佛！歡迎 '+m.name+' 師兄姐');
-  if(typeof loaHook==='function') loaHook('vol','✅ 報到完成\n歡迎 '+m.name+' 師兄姐\n時間：'+m.checkinTime+'\n請至'+m.group+'集合。');
+  logSys('ok','【對內報到】'+m.name+'（'+code+'）'+m.group+(sq?' → '+sq.name:'') +' 報到完成');
+  toast('✅ 阿彌陀佛！歡迎 '+m.name+' 師兄姐'+(sq?' — 已歸隊 '+sq.name:''));
+  if(typeof loaHook==='function') loaHook('vol','✅ 報到完成\n歡迎 '+m.name+' 師兄姐\n時間：'+m.checkinTime+'\n班組：'+(sq?sq.name:m.group)+'');
 }
 function innerCheckInUI(){
   var code=document.getElementById('inner-code');
@@ -7701,3 +7812,327 @@ document.addEventListener('click',function(e){
     }
   });
 })();
+
+// ══════════════════════════════════════════════════════
+//  Phase 0 — 班長作戰台（Squad Leader Dashboard）
+// ══════════════════════════════════════════════════════
+
+var SL_TAB='mySquad'; // mySquad | taskPool | createTask
+var SL_SQUAD_IDX=0;   // 目前班長操作的班組 index
+
+function renderSquadLeader(){
+  var el=document.getElementById('squad-leader-content');
+  if(!el) return;
+  // tab 切換
+  ['mySquad','taskPool','createTask'].forEach(function(t){
+    var b=document.getElementById('sltab-'+t);
+    if(b) b.className='btn '+(t===SL_TAB?'btn-blue':'btn-ghost');
+  });
+  if(SL_TAB==='mySquad')   el.innerHTML=renderSLMySquad();
+  else if(SL_TAB==='taskPool') el.innerHTML=renderSLTaskPool();
+  else el.innerHTML=renderSLCreateTask();
+}
+function setSLTab(t){ SL_TAB=t; renderSquadLeader(); }
+
+// ── 我的班 ──
+function renderSLMySquad(){
+  var squads=DATA.squads||[];
+  if(!squads.length) return '<div class="card"><p style="color:var(--text4)">尚未建立任何班組</p></div>';
+  var sq=squads[SL_SQUAD_IDX]||squads[0];
+
+  // 統計在場人數（從 checkin 資料即時計算）
+  var checkedCodes=sq.members.filter(function(code){
+    return (DATA.registry.innerMembers||[]).some(function(m){return m.code===code&&m.checkin;});
+  });
+  sq.currentLoad=checkedCodes.length;
+
+  var statusMap={standby:'待命',deployed:'出勤中',returning:'返回中',off:'休息'};
+  var statusColor={standby:'badge-blue',deployed:'badge-green',returning:'badge-amber',off:'badge-ghost'};
+  var prioColor={P0:'badge-red',P1:'badge-red',P2:'badge-amber',P3:'badge-blue'};
+
+  // 目前任務
+  var activeTask=null;
+  if(sq.activeTask&&DATA.taskPool){
+    activeTask=DATA.taskPool.find(function(t){return t.id===sq.activeTask;});
+  }
+
+  var html='';
+  // 班組選擇器
+  if(squads.length>1){
+    html+='<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">';
+    squads.forEach(function(s,i){
+      html+='<button class="btn '+(i===SL_SQUAD_IDX?'btn-blue':'btn-ghost')+' btn-xs" onclick="SL_SQUAD_IDX='+i+';renderSquadLeader()">'+s.name+'</button>';
+    });
+    html+='</div>';
+  }
+
+  html+='<div class="card" style="margin-bottom:12px">';
+  html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
+  html+='<div style="font-size:22px">🪖</div>';
+  html+='<div style="flex:1"><div style="font-weight:700;font-size:15px">'+sq.name+'</div>';
+  html+='<div style="font-size:11px;color:var(--text3)">班長：'+sq.leader.name+' · '+sq.zone+'</div></div>';
+  html+='<span class="badge '+statusColor[sq.status]+'" style="cursor:pointer" onclick="cycleSquadStatus('+SL_SQUAD_IDX+')">'+statusMap[sq.status]+'</span>';
+  html+='</div>';
+
+  // 人力進度條
+  var pct=sq.capacity>0?Math.round(sq.currentLoad/sq.capacity*100):0;
+  var barColor=sq.currentLoad>=sq.capacity?'var(--green)':(sq.currentLoad>=Math.ceil(sq.capacity*0.5)?'var(--blue)':'var(--amber)');
+  html+='<div style="margin-bottom:12px">';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:4px">';
+  html+='<span style="font-size:12px;font-weight:600">人力到位</span>';
+  html+='<span style="font-size:12px;font-weight:700;color:'+barColor+'">'+sq.currentLoad+' / '+sq.capacity+' 人 ('+pct+'%)</span>';
+  html+='</div>';
+  html+='<div style="background:var(--bg3);border-radius:4px;height:8px;overflow:hidden">';
+  html+='<div style="height:100%;width:'+pct+'%;background:'+barColor+';border-radius:4px;transition:width 0.4s"></div>';
+  html+='</div></div>';
+
+  // 班員清單
+  html+='<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">班員狀態</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;margin-bottom:12px">';
+  sq.members.forEach(function(code){
+    var m=(DATA.registry.innerMembers||[]).find(function(x){return x.code===code;});
+    if(!m) return;
+    var ck=!!m.checkin;
+    html+='<div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:6px;padding:6px 8px;border:1px solid var(--border)">';
+    html+='<span style="font-size:14px">'+(ck?'✅':'⏳')+'</span>';
+    html+='<div><div style="font-size:12px;font-weight:600">'+m.name+'</div>';
+    html+='<div style="font-size:10px;color:var(--text4)">'+(ck?m.checkinTime:'待報到')+'</div></div>';
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // 專長標籤
+  html+='<div style="display:flex;gap:4px;flex-wrap:wrap">';
+  (sq.specialty||[]).forEach(function(s){
+    html+='<span class="badge badge-blue" style="font-size:10px">'+s+'</span>';
+  });
+  html+='</div>';
+  html+='</div>';
+
+  // 目前任務
+  if(activeTask){
+    html+='<div class="card" style="border-left:4px solid var(--green);margin-bottom:12px">';
+    html+='<div style="font-size:11px;color:var(--text4);margin-bottom:6px">進行中任務</div>';
+    html+='<div style="font-weight:700;margin-bottom:4px">'+activeTask.icon+' '+activeTask.title+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">📍 '+activeTask.location.addr+'</div>';
+    html+='<div style="display:flex;gap:6px">';
+    html+='<button class="btn btn-green btn-xs" onclick="completeTask(\''+activeTask.id+'\')">✅ 完成回報</button>';
+    html+='<button class="btn btn-ghost btn-xs" onclick="openFieldNote(\''+activeTask.id+'\')">📝 現場備注</button>';
+    html+='</div></div>';
+  } else {
+    html+='<div class="card" style="border:1px dashed var(--border);text-align:center;padding:20px;color:var(--text4);margin-bottom:12px">';
+    html+='<div style="font-size:24px;margin-bottom:8px">📭</div>';
+    html+='<div style="font-size:13px;margin-bottom:10px">目前無進行中任務</div>';
+    html+='<button class="btn btn-blue btn-xs" onclick="setSLTab(\'taskPool\')">前往任務池接單 →</button>';
+    html+='</div>';
+  }
+
+  return html;
+}
+
+// ── 任務池（Uber 接單）──
+function renderSLTaskPool(){
+  var tasks=(DATA.taskPool||[]).filter(function(t){return t.status==='open'||t.status==='claimed';});
+  var sq=DATA.squads[SL_SQUAD_IDX]||DATA.squads[0];
+  var prioOrder={P0:0,P1:1,P2:2,P3:3};
+  tasks=tasks.slice().sort(function(a,b){return (prioOrder[a.priority]||9)-(prioOrder[b.priority]||9);});
+
+  var prioColor={P0:'badge-red',P1:'badge-red',P2:'badge-amber',P3:'badge-blue'};
+  var prioLabel={P0:'🔴 P0 SOS',P1:'🔴 P1 急',P2:'🟡 P2 一般',P3:'🔵 P3 可延後'};
+  var statusColor={open:'badge-green',claimed:'badge-amber','in-progress':'badge-purple',done:'badge-blue'};
+  var statusLabel={open:'可接單',claimed:'已被接',pending:'待確認','in-progress':'進行中',done:'完成'};
+
+  var html='<div style="font-size:11px;color:var(--text4);margin-bottom:10px">📋 任務池 — 依優先度排列 · 班長一鍵接單</div>';
+
+  if(!tasks.length){
+    return html+'<div class="card" style="text-align:center;padding:30px;color:var(--text4)">目前任務池為空</div>';
+  }
+
+  tasks.forEach(function(t){
+    var canClaim=(t.status==='open')&&(!sq.activeTask);
+    var isMyTask=(t.claimedBy===sq.id);
+    var borderColor=t.priority==='P0'?'var(--red)':(t.priority==='P1'?'var(--red)':(t.status==='claimed'?'var(--amber)':'var(--border)'));
+    html+='<div class="card" style="border-left:4px solid '+borderColor+';margin-bottom:10px">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">';
+    html+='<div>';
+    html+='<span class="badge '+prioColor[t.priority]+'" style="font-size:10px;margin-right:4px">'+prioLabel[t.priority]+'</span>';
+    html+='<span class="badge '+statusColor[t.status]+'" style="font-size:10px">'+statusLabel[t.status]+'</span>';
+    html+='</div>';
+    html+='<span style="font-size:10px;color:var(--text4)">⏱ 預估'+t.estimatedHours+'h</span>';
+    html+='</div>';
+    html+='<div style="font-weight:700;font-size:13px;margin-bottom:4px">'+t.icon+' '+t.title+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:6px">📍 '+t.location.addr+'</div>';
+    html+='<div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">';
+    (t.requiredSkills||[]).forEach(function(s){html+='<span class="badge badge-blue" style="font-size:10px">'+s+'</span>';});
+    html+='<span style="font-size:10px;color:var(--text4)">需 '+t.needsCount+' 人</span>';
+    html+='</div>';
+    if(isMyTask){
+      html+='<div style="display:flex;gap:6px">';
+      html+='<button class="btn btn-green btn-xs" onclick="startTask(\''+t.id+'\')">▶ 出發執行</button>';
+      html+='<button class="btn btn-ghost btn-xs" onclick="releaseTask(\''+t.id+'\')">↺ 放棄接單</button>';
+      html+='</div>';
+    } else if(canClaim&&t.status==='open'){
+      html+='<button class="btn btn-blue btn-xs" style="width:100%" onclick="claimTask(\''+t.id+'\')">✋ 一鍵接單</button>';
+    } else if(t.status==='claimed'&&!isMyTask){
+      html+='<div style="font-size:11px;color:var(--text4)">已由其他班組接單</div>';
+    } else if(sq.activeTask){
+      html+='<div style="font-size:11px;color:var(--text4)">⚠ 先完成目前任務才能接新單</div>';
+    }
+    html+='</div>';
+  });
+  return html;
+}
+
+// ── HQ 建任務 ──
+function renderSLCreateTask(){
+  var types=['清掃','搬運','關懷','物資配送','勘災','醫療','搶救'];
+  var html='<div class="card">';
+  html+='<div class="card-title">📋 新增任務到任務池</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
+  html+='<div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">任務名稱 *</div>';
+  html+='<input class="inp" id="ct-title" placeholder="例：信義路淤泥清掃"></div>';
+  html+='<div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">任務類型 *</div>';
+  html+='<select class="inp" id="ct-type">';
+  types.forEach(function(t){html+='<option>'+t+'</option>';});
+  html+='</select></div>';
+  html+='<div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">任務地址 *</div>';
+  html+='<input class="inp" id="ct-addr" placeholder="完整地址（地圖確認後鎖定）"></div>';
+  html+='<div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">優先度</div>';
+  html+='<select class="inp" id="ct-priority"><option value="P1">🔴 P1 急</option><option value="P2" selected>🟡 P2 一般</option><option value="P3">🔵 P3 可延後</option><option value="P0">🆘 P0 SOS</option></select></div>';
+  html+='<div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">需求人數</div>';
+  html+='<input class="inp" id="ct-count" type="number" value="4" min="1" max="50"></div>';
+  html+='<div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">預估時數</div>';
+  html+='<input class="inp" id="ct-hours" type="number" value="3" min="1" max="24"></div>';
+  html+='</div>';
+  html+='<div style="margin-bottom:10px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">任務說明</div>';
+  html+='<textarea class="inp" id="ct-desc" rows="3" placeholder="現場情況說明…" style="width:100%;resize:vertical"></textarea></div>';
+  html+='<button class="btn btn-blue" onclick="submitCreateTask()" style="width:100%">➕ 建立任務並放入任務池</button>';
+  html+='</div>';
+  return html;
+}
+
+// ── 任務操作函數 ──
+function claimTask(taskId){
+  if(!DATA.taskPool) return;
+  var sq=DATA.squads[SL_SQUAD_IDX]||DATA.squads[0];
+  var t=DATA.taskPool.find(function(x){return x.id===taskId;});
+  if(!t||t.status!=='open'){toast('❌ 任務已被接走或不存在');return;}
+  if(sq.activeTask){toast('⚠ 班組目前有進行中任務，請先完成再接新單');return;}
+  var now=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  t.status='claimed'; t.claimedBy=sq.id; t.claimedAt=now; t.squadId=sq.id;
+  sq.activeTask=taskId; sq.status='deployed';
+  saveData();
+  logSys('ok','【接單】'+sq.name+' 接了任務 '+t.title+'（'+taskId+'）');
+  toast('✅ '+sq.name+' 已接單：'+t.title);
+  setSLTab('mySquad');
+}
+
+function releaseTask(taskId){
+  if(!DATA.taskPool) return;
+  var sq=DATA.squads[SL_SQUAD_IDX]||DATA.squads[0];
+  var t=DATA.taskPool.find(function(x){return x.id===taskId;});
+  if(!t) return;
+  t.status='open'; t.claimedBy=null; t.claimedAt=null; t.squadId=null;
+  sq.activeTask=null; sq.status='standby';
+  saveData();
+  logSys('warn','【放棄接單】'+sq.name+' 放棄任務 '+t.title);
+  toast('↺ 已放棄接單：'+t.title);
+  renderSquadLeader();
+}
+
+function startTask(taskId){
+  if(!DATA.taskPool) return;
+  var sq=DATA.squads[SL_SQUAD_IDX]||DATA.squads[0];
+  var t=DATA.taskPool.find(function(x){return x.id===taskId;});
+  if(!t) return;
+  t.status='in-progress'; sq.status='deployed';
+  saveData();
+  logSys('ok','【任務出發】'+sq.name+' 開始執行 '+t.title);
+  toast('▶ 出發！'+t.title);
+  setSLTab('mySquad');
+}
+
+function completeTask(taskId){
+  if(!DATA.taskPool) return;
+  var sq=DATA.squads[SL_SQUAD_IDX]||DATA.squads[0];
+  var t=DATA.taskPool.find(function(x){return x.id===taskId;});
+  if(!t) return;
+  showModal('✅ 任務完成回報',
+    '請確認 <b>'+t.title+'</b> 已完成並填寫備注'
+    +'<br><textarea id="complete-note" class="inp" rows="3" placeholder="現場備注（選填）…" style="width:100%;margin-top:8px"></textarea>'
+    +'<br><button class="btn btn-green" style="width:100%;margin-top:10px" onclick="confirmCompleteTask(\''+taskId+'\')">確認完成</button>');
+}
+
+function confirmCompleteTask(taskId){
+  if(!DATA.taskPool) return;
+  var sq=DATA.squads[SL_SQUAD_IDX]||DATA.squads[0];
+  var t=DATA.taskPool.find(function(x){return x.id===taskId;});
+  if(!t) return;
+  var note=document.getElementById('complete-note');
+  t.fieldNotes=(note&&note.value)||'';
+  t.status='done'; t.completedAt=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  sq.activeTask=null; sq.status='standby';
+  saveData();
+  logSys('ok','【完成】'+sq.name+' 完成任務 '+t.title);
+  toast('🎉 任務完成！'+t.title);
+  closeModal();
+  setSLTab('mySquad');
+}
+
+function openFieldNote(taskId){
+  if(!DATA.taskPool) return;
+  var t=DATA.taskPool.find(function(x){return x.id===taskId;});
+  if(!t) return;
+  showModal('📝 現場備注',
+    '任務：<b>'+t.title+'</b>'
+    +'<br><textarea id="fnote-text" class="inp" rows="4" style="width:100%;margin-top:8px">'+t.fieldNotes+'</textarea>'
+    +'<br><button class="btn btn-blue" style="width:100%;margin-top:10px" onclick="saveFieldNote(\''+taskId+'\')">儲存備注</button>');
+}
+
+function saveFieldNote(taskId){
+  if(!DATA.taskPool) return;
+  var t=DATA.taskPool.find(function(x){return x.id===taskId;});
+  var el=document.getElementById('fnote-text');
+  if(t&&el){ t.fieldNotes=el.value; saveData(); toast('✓ 備注已儲存'); closeModal(); }
+}
+
+function submitCreateTask(){
+  var title=document.getElementById('ct-title');
+  var addr=document.getElementById('ct-addr');
+  if(!title||!title.value.trim()){toast('⚠ 請填寫任務名稱');return;}
+  if(!addr||!addr.value.trim()){toast('⚠ 請填寫任務地址');return;}
+  var type=document.getElementById('ct-type').value;
+  var prio=document.getElementById('ct-priority').value;
+  var count=parseInt(document.getElementById('ct-count').value)||4;
+  var hours=parseInt(document.getElementById('ct-hours').value)||3;
+  var desc=(document.getElementById('ct-desc')||{}).value||'';
+  var iconMap={'清掃':'🧹','搬運':'🚛','關懷':'💚','物資配送':'📦','勘災':'🗺️','醫療':'🏥','搶救':'🆘'};
+  if(!DATA.taskPool) DATA.taskPool=[];
+  var seq=(DATA.taskPool.length+1);
+  var id='TSK-'+String(seq+100).padStart(4,'0');
+  var now=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  DATA.taskPool.push({
+    id:id,title:title.value.trim(),type:type,icon:iconMap[type]||'📋',
+    location:{addr:addr.value.trim(),lat:0,lng:0},
+    requiredSkills:[type],estimatedHours:hours,
+    priority:prio,status:'open',
+    claimedBy:null,claimedAt:null,
+    reportedBy:'HQ',attachments:[],completionPhotos:[],
+    fieldNotes:desc,needsCount:count,squadId:null,created:now,
+  });
+  saveData();
+  logSys('ok','【HQ建任務】'+id+' '+title.value.trim()+' ('+prio+') 已加入任務池');
+  toast('✅ 任務 '+id+' 已建立並放入任務池');
+  setSLTab('taskPool');
+}
+
+function cycleSquadStatus(idx){
+  var sq=DATA.squads[idx];
+  if(!sq) return;
+  var cycle={standby:'deployed',deployed:'returning',returning:'standby'};
+  sq.status=cycle[sq.status]||'standby';
+  saveData(); renderSquadLeader();
+}
+
+// closeModal is defined earlier in the file
+
