@@ -2038,6 +2038,7 @@ function renderMonitor(){
   monitorFetchQuake();
   monitorRenderWx();
   monitorRenderTraffic();
+  monitorRenderMapList();
 
   // ── KPI ──
   var kpi=document.getElementById('monitor-kpi');
@@ -2215,6 +2216,52 @@ function monitorRenderTraffic(){
     +'</div>';
   }).join('');
 }
+function monitorRenderMapList(){
+  var el=document.getElementById('monitor-map-list');
+  if(!el) return;
+  // 站點摘要（靜態示範）
+  var sites=[
+    {icon:'🏕',label:'嘉義市 志工站 A',detail:'在站 42 人・今日出勤 18',rgb:'74,222,128'},
+    {icon:'🏕',label:'嘉義縣 志工站 B',detail:'在站 31 人・今日出勤 9',rgb:'74,222,128'},
+    {icon:'🏠',label:'收容所 大雅國小',detail:'收容 287 人・容量 400',rgb:'251,191,36'},
+    {icon:'🏠',label:'收容所 朴子中學',detail:'收容 122 人・容量 300',rgb:'251,191,36'},
+    {icon:'📦',label:'物資站 水上倉儲',detail:'飲水 ⚠ 不足・泡麵 充足',rgb:'248,113,113'},
+    {icon:'📦',label:'物資站 梅山轉運',detail:'所有物資 充足',rgb:'129,140,248'},
+  ];
+  el.innerHTML=sites.map(function(s){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(148,163,184,0.08)">'
+      +'<span style="font-size:15px;width:22px;text-align:center;flex-shrink:0">'+s.icon+'</span>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:11px;color:#CBD5E1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+s.label+'</div>'
+        +'<div style="font-size:9px;color:#475569;font-family:var(--mono)">'+s.detail+'</div>'
+      +'</div>'
+      +'<span style="width:8px;height:8px;border-radius:50%;background:rgba('+s.rgb+',0.85);flex-shrink:0"></span>'
+    +'</div>';
+  }).join('');
+  // 追加即時地震（從 USGS fetch）
+  fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var quakes=(data.features||[]).filter(function(q){
+        var ll=q.geometry.coordinates; return ll[1]>=21&&ll[1]<=26&&ll[0]>=119&&ll[0]<=123;
+      }).slice(0,3);
+      if(!quakes.length) return;
+      el.innerHTML+='<div style="font-size:9px;font-weight:700;color:#475569;letter-spacing:.06em;text-transform:uppercase;padding:10px 0 4px">台灣附近 地震</div>';
+      el.innerHTML+=quakes.map(function(q){
+        var mag=q.properties.mag||0;
+        var place=(q.properties.place||'').replace(/^\d+km \w+ of /,'');
+        var rgb=mag>=5?'248,113,113':mag>=4?'251,191,36':'74,222,128';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(148,163,184,0.08)">'
+          +'<div style="width:30px;height:30px;flex-shrink:0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;background:rgba('+rgb+',0.15);color:rgb('+rgb+');border:1px solid rgba('+rgb+',0.3);font-family:var(--mono)">'+mag.toFixed(1)+'</div>'
+          +'<div style="flex:1;min-width:0">'
+            +'<div style="font-size:11px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+place+'</div>'
+            +'<div style="font-size:9px;color:#475569;font-family:var(--mono)">'+new Date(q.properties.time).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</div>'
+          +'</div>'
+        +'</div>';
+      }).join('');
+    }).catch(function(){});
+}
+
 // ══ Line OA 手機互動模擬（page-line_oa）══
 // 完全 inline，不用 iframe，按鈕直接呼叫主系統函數
 var LOA_ROLE = 'vol';

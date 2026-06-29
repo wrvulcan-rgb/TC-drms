@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <title>慈濟 DRMS v4</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260628e">
+<link rel="stylesheet" href="style.css?v=20260628f">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 </head>
 <body>
@@ -481,15 +481,24 @@
 <div class="page" id="page-monitor">
   <div class="pg-hdr"><div><div class="pg-title">🖥️ 全域監控</div><div class="pg-sub">高層決策視圖 · 大方向掌握，不涉細節操作</div></div></div>
 
-  <!-- 即時地圖 -->
-  <div class="m-r-card" style="margin-bottom:16px;padding:0;overflow:hidden;position:relative">
-    <div id="monitor-map" style="height:340px;width:100%;border-radius:var(--r)"></div>
-    <div id="monitor-map-legend" style="position:absolute;top:10px;right:10px;z-index:500;display:flex;flex-direction:column;gap:5px;pointer-events:none"></div>
-    <div style="position:absolute;bottom:10px;left:12px;z-index:500;display:flex;gap:8px;align-items:center;pointer-events:none">
-      <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:10px;height:10px;border-radius:50%;background:rgba(248,113,113,0.8);border:1px solid #F87171;display:inline-block"></span>地震</span>
-      <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:10px;height:10px;border-radius:50%;background:rgba(74,222,128,0.8);border:1px solid #4ADE80;display:inline-block"></span>志工站</span>
-      <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:10px;height:10px;border-radius:50%;background:rgba(251,191,36,0.8);border:1px solid #FBBF24;display:inline-block"></span>收容所</span>
-      <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:10px;height:10px;border-radius:50%;background:rgba(129,140,248,0.8);border:1px solid #818CF8;display:inline-block"></span>物資站</span>
+  <!-- 即時地圖 + 資料列表 -->
+  <div class="m-r-card" style="margin-bottom:16px;padding:0;overflow:hidden;display:grid;grid-template-columns:340px 1fr">
+    <!-- 左：正方形地圖 -->
+    <div style="position:relative;width:340px;height:340px;flex-shrink:0">
+      <div id="monitor-map" style="width:340px;height:340px"></div>
+      <div style="position:absolute;bottom:8px;left:8px;z-index:500;display:flex;flex-direction:column;gap:4px;pointer-events:none">
+        <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:8px;height:8px;border-radius:50%;background:rgba(248,113,113,0.85);display:inline-block"></span>地震</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:8px;height:8px;border-radius:50%;background:rgba(74,222,128,0.85);display:inline-block"></span>志工站</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:8px;height:8px;border-radius:50%;background:rgba(251,191,36,0.85);display:inline-block"></span>收容所</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:8px;height:8px;border-radius:50%;background:rgba(129,140,248,0.85);display:inline-block"></span>物資站</span>
+      </div>
+    </div>
+    <!-- 右：資料列表 -->
+    <div style="padding:16px;display:flex;flex-direction:column;gap:0;overflow-y:auto;max-height:340px;border-left:1px solid rgba(100,116,139,0.15)">
+      <div style="font-size:10px;font-weight:700;color:#475569;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px"><span class="m-live-tag">LIVE</span> 即時事件</div>
+      <div id="monitor-map-list">
+        <div style="color:#475569;font-size:11px">載入中…</div>
+      </div>
     </div>
   </div>
 
@@ -1050,6 +1059,6 @@
 </div><!-- /main -->
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="app.js?v=20260628e"></script>
+<script src="app.js?v=20260628f"></script>
 </body>
 </html>
