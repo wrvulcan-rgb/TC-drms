@@ -2507,6 +2507,8 @@ function loaVolCheckin(){
   if(!me.checkin){
     me.checkin=true; me.checkinTime=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
     DATA.registry.stats.total++;
+    // C1: store current user in sessionStorage
+    setCurrentUser({uid:me.uid||('VO-'+me.idno),name:me.name,role:'社區志工',site:'',checkinTs:me.checkinTime});
     logSys('ok','【Line OA 模擬】'+me.name+' 報到完成');
     if(typeof renderVolHub==='function') renderVolHub();
     loaUserSay('報到');
@@ -4786,6 +4788,8 @@ function innerCheckIn(code,name){
   if(m.checkin){toast('ℹ '+m.name+' 已報到（'+m.checkinTime+'）');return;}
   m.checkin='已報到'; m.checkinTime=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   DATA.registry.stats.innerChecked++;
+  // C1: store current user in sessionStorage
+  setCurrentUser({uid:m.uid||m.code,name:m.name,role:m.group,site:'',checkinTs:m.checkinTime});
   renderRegistry(); saveData();
   logSys('ok','【對內報到】'+m.name+'（'+code+'）'+m.group+' 報到完成');
   toast('✅ 阿彌陀佛！歡迎 '+m.name+' 師兄姐');
