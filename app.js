@@ -2459,26 +2459,21 @@ function renderLineOA(targetId){
   // 雙手機並排（與即時調度中台同步）
   el.style.cssText='';
   el.innerHTML=
-    '<div style="display:grid;grid-template-columns:1fr 216px 216px;gap:10px;align-items:start">'
-    // 左：操作 + 狀態
-    +'<div>'
-    +'<div class="card" style="margin-bottom:10px">'
-    +'<div class="card-title" style="margin-bottom:8px">Line OA 操作面板</div>'
-    +'<div id="loa-action-area" style="display:flex;flex-direction:column;gap:6px"></div>'
+    // ── 頂列：緊湊控制列 ──
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm)">'
+    +'<span style="font-size:11px;font-weight:700;color:var(--text3);white-space:nowrap">操作面板</span>'
+    +'<div id="loa-action-area" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>'
+    +'<button onclick="document.getElementById(\'loa-status-panel\').style.display=document.getElementById(\'loa-status-panel\').style.display===\'none\'?\'block\':\'none\'" style="font-size:11px;padding:4px 8px;background:transparent;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;color:var(--text3);white-space:nowrap">📡 狀態</button>'
     +'</div>'
-    +'<div class="card">'
-    +'<div class="card-title" style="font-size:10px;color:var(--text4)">📡 中台即時狀態</div>'
-    +'<div id="loa-status-area" style="font-size:10px;line-height:1.9"></div>'
+    // 可折疊狀態面板
+    +'<div id="loa-status-panel" style="display:none;margin-bottom:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);font-size:10px;line-height:2">'
+    +'<div id="loa-status-area"></div>'
+    +'<div style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px"><span class="dot blink" style="background:var(--green);margin-right:4px"></span><span style="color:var(--text3)">推播紀錄：</span><span id="loa-log" style="color:var(--text3)">等待操作...</span></div>'
     +'</div>'
-    +'<div class="card" style="margin-top:10px">'
-    +'<div class="card-title"><span class="dot blink" style="background:var(--green);margin-right:6px"></span>推播紀錄</div>'
-    +'<div id="loa-log" style="font-size:10px;line-height:1.9;min-height:40px;color:var(--text3);max-height:120px;overflow-y:auto">等待操作...</div>'
-    +'</div>'
-    +'</div>'
-    // 中：志工手機
-    +'<div style="display:flex;justify-content:center">'+makeLoaPhoneShell('vol','loa-phone-vol')+'</div>'
-    // 右：幹部手機
-    +'<div style="display:flex;justify-content:center">'+makeLoaPhoneShell('staff','loa-phone-staff')+'</div>'
+    // ── 主區：雙手機居中放大 ──
+    +'<div style="display:flex;justify-content:center;align-items:start;gap:24px;flex-wrap:wrap">'
+    +'<div>'+makeLoaPhoneShell('vol','loa-phone-vol',280)+'</div>'
+    +'<div>'+makeLoaPhoneShell('staff','loa-phone-staff',280)+'</div>'
     +'</div>'
     // 隱藏的 loa-chat（loaRenderChat 需要這個 id）
     +'<div id="loa-chat" style="display:none"></div>';
@@ -2596,7 +2591,7 @@ function loaRenderActions(){
     ]
   };
   el.innerHTML = (btns[LOA_ROLE]||[]).map(function(b){
-    return '<button onclick="'+b.fn+'" class="btn '+(b.red?'btn-red':'btn-green')+'" style="font-size:12px;justify-content:center">'+b.label+'</button>';
+    return '<button onclick="'+b.fn+'" class="btn '+(b.red?'btn-red':'btn-green')+'" style="font-size:11px;padding:4px 10px;justify-content:center">'+b.label+'</button>';
   }).join('');
 }
 
@@ -2760,8 +2755,8 @@ var LOA_PHONE_BTNS={
     {label:'🚛 查派送單',fn:'loaDriverViewReqs()', cls:'btn-blue'},
   ]
 };
-function makeLoaPhoneShell(role, chatId){
-  var W=200;
+function makeLoaPhoneShell(role, chatId, W){
+  W=W||200;
   var labels={vol:'🧑 志工端',staff:'📋 幹部端',driver:'🚛 物流端'};
   var roleNames={vol:'陳建宏（志工）',staff:'林師姐（幹部）',driver:'王師兄（物流）'};
   if(!LOA_CHAT[role]||!LOA_CHAT[role].length) loaInitChat(role);
@@ -2790,7 +2785,7 @@ function makeLoaPhoneShell(role, chatId){
     +'<div style="color:rgba(255,255,255,.7);font-size:9px">OA</div>'
     +'</div>'
     // 聊天區
-    +'<div id="'+chatId+'" style="background:#c8d9c2;width:'+W+'px;height:300px;overflow-y:auto;padding:8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">'+chatHtml+'</div>'
+    +'<div id="'+chatId+'" style="background:#c8d9c2;width:'+W+'px;height:'+(W>=260?420:300)+'px;overflow-y:auto;padding:8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">'+chatHtml+'</div>'
     // LIFF 選單（底部，嵌在手機內）
     +(liffBtns
       ? '<div style="background:#f8f8f8;width:'+W+'px;padding:6px 4px;display:flex;gap:2px;box-sizing:border-box;border-top:1px solid #ddd">'+liffBtns+'</div>'
