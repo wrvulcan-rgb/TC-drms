@@ -5201,27 +5201,36 @@ function wtBackToStep1(){
   if(s1b) s1b.style.display='none';
   if(s1) s1.style.display='block';
 }
+var _wtPendingEnabled=[], _wtPendingToHide=[];
+var ALL_MOD_LABELS_SHORT={
+  dashboard:'儀表板',monitor:'全域監控',vol_hub:'人力中心',
+  sorting:'物資整理站',warehouse:'物資倉儲',persons:'個案陪伴',
+  shelter_mgt:'安置收容',assets:'資產調度',rtsync:'即時調度',
+  line_oa:'Line OA',drive:'照片回報',admin:'系統管理'
+};
 function wtPickLevel(level){
   _wtPendingLevel=level;
   var def=WAR_MODULE_DEFAULTS[_wtPendingScenario]||WAR_MODULE_DEFAULTS['quake'];
-  // L1/L2/L3：分層已設計好，直接套用啟動（快速路徑，2 步完成）
+  // L1/L2/L3：顯示模組預覽摘要，等待確認後再啟動
   if(level!=='manual'){
     var lvObj=(def.levels&&def.levels[level])?def.levels[level]:def.levels.L1;
     var enabled=lvObj.modules.slice();
     if(enabled.indexOf('dashboard')<0) enabled.unshift('dashboard');
-    disabledModules.clear();
     var ALL=['dashboard','monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive','admin'];
-    for(var i=0;i<ALL.length;i++){ if(enabled.indexOf(ALL[i])<0) disabledModules.add(ALL[i]); }
-    saveDisabledModules();
-    selectScenario(_wtPendingScenario);
-    closeOverlay();
-    renderNav();
-    renderModuleManager();
-    var cnt=enabled.length-1;
-    var lvLabel={L1:'L1 輕度',L2:'L2 中度',L3:'L3 重度'}[level];
-    logSys('ok','戰時啟動：'+def.label+' · '+lvLabel+'，開放 '+cnt+' 個模組');
-    startSession(def.label, level);
-    toast('⚡ '+def.emoji+' '+def.label+' · '+lvLabel+' 啟動（'+cnt+' 模組）');
+    var toHide=[];
+    for(var i=0;i<ALL.length;i++){ if(enabled.indexOf(ALL[i])<0) toHide.push(ALL[i]); }
+    _wtPendingEnabled=enabled; _wtPendingToHide=toHide;
+    // 顯示預覽摘要
+    var openNames=enabled.filter(function(m){return m!=='dashboard';}).map(function(m){return ALL_MOD_LABELS_SHORT[m]||m;});
+    var hideNames=toHide.map(function(m){return ALL_MOD_LABELS_SHORT[m]||m;});
+    var preview=document.getElementById('wt-level-preview');
+    var confirmWrap=document.getElementById('wt-level-confirm-wrap');
+    if(preview){
+      preview.innerHTML='<div style="margin-bottom:6px"><span style="color:#4ade80;font-weight:600">將開啟：</span>'+openNames.join('、')+'</div>'
+        +'<div><span style="color:#f87171;font-weight:600">將隱藏：</span>'+(hideNames.length?hideNames.join('、'):'（無）')+'</div>';
+      preview.style.display='block';
+    }
+    if(confirmWrap) confirmWrap.style.display='block';
     return;
   }
   // 全手動：進確認頁逐項勾選
@@ -5250,6 +5259,21 @@ function wtPickLevel(level){
     html+='<span style="font-size:12px;color:#e2e8f0">'+lbl+'</span></label>';
   }
   el.innerHTML=html;
+}
+function wtDoLaunchLevel(){
+  var def=WAR_MODULE_DEFAULTS[_wtPendingScenario]||WAR_MODULE_DEFAULTS['quake'];
+  var enabled=_wtPendingEnabled; var toHide=_wtPendingToHide;
+  disabledModules.clear();
+  for(var i=0;i<toHide.length;i++) disabledModules.add(toHide[i]);
+  saveDisabledModules();
+  selectScenario(_wtPendingScenario);
+  closeOverlay();
+  renderNav(); renderModuleManager();
+  var cnt=enabled.length-1;
+  var lvLabel={L1:'L1 輕度',L2:'L2 中度',L3:'L3 重度'}[_wtPendingLevel]||_wtPendingLevel;
+  logSys('ok','戰時啟動：'+def.label+' · '+lvLabel+'，開放 '+cnt+' 個模組');
+  startSession(def.label, _wtPendingLevel);
+  toast('⚡ '+def.emoji+' '+def.label+' · '+lvLabel+' 啟動（'+cnt+' 模組）');
 }
 function wtToggleMod(mid){
   var cb=document.getElementById('wtmod-'+mid);
