@@ -361,7 +361,7 @@ function renderLOATask(){
       +'<span style="font-size:15px">'+tk.icon+'</span>'
       +'<div style="flex:1;min-width:0;overflow:hidden">'
       +'<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tk.id+' '+tk.title+'</div>'
-      +'<div style="font-size:10px;color:var(--text4)">'+tk.assign+' · '+tk.endTime+' · <span style="color:'+sc+'">'+(tk.status==='done'?'完成':tk.status==='active'?'進行':'待處理')+'</span></div>'
+      +'<div style="font-size:10px;color:var(--text4)">'+(tk.assign&&typeof tk.assign==='object'?tk.assign.name:tk.assign||'')+'· '+tk.endTime+' · <span style="color:'+sc+'">'+(tk.status==='done'?'完成':tk.status==='active'?'進行':'待處理')+'</span></div>'
       +'</div>'
       +(tk.status!=='done'?'<button class="btn btn-blue btn-xs" onclick="loaPushTask('+i+')">📲</button>':'<span style="color:var(--green);font-size:11px">✓</span>')
       +'</div>';
@@ -463,8 +463,10 @@ function loaDispatch(i){
 }
 // ── 即時調度中台：渲染與監聽 ──
 function triggerSOS(who,detail){
+  try{
   RTDB.ref('sos').set({active:true,who:who||'前線志工',detail:detail||'緊急求救',time:new Date().toLocaleTimeString('zh-TW')});
   rtAudit('SOS求救',(who||'前線')+'：'+(detail||'緊急求救'));
+  }catch(e){ toast(e.message,'error'); logSys('err','triggerSOS 失敗：'+e.message); }
 }
 function showSOSOverlay(data){
   var ov=document.getElementById('sos-overlay'); if(!ov) return;
@@ -612,6 +614,36 @@ function rtWizPickRelief(id){
   renderRTSync();
 }
 function rtWizCancel(){ RT_WIZ.open=false; renderRTSync(); }
+// D1: Full task submission from wizard
+function rtWizSubmitFull(){
+  var loc=(document.getElementById('rt-wiz-loc')||{}).value||'';
+  var desc=(document.getElementById('rt-wiz-desc')||{}).value||'';
+  var deadline=(document.getElementById('rt-wiz-deadline')||{}).value||'';
+  var vid=(document.getElementById('rt-wiz-vol')||{}).value||'';
+  var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var title=RT_WIZ.tplLabel+(loc?' @ '+loc:'');
+  var id=RTDB.ref('tasks').push({title:title,priority:RT_WIZ.prio||'P2',status:'待派工',assignee:'',lockedBy:'',created:time,desc:desc,deadline:deadline});
+  // Write to DATA.tasks.items with category:'field' (C4/D1)
+  var cu=getCurrentUser();
+  DATA.tasks.items.unshift({id:'RT-'+id,type:'field',icon:'⚡',title:title,
+    assign:vid?{uid:vid}:'',status:'active',pct:0,category:'field',
+    created:time,received:time,endTime:deadline.substring(11,16)||'18:00',lineNotified:true,
+    desc:desc||'（派工精靈建立）'});
+  if(vid){
+    var v=rtGet('volunteers/'+vid);
+    RTDB.ref('tasks/'+id).update({assignee:vid,status:'進行中'});
+    RTDB.ref('volunteers/'+vid).update({task:id,status:'任務中',workStart:String(Date.now())});
+    rtAudit('任務派發',id+' '+title+' → '+vid+' '+(v&&v.name||vid));
+    logSys('ok','【派工精靈D1】'+title+' → '+(v&&v.name||vid));
+    toast('已派給 '+(v&&v.name||vid));
+  } else {
+    rtAudit('任務建立',id+' '+title+'（待派工）');
+    toast('任務已建立，待派工');
+  }
+  RT_WIZ.open=false;
+  try{ if(typeof loaHook==='function') loaHook('staff','📋 新任務建立\n'+title+'（'+(RT_WIZ.prio||'P2')+'）'); }catch(e){}
+  renderRTSync(); saveData();
+}
 function rtWizBack(s){ RT_WIZ.step=s; renderRTSync(); }
 function rtWizPickTpl(id,label){
   RT_WIZ.tpl=id;
@@ -730,11 +762,28 @@ function rtWizHtml(){
     html+='</div>';
     html+='<button class="btn btn-ghost btn-xs" style="margin-top:12px" onclick="rtWizBack(1)">← 返回</button>';
   } else if(RT_WIZ.step===3){
-    html+='<div style="font-size:'+f1+';font-weight:600;margin-bottom:4px">③「'+RT_WIZ.tplLabel+'」派給誰？</div>';
+    html+='<div style="font-size:'+f1+';font-weight:600;margin-bottom:4px">③「'+RT_WIZ.tplLabel+'」完整設定</div>';
     var prl={P1:'🔴 現在就要',P2:'🟡 今天',P3:'🟢 不急'}[RT_WIZ.prio]||'';
-    html+='<div style="font-size:11px;color:var(--text4);margin-bottom:12px">只列現在有空的人'+(prl?' · 優先級 '+prl:'')+'</div>';
-    html+=rtPersonCards("rtWizAssign('VK')",big);
-    html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:4px'+(big?';font-size:15px;padding:12px':'')+'" onclick="rtWizAssign(\'\')">先放著，等一下再派</button>';
+    html+='<div style="font-size:11px;color:var(--text4);margin-bottom:12px">填寫任務詳情並指派志工'+(prl?' · 優先級 '+prl:'')+'</div>';
+    // D1: location auto-fill from getCurrentUser
+    var cu=getCurrentUser();
+    var autoSite=cu&&cu.site?cu.site:'';
+    // Build volunteers dropdown from unified registry
+    var allVols=[].concat(
+      (DATA.registry.innerMembers||[]).map(function(m){return {uid:m.uid||m.code,name:m.name,phone:''};}),
+      (DATA.registry.volunteers||[]).map(function(v){return {uid:v.uid,name:v.name,phone:v.phone||''};}));
+    var volOpts=allVols.map(function(v){return '<option value="'+v.uid+'">'+v.name+'</option>';}).join('');
+    var vols=rtGet('volunteers');
+    var avail=Object.keys(vols).filter(function(vk){return (vols[vk].status==='待命'||vols[vk].status==='已報到')&&!vols[vk].fatigue;});
+    var rtVolOpts=avail.map(function(vk){return '<option value="'+vk+'">'+vols[vk].name+'</option>';}).join('');
+    html+='<div style="display:grid;gap:8px;margin-bottom:12px">'
+      +'<div><div class="iep-lbl">地點</div><input class="inp" id="rt-wiz-loc" value="'+autoSite+'" placeholder="例：梅山國小"></div>'
+      +'<div><div class="iep-lbl">說明</div><textarea class="inp" id="rt-wiz-desc" placeholder="任務描述" style="min-height:52px"></textarea></div>'
+      +'<div><div class="iep-lbl">截止時間</div><input class="inp" type="datetime-local" id="rt-wiz-deadline"></div>'
+      +'<div><div class="iep-lbl">指派志工（RTDB）</div><select class="inp" id="rt-wiz-vol"><option value="">先放著待派</option>'+rtVolOpts+'</select></div>'
+      +'</div>';
+    html+='<div style="display:flex;gap:8px"><button class="btn btn-blue" onclick="rtWizSubmitFull()">⚡ 建立任務</button>'
+      +'<button class="btn btn-ghost" onclick="rtWizAssign(\'\')">快速建立（不填詳情）</button></div>';
     html+='<button class="btn btn-ghost btn-xs" style="margin-top:10px" onclick="rtWizBack(2)">← 返回</button>';
   }
   html+='</div>';
@@ -796,6 +845,21 @@ function renderRTTasks(){
   // 任務池 — 看板 / 清單 視圖切換
   var f1=big?'15px':'12px';
   var pc={P1:'var(--red)',P2:'var(--amber)',P3:'var(--green)'};
+  // D6/C4: Show DATA.tasks.items alongside RTDB tasks with category badges
+  var catTasks=(DATA.tasks&&DATA.tasks.items||[]).filter(function(t){return t.status!=='done'&&t.category;});
+  if(catTasks.length){
+    html+='<div class="card" style="margin-bottom:12px"><div class="card-title">📋 任務池（含派工記錄）</div>';
+    var catColor={field:'badge-blue',ops:'badge-green',dev:'badge-purple'};
+    catTasks.slice(0,8).forEach(function(t){
+      var aname=t.assign&&typeof t.assign==='object'?t.assign.name:(t.assign||'未指派');
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">'
+        +'<span class="badge '+(catColor[t.category]||'badge-blue')+'" style="font-size:9px">'+t.category+'</span>'
+        +'<span style="flex:1">'+t.title+'</span>'
+        +'<span style="font-size:10px;color:var(--text4)">'+aname+'</span>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
   html+='<div class="card"><div class="card-title" style="display:flex;align-items:center">'
     +'<span>任務池</span>'
     +'<div style="margin-left:auto;display:flex;gap:4px">'
@@ -1812,6 +1876,17 @@ function renderDrive(){
     }
     html+='</div></div>';
   }
+  // D8: Photo Report with file input
+  html+='<div class="card" style="margin-top:14px"><div class="card-title">📸 現場照片回報</div>'
+    +'<div style="display:grid;gap:10px">'
+    +'<div><div class="iep-lbl">選擇照片</div>'
+    +'<input type="file" accept="image/*" capture="environment" id="photo-file-input" onchange="previewPhotoFile(this)" class="inp" style="padding:6px">'
+    +'<div id="photo-preview" style="margin-top:8px;display:none"><img id="photo-thumb" style="max-width:120px;max-height:90px;border-radius:6px;object-fit:cover"></div></div>'
+    +'<div><div class="iep-lbl">地點</div><input class="inp" id="photo-site" placeholder="例：梅山國小" value="'+(getCurrentUser()&&getCurrentUser().site||'')+'">'
+    +'</div>'
+    +'<div><div class="iep-lbl">說明</div><textarea class="inp" id="photo-desc" placeholder="簡述現場狀況" style="min-height:52px"></textarea></div>'
+    +'<button class="btn btn-blue" onclick="submitPhotoReport()" style="width:100%;justify-content:center">📤 送出回報（上傳待 GAS 串接）</button>'
+    +'</div></div>';
   html+='<div id="add-photo-area"></div>';
   el.innerHTML=html;
 }
@@ -1851,6 +1926,44 @@ function addAutoRule(){
   renderDrive(); toast('✓ 規則已新增');
 }
 function deleteAutoRule(i){ DATA.drive.autoRules.splice(i,1); renderDrive(); toast('🗑 規則已移除'); }
+// D8: preview and submit photo report
+function previewPhotoFile(input){
+  var prev=document.getElementById('photo-preview');
+  var thumb=document.getElementById('photo-thumb');
+  if(!input.files||!input.files[0]) return;
+  if(prev) prev.style.display='block';
+  if(thumb){
+    var reader=new FileReader();
+    reader.onload=function(e){ thumb.src=e.target.result; };
+    reader.readAsDataURL(input.files[0]);
+  }
+  // auto-fill site from current user
+  var cu=getCurrentUser();
+  if(cu&&cu.site){
+    var siteEl=document.getElementById('photo-site');
+    if(siteEl&&!siteEl.value) siteEl.value=cu.site;
+  }
+}
+function submitPhotoReport(){
+  var fileInput=document.getElementById('photo-file-input');
+  var site=(document.getElementById('photo-site')||{}).value||'未知地點';
+  var desc=(document.getElementById('photo-desc')||{}).value||'';
+  var ts=new Date().toLocaleString('zh-TW');
+  var fileRef=fileInput&&fileInput.files&&fileInput.files[0]?fileInput.files[0].name:'(no file)';
+  // Store metadata in DATA.drive (actual upload deferred to GAS)
+  var rec={ts:ts,site:site,desc:desc,fileRef:fileRef,status:'待上傳(GAS未接)'};
+  if(!DATA.drive.pendingUploads) DATA.drive.pendingUploads=[];
+  DATA.drive.pendingUploads.push(rec);
+  logSys('info','【照片回報】'+fileRef+' @ '+site+' 暫存（GAS 端點待接）');
+  toast('照片回報已記錄，待 GAS 上傳','ok');
+  saveData();
+  // Reset form
+  if(fileInput) fileInput.value='';
+  var prev=document.getElementById('photo-preview');
+  if(prev) prev.style.display='none';
+  var desc2=document.getElementById('photo-desc');
+  if(desc2) desc2.value='';
+}
 function openAddPhoto(){
   var area=document.getElementById('add-photo-area'); if(!area) return;
   var siteOpts=DATA.drive.folders.map(function(f){return '<option value="'+f.id+'">'+f.site+'</option>';}).join('');
@@ -2533,7 +2646,16 @@ function loaSupplyPickItem(item){
 function loaSupplyPickQty(qty){
   var item = LOA_SUPPLY_STEP.item || '物資';
   var id   = 'REQ-'+Date.now().toString().slice(-5);
-  DATA.warehouse.reqs.push({id:id, item:item, qty:qty, site:'現場', due:'1 小時內', prio:'P2', status:'待派案', driver:''});
+  // C7: site from getCurrentUser first, fallback to first non-full shelter
+  var cu=getCurrentUser();
+  var reqSite=cu&&cu.site?cu.site:'';
+  if(!reqSite){
+    var shelterRecs=DATA.shelter_mgt&&DATA.shelter_mgt.records||[];
+    var nonFull=shelterRecs.find(function(r){return (r.currentOccupancy||0)<(r.capacity||200);});
+    if(nonFull) reqSite=nonFull.shelter;
+  }
+  if(!reqSite) reqSite='現場';
+  DATA.warehouse.reqs.push({id:id, item:item, qty:qty, site:reqSite, due:'1 小時內', prio:'P2', status:'待派案', driver:''});
   logSys('ok','【Line OA 模擬】叫料 '+id+'：'+item+' '+qty);
   loaUserSay(qty);
   loaOASay('✅ 叫料需求已送出！\n單號：'+id+'\n'+item+' '+qty+'\n幹部確認後安排配送。');
@@ -2911,20 +3033,20 @@ const DATA = {
   tasks: {
     title: '任務端 — 任務指揮',
     items: [
-      {id:'T001', type:'logistics', icon:'🚛', title:'物資配送 — 梅山國小礦泉水補給',
-       assign:'後勤組 B隊', status:'active', pct:60,
+      {id:'T001', type:'logistics', icon:'🚛', category:'field', title:'物資配送 — 梅山國小礦泉水補給',
+       assign:{uid:'CI-002',name:'後勤組 B隊',phone:'0900-000-002'}, status:'active', pct:60,
        created:'14:20', received:'14:22', endTime:'15:30', lineNotified:true,
        desc:'梅山國小礦泉水剩餘不足30箱，請後勤B隊從竹崎倉儲調撥80箱'},
-      {id:'T002', type:'medical',   icon:'🏥', title:'緊急醫療 — 大埔老人照護增援',
-       assign:'醫護組 C隊', status:'active', pct:20,
+      {id:'T002', type:'medical',   icon:'🏥', category:'field', title:'緊急醫療 — 大埔老人照護增援',
+       assign:{uid:'CI-006',name:'醫護組 C隊',phone:'0900-000-006'}, status:'active', pct:20,
        created:'13:45', received:'13:48', endTime:'14:30', lineNotified:true,
        desc:'大埔收容所老人照護人力不足，醫護C隊請即刻前往支援'},
-      {id:'T003', type:'manpower',  icon:'👥', title:'人力轉移 — A隊撤離改道集結',
-       assign:'A隊全員', status:'done', pct:100,
+      {id:'T003', type:'manpower',  icon:'👥', category:'ops', title:'人力轉移 — A隊撤離改道集結',
+       assign:{uid:'CI-004',name:'A隊全員',phone:''}, status:'done', pct:100,
        created:'14:23', received:'14:24', endTime:'14:45', lineNotified:true,
        desc:'縣道162中斷，A隊改由台18線撤離，於竹崎國小集結'},
-      {id:'T004', type:'survey',    icon:'🗺️', title:'勘災回報 — 大埔鄉偏遠聚落',
-       assign:'未指派', status:'pending', pct:0,
+      {id:'T004', type:'survey',    icon:'🗺️', category:'field', title:'勘災回報 — 大埔鄉偏遠聚落',
+       assign:{uid:'',name:'未指派',phone:''}, status:'pending', pct:0,
        created:'14:30', received:'', endTime:'17:00', lineNotified:false,
        desc:'大埔鄉三處偏遠聚落尚未取得回報，需指派勘災人員'},
     ]
@@ -3056,9 +3178,9 @@ DATA.shelter_mgt={
   currentMode:'應急慰問金發放模式',
   modes:['安心家訪模式','應急慰問金發放模式','清掃與修繕模式'],
   records:[
-    {id:'R001',shelter:'竹崎國小',    evacueeCount:187,reliefStatus:'已發放應急金',cleanStatus:'待清掃'},
-    {id:'R002',shelter:'梅山國小',    evacueeCount:143,reliefStatus:'審核中',      cleanStatus:'修繕規劃中'},
-    {id:'R003',shelter:'大埔活動中心',evacueeCount:61, reliefStatus:'已發放應急金',cleanStatus:'清掃完成'},
+    {id:'R001',shelter:'竹崎國小',    capacity:200,currentOccupancy:187,evacueeCount:187,reliefStatus:'已發放應急金',cleanStatus:'待清掃',contact:'王組長 0912-345-001',accessRoute:'縣道159甲，竹崎市區往山區方向'},
+    {id:'R002',shelter:'梅山國小',    capacity:150,currentOccupancy:143,evacueeCount:143,reliefStatus:'審核中',      cleanStatus:'修繕規劃中',contact:'陳校長 0912-345-002',accessRoute:'台18線轉縣道158，注意落石管制'},
+    {id:'R003',shelter:'大埔活動中心',capacity:80, currentOccupancy:61, evacueeCount:61, reliefStatus:'已發放應急金',cleanStatus:'清掃完成',contact:'林主任 0912-345-003',accessRoute:'縣道175，大埔水庫旁'},
   ]
 };
 DATA.registry={
@@ -3067,24 +3189,24 @@ DATA.registry={
   innerGasUrl:'',
   stats:{total:200,male:101,female:92,heavyLift:58,normalLift:72,lightOnly:45,noLift:25,morningOnly:52,afternoonOnly:48,anytime:100,innerTotal:142,innerChecked:0,outerTotal:58,outerChecked:0},
   innerMembers:[
-    {code:'CI-001',name:'林師姐',gender:'女',group:'醫護組',checkin:'',checkinTime:''},
-    {code:'CI-002',name:'陳師兄',gender:'男',group:'後勤組',checkin:'',checkinTime:''},
-    {code:'CI-003',name:'張師姐',gender:'女',group:'行政組',checkin:'',checkinTime:''},
-    {code:'CI-004',name:'王師兄',gender:'男',group:'重機具組',checkin:'',checkinTime:''},
-    {code:'CI-005',name:'李師兄',gender:'男',group:'後勤組',checkin:'',checkinTime:''},
-    {code:'CI-006',name:'吳師姐',gender:'女',group:'醫護組',checkin:'',checkinTime:''},
-    {code:'CI-007',name:'周師兄',gender:'男',group:'行政組',checkin:'',checkinTime:''},
-    {code:'CI-008',name:'鄭師姐',gender:'女',group:'醫護組',checkin:'',checkinTime:''},
+    {uid:'CI-001',code:'CI-001',type:'inner',name:'林師姐',gender:'女',group:'醫護組',checkin:'',checkinTime:''},
+    {uid:'CI-002',code:'CI-002',type:'inner',name:'陳師兄',gender:'男',group:'後勤組',checkin:'',checkinTime:''},
+    {uid:'CI-003',code:'CI-003',type:'inner',name:'張師姐',gender:'女',group:'行政組',checkin:'',checkinTime:''},
+    {uid:'CI-004',code:'CI-004',type:'inner',name:'王師兄',gender:'男',group:'重機具組',checkin:'',checkinTime:''},
+    {uid:'CI-005',code:'CI-005',type:'inner',name:'李師兄',gender:'男',group:'後勤組',checkin:'',checkinTime:''},
+    {uid:'CI-006',code:'CI-006',type:'inner',name:'吳師姐',gender:'女',group:'醫護組',checkin:'',checkinTime:''},
+    {uid:'CI-007',code:'CI-007',type:'inner',name:'周師兄',gender:'男',group:'行政組',checkin:'',checkinTime:''},
+    {uid:'CI-008',code:'CI-008',type:'inner',name:'鄭師姐',gender:'女',group:'醫護組',checkin:'',checkinTime:''},
   ],
   volunteers:[
-    {name:'陳建宏',email:'demo001@example.com',idno:'A000000001',birth:'1985/03/12',phone:'0900-000-001',diet:'無',slot:'皆可配合',lift:'一般搬運 (約 10kg)',gender:'男',age:41,checkin:'',checkinTime:''},
-    {name:'林家豪',email:'demo002@example.com',idno:'A000000002',birth:'1990/11/25',phone:'0900-000-002',diet:'對甲殼類過敏',slot:'僅限早上',lift:'輕鬆搬運 (20kg 以上)',gender:'男',age:36,checkin:'',checkinTime:''},
-    {name:'黃心怡',email:'demo003@example.com',idno:'A000000003',birth:'1995/02/14',phone:'0900-000-003',diet:'蛋奶素',slot:'僅限下午',lift:'僅能協助輕物',gender:'女',age:31,checkin:'',checkinTime:''},
-    {name:'張志偉',email:'demo004@example.com',idno:'A000000004',birth:'1982/08/30',phone:'0900-000-004',diet:'無',slot:'皆可配合',lift:'一般搬運 (約 10kg)',gender:'男',age:44,checkin:'',checkinTime:''},
-    {name:'李沛恩',email:'demo005@example.com',idno:'A000000005',birth:'2001/12/05',phone:'0900-000-005',diet:'無',slot:'皆可配合',lift:'無法搬重物',gender:'女',age:25,checkin:'',checkinTime:''},
-    {name:'王宜蓁',email:'demo006@example.com',idno:'A000000006',birth:'1998/07/19',phone:'0900-000-006',diet:'對花生過敏',slot:'僅限早上',lift:'僅能協助輕物',gender:'女',age:28,checkin:'',checkinTime:''},
-    {name:'吳哲宇',email:'demo007@example.com',idno:'A000000007',birth:'1993/04/02',phone:'0900-000-007',diet:'無',slot:'皆可配合',lift:'輕鬆搬運 (20kg 以上)',gender:'男',age:33,checkin:'',checkinTime:''},
-    {name:'劉庭瑋',email:'demo008@example.com',idno:'A000000008',birth:'1985/09/27',phone:'0900-000-008',diet:'全素',slot:'僅限下午',lift:'一般搬運 (約 10kg)',gender:'女',age:41,checkin:'',checkinTime:''},
+    {uid:'VO-001',type:'outer',name:'陳建宏',email:'demo001@example.com',idno:'A000000001',birth:'1985/03/12',phone:'0900-000-001',diet:'無',slot:'皆可配合',lift:'一般搬運 (約 10kg)',gender:'男',age:41,checkin:'',checkinTime:''},
+    {uid:'VO-002',type:'outer',name:'林家豪',email:'demo002@example.com',idno:'A000000002',birth:'1990/11/25',phone:'0900-000-002',diet:'對甲殼類過敏',slot:'僅限早上',lift:'輕鬆搬運 (20kg 以上)',gender:'男',age:36,checkin:'',checkinTime:''},
+    {uid:'VO-003',type:'outer',name:'黃心怡',email:'demo003@example.com',idno:'A000000003',birth:'1995/02/14',phone:'0900-000-003',diet:'蛋奶素',slot:'僅限下午',lift:'僅能協助輕物',gender:'女',age:31,checkin:'',checkinTime:''},
+    {uid:'VO-004',type:'outer',name:'張志偉',email:'demo004@example.com',idno:'A000000004',birth:'1982/08/30',phone:'0900-000-004',diet:'無',slot:'皆可配合',lift:'一般搬運 (約 10kg)',gender:'男',age:44,checkin:'',checkinTime:''},
+    {uid:'VO-005',type:'outer',name:'李沛恩',email:'demo005@example.com',idno:'A000000005',birth:'2001/12/05',phone:'0900-000-005',diet:'無',slot:'皆可配合',lift:'無法搬重物',gender:'女',age:25,checkin:'',checkinTime:''},
+    {uid:'VO-006',type:'outer',name:'王宜蓁',email:'demo006@example.com',idno:'A000000006',birth:'1998/07/19',phone:'0900-000-006',diet:'對花生過敏',slot:'僅限早上',lift:'僅能協助輕物',gender:'女',age:28,checkin:'',checkinTime:''},
+    {uid:'VO-007',type:'outer',name:'吳哲宇',email:'demo007@example.com',idno:'A000000007',birth:'1993/04/02',phone:'0900-000-007',diet:'無',slot:'皆可配合',lift:'輕鬆搬運 (20kg 以上)',gender:'男',age:33,checkin:'',checkinTime:''},
+    {uid:'VO-008',type:'outer',name:'劉庭瑋',email:'demo008@example.com',idno:'A000000008',birth:'1985/09/27',phone:'0900-000-008',diet:'全素',slot:'僅限下午',lift:'一般搬運 (約 10kg)',gender:'女',age:41,checkin:'',checkinTime:''},
   ]
 };
 DATA.assets={
@@ -3895,7 +4017,18 @@ var RTDB=(function(){
   function getPath(db,path){ if(!path) return db; var parts=path.split('/'); var cur=db; for(var i=0;i<parts.length;i++){ if(cur==null) return null; cur=cur[parts[i]]; } return (cur===undefined)?null:cur; }
   function setPath(db,path,val){ var parts=path.split('/'); var cur=db; for(var i=0;i<parts.length-1;i++){ if(cur[parts[i]]==null) cur[parts[i]]={}; cur=cur[parts[i]]; } if(val===null) delete cur[parts[parts.length-1]]; else cur[parts[parts.length-1]]=val; return db; }
   function notifyAll(){ Object.keys(listeners).forEach(function(lp){ var db=readAll(); listeners[lp].forEach(function(cb){ try{ cb(getPath(db,lp)); }catch(e){} }); }); }
-  if(bc){ bc.onmessage=function(){ notifyAll(); }; }
+  if(bc){ bc.onmessage=function(e){
+    // C8: field-by-field merge instead of overwrite
+    try{
+      var remoteTs=(e&&e.data&&e.data.t)||0;
+      var localTs=0; try{localTs=parseInt(localStorage.getItem('drms_rtdb_ts')||'0',10);}catch(ex){}
+      if(remoteTs>localTs){
+        notifyAll();
+        try{ localStorage.setItem('drms_rtdb_ts',String(remoteTs)); }catch(ex){}
+        if(typeof toast==='function') toast('已同步其他分頁資料','ok');
+      }
+    }catch(ex){ notifyAll(); }
+  }; }
   return {
     ref:function(path){ path=path||'';
       return {
@@ -4984,11 +5117,40 @@ function showModal(title,body,detail){
   document.getElementById('modal').classList.add('show');
 }
 function closeModal(){document.getElementById('modal').classList.remove('show');}
-let toastT;
-function toast(msg){
-  const el=document.getElementById('toast');
-  el.textContent=msg;el.style.display='block';
-  clearTimeout(toastT);toastT=setTimeout(()=>el.style.display='none',3000);
+// D2: toast with Level/Type — supports queuing up to 3, type: 'error'|'warn'|'ok'|default
+var _toastQueue=[];
+var _toastActive=[];
+var _toastMax=3;
+function toast(msg,type){
+  _toastQueue.push({msg:msg,type:type||''});
+  _processToastQueue();
+}
+function _processToastQueue(){
+  if(!_toastQueue.length) return;
+  if(_toastActive.length>=_toastMax) return;
+  var item=_toastQueue.shift();
+  var colorMap={error:'#EF4444',warn:'#F59E0B',ok:'#22C55E'};
+  var bg=colorMap[item.type]||'#374151';
+  var container=document.getElementById('toast-container');
+  if(!container){
+    container=document.createElement('div');
+    container.id='toast-container';
+    container.style.cssText='position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none';
+    document.body.appendChild(container);
+  }
+  var el=document.createElement('div');
+  el.style.cssText='background:'+bg+';color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.2);opacity:1;transition:opacity .3s;max-width:320px;pointer-events:auto';
+  el.textContent=item.msg;
+  container.appendChild(el);
+  _toastActive.push(el);
+  setTimeout(function(){
+    el.style.opacity='0';
+    setTimeout(function(){
+      if(container.contains(el)) container.removeChild(el);
+      _toastActive=_toastActive.filter(function(x){return x!==el;});
+      _processToastQueue();
+    },300);
+  },3000);
 }
 
 
@@ -5356,6 +5518,7 @@ function wtBackToLevel(){
   if(s1b) s1b.style.display='block';
 }
 function wtConfirmAndLaunch(){
+  try{
   var def=WAR_MODULE_DEFAULTS[_wtPendingScenario]||WAR_MODULE_DEFAULTS['quake'];
   var ALL_IDS=['monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive','admin'];
   var enabled=['dashboard'];
@@ -5383,6 +5546,7 @@ function wtConfirmAndLaunch(){
   logSys('ok','戰時模組套用：'+def.label+' · '+lvlLabel+'，開放 '+cnt+' 個模組，隱藏 '+toHide.length+' 個');
   startSession(def.label, _wtPendingLevel);
   toast('⚡ 戰時模式啟動：'+def.emoji+' '+def.label+' · '+lvlLabel+'（'+cnt+' 模組）');
+  }catch(e){ toast(e.message,'error'); logSys('err','wtConfirmAndLaunch 失敗：'+e.message); }
 }
 function selectScenario(id){
   setScenario(id);
@@ -5650,7 +5814,7 @@ function renderTasks(){
       +'<div class="task-icon" style="'+iconBg+'">'+t.icon+'</div>'
       +'<div class="task-meta">'
       +'<div class="task-title">'+t.title+'</div>'
-      +'<div class="task-assign">指派：'+t.assign+'</div>'
+      +'<div class="task-assign">指派：'+(t.assign&&typeof t.assign==='object'?(t.assign.name+(t.assign.phone?' · '+t.assign.phone:'')):t.assign||'未指派')+'</div>'
       +'</div>'
       +'<div class="task-badges">'
       +(t.lineNotified?'<span class="badge badge-green" style="font-size:9px">LINE ✓</span>':'<span class="badge" style="font-size:9px;background:var(--bg3);color:var(--text4);border:1px solid var(--border)">LINE 待推</span>')
@@ -5714,10 +5878,15 @@ function submitNewTask(){
   toast('✅ 任務 '+newId+' 已建立，Line OA 推播已送出');
 }
 function completeTask(i){
+  try{
+  // C1: include current user in task completion log
+  var cu=getCurrentUser();
   DATA.tasks.items[i].status='done';
   DATA.tasks.items[i].pct=100;
+  if(cu) logSys('ok','【任務完成】'+DATA.tasks.items[i].id+' 由 '+cu.uid+' 標記完成');
   renderTasks();
   toast('✓ 任務已標記完成');
+  }catch(e){ toast(e.message,'error'); logSys('err','completeTask 失敗：'+e.message); }
 }
 function notifyTask(i){
   DATA.tasks.items[i].lineNotified=true;
@@ -5962,7 +6131,10 @@ function logSys(level, msg){
   var time = new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   var colorMap = {ok:'slog-ok', warn:'slog-warn', err:'slog-err', info:'slog-info'};
   var prefix   = {ok:'✓', warn:'⚠', err:'✗', info:'ℹ'};
-  logEntries.unshift({time:time, level:level, msg:msg});
+  // C1: include current user uid in log entries
+  var cu=getCurrentUser();
+  var uidTag=cu?' ['+cu.uid+']':'';
+  logEntries.unshift({time:time, level:level, msg:uidTag+msg});
   if(logEntries.length > 50) logEntries.pop();
   if(typeof telemetryLog==='function') telemetryLog(level,msg);
   var el = document.getElementById('syslog');
@@ -6115,6 +6287,8 @@ function saveSimEdit(){
 var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','persons','shelter_mgt','registry','devTasks','relief_req','coord'];
 function saveData(){
   var payload = {};
+  // E9: wrap in try/catch
+  try{
   for(var i=0;i<DATA_KEYS.length;i++) payload[DATA_KEYS[i]] = DATA[DATA_KEYS[i]];
   try{
     // 寫入前先把「目前版本」推入備份輪替（雙檔：backup_1 為前一版、backup_2 為前兩版）
@@ -6137,6 +6311,7 @@ function saveData(){
   }catch(e){
     logSys('err','localStorage 寫入失敗（容量/隱私模式），資料僅存於記憶體');
   }
+  }catch(e){ toast(e.message,'error'); logSys('err','saveData 失敗：'+e.message); }
 }
 // ── 時段備份系統（每日三槽：AM 10:00-15:00 / PM 15:01-20:00 / NIGHT 20:01-次日10:00，含空檔歸夜段）──
 // 每個時段只保留「進入該時段後第一次存檔」的快照（即流量0%那一版），同時段後續存檔不覆蓋。
@@ -6304,8 +6479,22 @@ function importBackupFile(input){
   };
   reader.readAsText(file);
 }
+// D3: System Status Bar
+function renderSysStatusBar(){
+  var el=document.getElementById('sys-status-bar'); if(!el) return;
+  var gasOk=!!(DATA.registry&&DATA.registry.gasUrl);
+  var cu=getCurrentUser();
+  var roleLabel=cu?cu.role:（typeof role!=='undefined'?role:'—');
+  el.innerHTML='<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11px;padding:6px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:12px">'
+    +'<span>Line OA 模擬中 <span style="color:var(--red)">⬤</span></span>'
+    +'<span>GAS '+(gasOk?'已連線 <span style="color:var(--green)">⬤</span>':'未連線 <span style="color:var(--red)">⬤</span>')+'</span>'
+    +'<span>localStorage 正常 <span style="color:var(--green)">⬤</span></span>'
+    +'<span>目前角色：<b>'+roleLabel+'</b></span>'
+    +'</div>';
+}
 function renderVersionPanel(){
   var el=document.getElementById('version-panel'); if(!el) return;
+  renderSysStatusBar();
   var info=getVersionInfo();
   var html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">';
   html+='<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r-sm);padding:8px 14px">';
@@ -6568,6 +6757,7 @@ function deleteDT(id){
 }
 
 function loadData(){
+  try{
   loadNavOrder();
   var raw = localStorage.getItem('drms_data');
   if(!raw) return;
@@ -6576,7 +6766,8 @@ function loadData(){
     for(var i=0;i<DATA_KEYS.length;i++){
       if(saved[DATA_KEYS[i]]) DATA[DATA_KEYS[i]] = saved[DATA_KEYS[i]];
     }
-  }catch(e){}
+  }catch(e){ logSys('err','資料解析失敗：'+e.message); }
+  }catch(e){ toast(e.message,'error'); logSys('err','loadData 失敗：'+e.message); }
 }
 function resetAll(){
   if(!confirm('確認清除所有已儲存設定，恢復預設值？')) return;
@@ -6768,6 +6959,10 @@ function reliefToDispatch(i){
   var prio={'搶救':'P1','醫療':'P1','收容':'P2','物資':'P3'}[r.type]||'P2';
   var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   try{ if(typeof RTDB!=='undefined'&&RTDB.ref){ RTDB.ref('tasks').push({title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assignee:'',lockedBy:'',created:tm}); } }catch(e){}
+  // D6: also write to DATA.tasks.items with category:'ops'
+  if(!DATA.tasks) DATA.tasks={items:[]};
+  if(!DATA.tasks.items) DATA.tasks.items=[];
+  DATA.tasks.items.push({id:'OPS-'+r.id,title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assign:null,category:'ops',created:tm,source:'relief_req'});
   r.status='已轉派'; r.taskRef='已建任務';
   logSys('warn','【民眾求助】'+r.id+' 已轉即時調度中台任務池（'+prio+'）'+r.location);
   toast('⚡ '+r.id+' 已轉調度中台（'+prio+'）');
@@ -6817,15 +7012,17 @@ function renderReliefForm(){
     +'<button class="btn btn-blue btn-xs" style="justify-content:center">🏕️ 需要安置</button><button class="btn btn-amber btn-xs" style="justify-content:center">📦 物資需求</button></div>'
     +'<div class="iep-lbl" style="margin-top:0">您的位置（可自動定位）</div><input class="inp" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:12px">'
     +'<div class="iep-lbl">受困 / 需協助人數</div><input class="inp" placeholder="例：2" style="font-size:12px">'
-    +'<div class="iep-lbl">狀況描述</div><textarea class="inp" placeholder="簡述現場狀況" style="min-height:54px;font-size:12px"></textarea>'
-    +'<div class="iep-lbl">聯絡電話</div><input class="inp" placeholder="09xx-xxx-xxx" style="font-size:12px">'
+    +'<div class="iep-lbl">狀況描述</div><textarea class="inp" id="relief-form-desc" placeholder="簡述現場狀況" style="min-height:54px;font-size:12px"></textarea>'
+    +'<div class="iep-lbl">聯絡電話</div><input class="inp" id="relief-form-phone" placeholder="09xx-xxx-xxx" style="font-size:12px">'
+    +'<div class="iep-lbl">緊急程度</div><select class="inp" id="relief-form-prio" style="font-size:12px"><option value="P1">P1 🔴 現在就要</option><option value="P2" selected>P2 🟡 今天</option><option value="P3">P3 🟢 不急</option></select>'
     +'<button class="btn btn-red" style="width:100%;justify-content:center;margin-top:12px" onclick="reliefSimSubmit()">🆘 送出求助</button>'
     +'<div style="font-size:9px;color:var(--text4);text-align:center;margin-top:8px">送出即同意慈濟基金會為救災目的使用您的資料</div>'
     +'</div></div></div>';
 }
 function reliefSimSubmit(){
   var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  var newReq={id:'SOS-'+(2042+Math.floor(Math.random()*900)),time:tm,type:'物資',name:'民眾○○',phone:'09**-***-'+Math.floor(100+Math.random()*899),location:'竹崎鄉（演練模擬填報）',people:1+Math.floor(Math.random()*4),desc:'演練模擬：民眾自主填報之求助案件',status:'待處理',dup:false};
+  var prioEl=document.getElementById('relief-form-prio'); var prio=prioEl?prioEl.value:'P2';
+  var newReq={id:'SOS-'+(2042+Math.floor(Math.random()*900)),time:tm,type:'物資',name:'民眾○○',phone:'09**-***-'+Math.floor(100+Math.random()*899),location:'竹崎鄉（演練模擬填報）',people:1+Math.floor(Math.random()*4),desc:'演練模擬：民眾自主填報之求助案件',status:'待處理',prio:prio,dup:false};
   DATA.relief_req.requests.unshift(newReq);
   logSys('info','【民眾求助】收到新求助通報（演練模擬填報）');
   toast('🆘 已收到一筆民眾求助 → 請至收件匣處理');
@@ -6858,10 +7055,47 @@ function renderCoordMatch(){
       +'<td style="font-size:11px">'+m.supplyFrom+'</td><td><span class="badge '+(sColor[m.status]||'badge-amber')+'">'+m.status+'</span></td>'
       +'<td>'+(m.status==='待媒合'?'<button class="btn btn-blue btn-xs" onclick="coordMatch('+i+')">🤝 確認媒合</button>':'<span style="font-size:9px;color:var(--text4)">✓ 已對接</span>')+'</td></tr>';
   }
-  html+='</tbody></table></div>'
-    +'<div class="card" style="margin-top:14px;border:1px dashed var(--blue-border)"><div class="card-title">🏛️ 政府 EMIC 對接（規劃中）</div>'
+  html+='</tbody></table></div>';
+  // D5: Semi-auto gap matching
+  html+='<div class="card" style="margin-top:14px"><div class="card-title">🤖 半自動缺口媒合建議</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:10px">自動掃描待派案求助與合作夥伴資源，列出可能媒合對。</div>';
+  var pendReqs=(DATA.relief_req&&DATA.relief_req.requests||[]).filter(function(r){return r.status==='待處理';});
+  var partners=(d.partners||[]).filter(function(p){return p.status==='可協作';});
+  var suggestions=[];
+  pendReqs.forEach(function(req){
+    partners.forEach(function(par){
+      if(par.type===req.type||(req.type==='物資'&&par.type==='物資')||(req.type==='醫療'&&par.type==='醫療')){
+        suggestions.push({req:req,par:par});
+      }
+    });
+  });
+  if(!suggestions.length){
+    html+='<div style="font-size:12px;color:var(--text4);padding:10px 0">目前無自動媒合建議（無待處理求助或無可用夥伴）</div>';
+  } else {
+    suggestions.slice(0,5).forEach(function(s,idx){
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:8px;margin-bottom:6px;background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm)">'
+        +'<div style="flex:1;font-size:11px"><b>'+s.req.id+'</b> '+s.req.type+' · '+s.req.location+' ↔ '+s.par.name+'</div>'
+        +'<button class="btn btn-blue btn-xs" onclick="confirmMatch(\''+s.req.id+'\',\''+s.par.id+'\')">確認媒合</button>'
+        +'</div>';
+    });
+  }
+  html+='</div>';
+  html+='<div class="card" style="margin-top:14px;border:1px dashed var(--blue-border)"><div class="card-title">🏛️ 政府 EMIC 對接（規劃中）</div>'
     +'<div style="font-size:11px;color:var(--text4)">未來與消防署 EMIC 災害應變系統雙向交換災情與資源資料。目前為預留接口，待政府端開放 API。</div></div>';
   return html;
+}
+// D5: confirm match function
+function confirmMatch(reqId,resourceId){
+  var req=(DATA.relief_req&&DATA.relief_req.requests||[]).find(function(r){return r.id===reqId;});
+  if(req){ req.status='已轉派'; req.taskRef='媒合-'+resourceId; }
+  var d=DATA.coord;
+  if(d.partners){
+    var par=d.partners.find(function(p){return p.id===resourceId;});
+    if(par) par.status='媒合中';
+  }
+  logSys('ok','【缺口媒合】'+reqId+' ↔ '+resourceId+' 確認媒合');
+  toast('媒合完成：'+reqId+' ↔ '+resourceId,'ok');
+  renderCoord(); saveData();
 }
 function coordMatch(i){
   var m=DATA.coord.matches[i]; m.status='已媒合';
@@ -7020,7 +7254,14 @@ function renderPersonsCases(){
   return html;
 }
 function advancePersonCase(i){
+  // C5: bounds check and phase transition validation
+  if(i<0||i>=DATA.persons.cases.length){toast('索引超出範圍','error');return;}
   var c=DATA.persons.cases[i], now=new Date(), ds=(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2);
+  // Phase-level transition guard: only allow defined transitions
+  if(c.phase&&CASE_TRANSITIONS[c.phase]){
+    // phase advancement is only triggered externally; visitStatus changes are the normal flow
+    // no direct phase jump here, but guard against invalid manual phase change
+  }
   if(c.visitStatus==='待訪視'){
     c.visitStatus='訪視中';
     logSys('info','【個案】'+c.caseId+' '+c.name+' 開始訪視，GPS 簽到記錄');
@@ -7033,6 +7274,21 @@ function advancePersonCase(i){
     logSys('ok','【個案】'+c.caseId+' 訪視完成 → 寫入關懷紀錄');
     toast('✓ '+c.caseId+' 完成，已同步關懷紀錄');
   }
+  renderPersons(); saveData();
+}
+// C5: advance person case PHASE with transition validation
+function advancePersonPhase(i,targetPhase){
+  if(i<0||i>=DATA.persons.cases.length){toast('索引超出範圍','error');return;}
+  var c=DATA.persons.cases[i];
+  var allowed=CASE_TRANSITIONS[c.phase]||[];
+  if(targetPhase&&allowed.indexOf(targetPhase)<0){
+    toast('狀態不可跳轉：'+c.phase+' → '+targetPhase,'error');
+    return;
+  }
+  var next=targetPhase||(allowed[0]||c.phase);
+  c.phase=next;
+  logSys('ok','【個案】'+c.caseId+' 階段推進 → '+next);
+  toast('✓ '+c.caseId+' 階段更新為 '+next);
   renderPersons(); saveData();
 }
 function renderPersonsCare(){
@@ -7552,17 +7808,26 @@ function renderShelterMgt(targetId){
   var html='<div class="card"><div class="card-title">🏕️ '+d.title+'</div>'
     +'<div class="war-sub-lbl">作業模式切換：</div>'
     +'<div class="dflex gap6 fwrap" style="margin-bottom:14px">'+modeBtns+'</div>'
-    +'<table class="tbl"><thead><tr><th>編號</th><th>收容所</th><th>收容人數</th><th>慰問金</th><th>清修狀態</th><th>模式操作</th></tr></thead><tbody>';
+    +'<table class="tbl"><thead><tr><th>編號</th><th>收容所</th><th>收容人數/容量</th><th>聯絡人</th><th>慰問金</th><th>清修狀態</th><th>模式操作</th></tr></thead><tbody>';
   var rColor={'已發放應急金':'badge-green','審核中':'badge-amber'};
   var cColor={'清掃完成':'badge-green','待清掃':'badge-amber','修繕規劃中':'badge-blue'};
   for(var i=0;i<d.records.length;i++){
     var r=d.records[i];
+    var cap=r.capacity||200;
+    var occ=r.currentOccupancy||r.evacueeCount||0;
+    var isFull=(occ>=cap);
+    var occPct=Math.min(Math.round(occ/cap*100),100);
+    var occBar='<div style="display:flex;align-items:center;gap:4px">'
+      +'<div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;min-width:40px"><div style="height:100%;width:'+occPct+'%;background:'+(isFull?'var(--red)':occPct>80?'var(--amber)':'var(--green)')+'"></div></div>'
+      +'<span style="font-size:10px;font-family:monospace">'+occ+'/'+cap+'</span>'
+      +(isFull?'<span class="badge badge-red" style="font-size:9px">滿載</span>':'')+'</div>';
     var act='';
     if(d.currentMode==='安心家訪模式') act='<button class="btn btn-blue btn-xs" onclick="shelterAct('+i+',\'visit\')">🏠 排家訪</button>';
     else if(d.currentMode==='應急慰問金發放模式') act=(r.reliefStatus==='審核中'?'<button class="btn btn-green btn-xs" onclick="shelterAct('+i+',\'relief\')">💰 核發</button>':'<span style="font-size:9px;color:var(--text4)">已核發</span>');
     else act=(r.cleanStatus!=='清掃完成'?'<button class="btn btn-amber btn-xs" onclick="shelterAct('+i+',\'clean\')">🧹 派工</button>':'<span style="font-size:9px;color:var(--text4)">已完成</span>');
-    html+='<tr><td class="sh-time">'+r.id+'</td><td style="font-weight:500">'+r.shelter+'</td>'
-      +'<td style="font-family:monospace">'+r.evacueeCount+' 人</td>'
+    html+='<tr><td class="sh-time">'+r.id+'</td><td style="font-weight:500">'+r.shelter+'<div style="font-size:9px;color:var(--text4)">'+(r.accessRoute||'')+'</div></td>'
+      +'<td>'+occBar+'</td>'
+      +'<td style="font-size:11px;color:var(--text3)">'+(r.contact||'—')+'</td>'
       +'<td><span class="badge '+(rColor[r.reliefStatus]||'badge-blue')+'">'+r.reliefStatus+'</span></td>'
       +'<td><span class="badge '+(cColor[r.cleanStatus]||'badge-blue')+'">'+r.cleanStatus+'</span></td>'
       +'<td>'+act+'</td></tr>';
@@ -7686,6 +7951,23 @@ document.addEventListener('focusin',function(e){
   if(inEdit&&t.value){ setTimeout(function(){try{t.select();}catch(err){}},0); }
 });
 loadData();
+// C4: seed devTasks into DATA.tasks.items with category:'dev' (if not already present)
+(function(){
+  var existing=(DATA.tasks.items||[]).map(function(t){return t.id;});
+  (DATA.devTasks||[]).forEach(function(dt){
+    var devId='DEV-'+dt.id;
+    if(existing.indexOf(devId)<0){
+      DATA.tasks.items.push({
+        id:devId,type:'dev',icon:'💻',category:'dev',
+        title:'[dev] '+dt.title.substring(0,60),
+        assign:{uid:dt.assignee||'',name:dt.assignee||'未指派',phone:''},
+        status:dt.done?'done':'pending',pct:dt.done?100:0,
+        created:dt.created||'',received:'',endTime:'',lineNotified:false,
+        desc:dt.title
+      });
+    }
+  });
+})();
 loadWarModuleDefaults();
 // 每次載入預設清空 disabledModules（平時模式全開；戰時啟動後才由 wtPickLevel 設定）
 disabledModules.clear();

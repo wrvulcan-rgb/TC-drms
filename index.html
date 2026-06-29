@@ -117,7 +117,7 @@
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;background:var(--bg3);padding:10px;border-radius:var(--r-sm);border:1px solid var(--border)">
           <input class="inp" style="flex:1;font-size:12px" id="ai-challenge-input" placeholder="搜尋功能 或 輸入情境描述（通訊斷了、人手不夠…）" oninput="aiSearchFeature(this.value)" autocomplete="off">
-          <button class="btn btn-primary" style="white-space:nowrap;font-size:12px" onclick="runAIAnalysis()">🤖 AI 戰術分析</button>
+          <button class="btn btn-primary" style="white-space:nowrap;font-size:12px" onclick="runAIAnalysis()" disabled title="功能開發中">🤖 AI 戰術分析</button>
         </div>
         <div id="ai-feature-results" style="margin-top:8px"></div>
         <div class="bug-panel" id="bug-panel"></div>

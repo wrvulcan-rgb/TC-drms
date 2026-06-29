@@ -74,7 +74,7 @@ body.nav-collapsed .main{margin-left:0}
   .nav-collapse-btn:active{background:var(--bg4)}
   .logo-icon{flex-shrink:0}
   /* 狀態切換與角色列縮小避免擠壓 ☰ */
-  .state-tog{flex-shrink:0;transform:scale(.9);transform-origin:left center}
+  .state-tog{flex-shrink:0;font-size:11px;padding:3px 6px}
   .role-sel{font-size:11px;padding:4px 6px}
   /* 抽屜開啟時把選單拉到 hdr 之下，☰ 仍露出 */
   body.nav-open .nav{top:var(--hdr)}
@@ -105,7 +105,7 @@ body.nav-collapsed .main{margin-left:0}
   .inp{max-width:100%}
 .inp:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
   /* ── 對話/模擬 iframe 滿版 ── */
-  iframe{height:calc(100vh - 180px) !important}
+  iframe{height:calc(100dvh - 180px) !important}
   /* ── KPI 5欄→手機2欄 ── */
   .kpi-row{grid-template-columns:1fr 1fr !important;gap:8px !important}
 }
@@ -113,6 +113,7 @@ body.nav-collapsed .main{margin-left:0}
   .stat-grid{grid-template-columns:1fr !important}
   .pg-title{font-size:16px}
   .kpi-row{grid-template-columns:1fr !important}
+  iframe{min-height:400px !important}
 }
 .page{display:none;animation:fin .2s ease}
 #page-arch_doc{padding:0!important;overflow:auto}
@@ -455,7 +456,7 @@ textarea.iep-inp{resize:vertical;min-height:56px}
 
 
 /* ── WARTIME OVERLAY ── */
-.wt-overlay{position:fixed;inset:0;background:rgba(10,14,26,0.96);z-index:800;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;animation:fin .25s ease}
+.wt-overlay{position:fixed;inset:0;background:rgba(10,14,26,0.96);z-index:1100;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;animation:fin .25s ease}
 .wt-overlay.show{display:flex}
 .wt-overlay h1{font-size:22px;font-weight:800;color:#fff;margin-bottom:8px;letter-spacing:-.3px}
 .wt-overlay p{color:#94A3B8;text-align:center;font-size:13px;margin-bottom:24px}
@@ -604,3 +605,30 @@ textarea.iep-inp{resize:vertical;min-height:56px}
   background:var(--bg2);
 }
 
+
+/* ══ E1: Mobile Tables to Cards ══ */
+@media(max-width:768px){
+  .tbl-hide-mobile { display:none !important; }
+  .mobile-card-list { display:block !important; }
+  .mobile-card-list .mc-item {
+    background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);
+    padding:10px 12px;margin-bottom:8px;
+  }
+  .mobile-card-list .mc-field { font-size:10px;color:var(--text4);font-weight:600;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em; }
+  .mobile-card-list .mc-val { font-size:13px;color:var(--text);margin-bottom:8px; }
+}
+.mobile-card-list { display:none; }
+
+/* ══ E2: Print Styles ══ */
+@media print {
+  nav, .topbar, #topbar, .nav, .btn, #toast, #toast-container, .war-status-bar,
+  .nav-collapse-btn, #sys-status-bar, .page-actions { display:none !important; }
+  body, .main, .page { background:#fff !important; color:#000 !important; }
+  .card { border:1px solid #ccc !important; box-shadow:none !important; }
+  .page { display:block !important; }
+  @page { margin:1.5cm; }
+  .page::before {
+    content:"慈濟 DRMS 災害應變管理系統　列印時間：" attr(data-print-time);
+    display:block;font-size:11px;border-bottom:1px solid #ccc;padding-bottom:6px;margin-bottom:12px;
+  }
+}
