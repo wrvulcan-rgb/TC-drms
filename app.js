@@ -1893,6 +1893,132 @@ function renderSheetReg(){
   el.innerHTML=html;
 }
 function setSheetTab(tab){ DATA.registry._sheetTab=tab; renderSheetReg(); }
+var _monitorMap=null; // Leaflet map singleton
+var _monitorPulseCanvas=null;
+var _monitorPulseAnim=null;
+
+function initMonitorMap(){
+  if(!window.L) return;
+  var el=document.getElementById('monitor-map');
+  if(!el) return;
+  if(_monitorMap){ _monitorMap.invalidateSize(); return; }
+
+  // 暗色底圖 CartoDB Dark
+  _monitorMap=L.map('monitor-map',{zoomControl:false,attributionControl:false}).setView([23.6,121],7);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    maxZoom:18,subdomains:'abcd'
+  }).addTo(_monitorMap);
+  L.control.zoom({position:'bottomright'}).addTo(_monitorMap);
+  L.control.attribution({position:'bottomleft',prefix:''}).addTo(_monitorMap)
+    .addAttribution('<span style="color:#334155;font-size:8px">© CartoDB · USGS</span>');
+
+  // 志工站（模擬嘉義地區）
+  var volSites=[
+    {ll:[23.46,120.43],name:'竹崎國小 資源站'},
+    {ll:[23.58,120.62],name:'梅山活動中心'},
+    {ll:[23.39,120.38],name:'大埔站'},
+    {ll:[23.47,120.46],name:'竹崎倉儲'},
+  ];
+  volSites.forEach(function(s){
+    L.circleMarker(s.ll,{radius:7,fillColor:'#4ADE80',color:'#4ADE80',weight:1,fillOpacity:.85,opacity:.9})
+      .addTo(_monitorMap).bindPopup('<b style="color:#4ADE80">'+s.name+'</b>');
+  });
+
+  // 收容所（模擬）
+  var shelters=[
+    {ll:[23.48,120.44],name:'竹崎避難所 A'},
+    {ll:[23.56,120.60],name:'梅山避難所 B'},
+    {ll:[23.35,120.36],name:'大埔收容所'},
+  ];
+  shelters.forEach(function(s){
+    L.circleMarker(s.ll,{radius:6,fillColor:'#FBBF24',color:'#FBBF24',weight:1,fillOpacity:.8,opacity:.9})
+      .addTo(_monitorMap).bindPopup('<b style="color:#FBBF24">'+s.name+'</b>');
+  });
+
+  // 物資站（模擬）
+  var supplies=[
+    {ll:[23.50,120.45],name:'物資站 A'},
+    {ll:[23.53,120.55],name:'物資站 B'},
+  ];
+  supplies.forEach(function(s){
+    L.circleMarker(s.ll,{radius:6,fillColor:'#818CF8',color:'#818CF8',weight:1,fillOpacity:.8,opacity:.9})
+      .addTo(_monitorMap).bindPopup('<b style="color:#818CF8">'+s.name+'</b>');
+  });
+
+  // 加上 Canvas 脈衝動畫 overlay
+  monitorStartPulse();
+
+  // 抓 USGS 地震並畫在地圖上
+  monitorMapQuake();
+}
+
+function monitorMapQuake(){
+  if(!_monitorMap) return;
+  fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      (data.features||[]).forEach(function(q){
+        var mag=q.properties.mag||0;
+        var c=q.geometry.coordinates;
+        if(!c) return;
+        var ll=[c[1],c[0]];
+        var radius=Math.max(4, mag*3);
+        var color=mag>=5?'#F87171':mag>=4?'#FBBF24':'#94A3B8';
+        L.circleMarker(ll,{
+          radius:radius,
+          fillColor:color,color:color,
+          weight:1,fillOpacity:.55,opacity:.8
+        }).addTo(_monitorMap)
+          .bindPopup('<b style="color:'+color+'">M'+mag.toFixed(1)+'</b><br><span style="font-size:11px;color:#94A3B8">'+(q.properties.place||'')+'</span>');
+      });
+    }).catch(function(){});
+}
+
+function monitorStartPulse(){
+  // 在 map container 上疊加 canvas，畫脈衝波動點
+  var mapEl=document.getElementById('monitor-map');
+  if(!mapEl) return;
+  var canvas=document.createElement('canvas');
+  canvas.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:400;border-radius:var(--r)';
+  canvas.width=mapEl.offsetWidth||600;
+  canvas.height=mapEl.offsetHeight||340;
+  mapEl.style.position='relative';
+  mapEl.appendChild(canvas);
+  _monitorPulseCanvas=canvas;
+
+  var W=canvas.width, H=canvas.height;
+  // 幾個固定脈衝點位（螢幕座標，對應嘉義地區）
+  var pulses=[
+    {x:W*0.38,y:H*0.62,color:'74,222,128',r:0,max:28,spd:0.6},
+    {x:W*0.45,y:H*0.52,color:'74,222,128',r:8,max:28,spd:0.6},
+    {x:W*0.32,y:H*0.70,color:'251,191,36',r:4,max:22,spd:0.5},
+    {x:W*0.42,y:H*0.58,color:'129,140,248',r:12,max:22,spd:0.5},
+    {x:W*0.48,y:H*0.48,color:'129,140,248',r:0,max:22,spd:0.5},
+  ];
+
+  function draw(){
+    var ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,W,H);
+    pulses.forEach(function(p){
+      p.r+=p.spd;
+      if(p.r>p.max) p.r=0;
+      var alpha=1-(p.r/p.max);
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.strokeStyle='rgba('+p.color+','+alpha+')';
+      ctx.lineWidth=1.5;
+      ctx.stroke();
+      // 固定中心點
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,3,0,Math.PI*2);
+      ctx.fillStyle='rgba('+p.color+',0.9)';
+      ctx.fill();
+    });
+    _monitorPulseAnim=requestAnimationFrame(draw);
+  }
+  draw();
+}
+
 function renderMonitor(){
   // ── 注入「情資雷達」區塊（首次進入時）──
   if(!document.getElementById('monitor-radar')){
@@ -1908,6 +2034,7 @@ function renderMonitor(){
       kpiEl.parentNode.insertBefore(radar, kpiEl);
     }
   }
+  initMonitorMap();
   monitorFetchQuake();
   monitorRenderWx();
   monitorRenderTraffic();

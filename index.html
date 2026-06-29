@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <title>慈濟 DRMS v4</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260628d">
+<link rel="stylesheet" href="style.css?v=20260628e">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 </head>
 <body>
 
@@ -479,6 +480,18 @@
 <!-- ══ 全域監控 ══ -->
 <div class="page" id="page-monitor">
   <div class="pg-hdr"><div><div class="pg-title">🖥️ 全域監控</div><div class="pg-sub">高層決策視圖 · 大方向掌握，不涉細節操作</div></div></div>
+
+  <!-- 即時地圖 -->
+  <div class="m-r-card" style="margin-bottom:16px;padding:0;overflow:hidden;position:relative">
+    <div id="monitor-map" style="height:340px;width:100%;border-radius:var(--r)"></div>
+    <div id="monitor-map-legend" style="position:absolute;top:10px;right:10px;z-index:500;display:flex;flex-direction:column;gap:5px;pointer-events:none"></div>
+    <div style="position:absolute;bottom:10px;left:12px;z-index:500;display:flex;gap:8px;align-items:center;pointer-events:none">
+      <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:10px;height:10px;border-radius:50%;background:rgba(248,113,113,0.8);border:1px solid #F87171;display:inline-block"></span>地震</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:10px;height:10px;border-radius:50%;background:rgba(74,222,128,0.8);border:1px solid #4ADE80;display:inline-block"></span>志工站</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:10px;height:10px;border-radius:50%;background:rgba(251,191,36,0.8);border:1px solid #FBBF24;display:inline-block"></span>收容所</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94A3B8;font-family:monospace"><span style="width:10px;height:10px;border-radius:50%;background:rgba(129,140,248,0.8);border:1px solid #818CF8;display:inline-block"></span>物資站</span>
+    </div>
+  </div>
 
   <!-- 高層 KPI -->
   <div id="monitor-kpi" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
@@ -1036,6 +1049,7 @@
 
 </div><!-- /main -->
 
-<script src="app.js?v=20260628d"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="app.js?v=20260628e"></script>
 </body>
 </html>
