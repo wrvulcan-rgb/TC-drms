@@ -282,6 +282,18 @@ function renderLOACheckin(){
     +'</div>';
   html+='<button class="btn btn-blue" style="width:100%;justify-content:center;font-size:12px;margin-top:10px" onclick="loaPushCheckinQR()">📲 推播 QR 至志工 Line</button>';
   html+='<button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px;margin-top:6px" onclick="closeLineOAPanel();showPage(\'vol_hub\');setVolHubTab(\'checkin\')">↗ 前往報名管理頁</button>';
+  // 簽退區：列出已報到志工，提供簽退按鈕
+  var checkedIn=DATA.registry.innerMembers.filter(function(m){return m.checkin;});
+  if(checkedIn.length){
+    html+='<div style="border-top:1px solid rgba(255,255,255,.1);margin-top:12px;padding-top:10px;font-size:11px;font-weight:600;color:#e2e8f0;margin-bottom:8px">🚪 簽退</div>';
+    checkedIn.forEach(function(m){
+      var idx=DATA.registry.innerMembers.indexOf(m);
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;margin-bottom:4px;background:rgba(255,255,255,.04);border-radius:6px;font-size:11px;color:#e2e8f0">'
+        +'<span>'+m.name+' <span style="color:#94a3b8;font-size:10px">'+m.checkinTime+'</span></span>'
+        +'<button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="volCheckout(\'inner\','+idx+');renderLOACheckin&&renderLOAPanel&&renderLOAPanel()">🚪 簽退</button>'
+        +'</div>';
+    });
+  }
   return html;
 }
 function renderLOARollcall(){
@@ -1858,7 +1870,7 @@ function renderSheetReg(){
     html+='<div class="card"><div class="card-title" style="justify-content:space-between">'
       +'<span>慈誠委員名冊</span>'
       +'<span class="badge badge-'+(innerChk===d.innerMembers.length?'green':'amber')+'">'+innerChk+'/'+d.innerMembers.length+' 已報到</span></div>'
-      +'<table class="tbl"><thead><tr><th>編號</th><th>姓名</th><th>組別</th><th>性別</th><th>報到</th><th>時間</th></tr></thead><tbody>';
+      +'<table class="tbl"><thead><tr><th>編號</th><th>姓名</th><th>組別</th><th>性別</th><th>報到</th><th>時間</th><th>操作</th></tr></thead><tbody>';
     for(var i=0;i<d.innerMembers.length;i++){
       var m=d.innerMembers[i];
       html+='<tr><td style="font-family:monospace;font-weight:600">'+m.code+'</td>'
@@ -1866,14 +1878,15 @@ function renderSheetReg(){
         +'<td><span class="badge badge-blue" style="font-size:9px">'+m.group+'</span></td>'
         +'<td style="font-size:11px">'+m.gender+'</td>'
         +'<td>'+(m.checkin?'<span class="badge badge-green">✓</span>':'<span class="badge badge-amber">待</span>')+'</td>'
-        +'<td style="font-family:monospace;font-size:11px">'+(m.checkinTime||'—')+'</td></tr>';
+        +'<td style="font-family:monospace;font-size:11px">'+(m.checkinTime||'—')+'</td>'
+        +'<td>'+(m.checkin?'<button class="btn btn-ghost btn-xs" onclick="volCheckout(\'inner\','+i+')">🚪 簽退</button>':'')+'</td></tr>';
     }
     html+='</tbody></table></div>';
   } else {
     html+='<div class="card"><div class="card-title" style="justify-content:space-between">'
       +'<span>社區志工報名表 — '+(canSee?'完整':'個資遮蔽')+'</span>'
       +'<span style="font-size:10px;color:var(--text4)">'+d.volunteers.length+'/'+d.stats.total+' 筆</span></div>'
-      +'<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>#</th><th>姓名</th><th>身分證</th><th>電話</th><th>飲食</th><th>時段</th><th>體能</th><th>性別</th><th>年齡</th><th>報到</th></tr></thead><tbody>';
+      +'<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>#</th><th>姓名</th><th>身分證</th><th>電話</th><th>飲食</th><th>時段</th><th>體能</th><th>性別</th><th>年齡</th><th>報到</th><th>操作</th></tr></thead><tbody>';
     for(var j=0;j<d.volunteers.length;j++){
       var v=d.volunteers[j];
       html+='<tr><td style="color:var(--text4);font-family:monospace">'+(j+1)+'</td>'
@@ -1885,7 +1898,8 @@ function renderSheetReg(){
         +'<td style="font-size:10px">'+v.lift.substring(0,4)+'</td>'
         +'<td style="font-size:11px">'+v.gender+'</td>'
         +'<td style="font-size:11px">'+v.age+'</td>'
-        +'<td>'+(v.checkin?'<span class="badge badge-green" style="font-size:9px">✓</span>':'<span class="badge badge-amber" style="font-size:9px">待</span>')+'</td></tr>';
+        +'<td>'+(v.checkin?'<span class="badge badge-green" style="font-size:9px">✓</span>':'<span class="badge badge-amber" style="font-size:9px">待</span>')+'</td>'
+        +'<td>'+(v.checkin?'<button class="btn btn-ghost btn-xs" onclick="volCheckout(\'outer\','+j+')">🚪 簽退</button>':'')+'</td></tr>';
     }
     html+='</tbody></table></div>'
       +'<div style="margin-top:8px;font-size:10px;color:var(--text4);text-align:right">完整 '+d.stats.total+' 筆請至 <a href="'+d.sheetUrl+'" target="_blank" style="color:var(--blue)">Google Sheets</a></div>'
@@ -1894,6 +1908,18 @@ function renderSheetReg(){
   el.innerHTML=html;
 }
 function setSheetTab(tab){ DATA.registry._sheetTab=tab; renderSheetReg(); }
+function volCheckout(type, idx){
+  var members=(type==='inner')?DATA.registry.innerMembers:DATA.registry.volunteers;
+  var m=members[idx]; if(!m||!m.checkin) return;
+  var ts=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var uid=(type==='inner'?m.code:m.name)||('v-'+idx);
+  if(!DATA.registry.checkinLog) DATA.registry.checkinLog=[];
+  DATA.registry.checkinLog.push({type:'out',ts:ts,uid:uid,memberType:type});
+  m.checkin=false; m.checkinTime='';
+  logSys('ok','【簽退】'+uid+' 已於 '+ts+' 簽退');
+  toast('✅ '+uid+' 簽退完成（'+ts+'）');
+  saveData(); renderSheetReg();
+}
 var _monitorMap=null; // Leaflet map singleton
 var _monitorPulseCanvas=null;
 var _monitorPulseAnim=null;
@@ -2965,6 +2991,7 @@ DATA.registry={
   sheetUrl:'https://docs.google.com/spreadsheets/d/1Z8ATtX2T7scu_UEFm0vpTSqgsVE2rhF3wzI2rTeszYU/edit',
   gasUrl:'',
   innerGasUrl:'',
+  checkinLog:[],
   stats:{total:200,male:101,female:92,heavyLift:58,normalLift:72,lightOnly:45,noLift:25,morningOnly:52,afternoonOnly:48,anytime:100,innerTotal:142,innerChecked:0,outerTotal:58,outerChecked:0},
   innerMembers:[
     {code:'CI-001',name:'林師姐',gender:'女',group:'醫護組',checkin:'',checkinTime:''},
