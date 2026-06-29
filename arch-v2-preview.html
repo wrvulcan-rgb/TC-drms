@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>系統架構心智圖 v2-preview（班長制 × Uber接案 × 五大串聯）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="arch-style.css">
+<style>
+body{margin:0;padding:0;background:#F5F5F5;font-family:'Inter','Noto Sans TC',sans-serif}
+.preview-banner{background:linear-gradient(135deg,#ecfdf5,#eff6ff);border-bottom:2px solid rgba(16,185,129,.3);padding:10px 20px;display:flex;align-items:center;gap:12px;font-size:12px}
+.preview-banner strong{font-size:13px;color:#065f46}
+.preview-banner .badge{background:#10b981;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.05em}
+.preview-banner .new-list{display:flex;flex-wrap:wrap;gap:6px;margin-left:4px}
+.preview-banner .new-node{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px}
+.preview-banner .back-link{margin-left:auto;color:#6b7280;font-size:11px;text-decoration:none;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;background:#fff}
+.preview-banner .back-link:hover{border-color:#10b981;color:#065f46}
+#arch-root{padding:18px}
+/* 現場指揮層場域 */
+#arch-root .zone.field{background:rgba(16,185,129,.06);border:1.5px solid rgba(16,185,129,.25)}
+#arch-root .zone.field .zone-lbl{color:#10b981}
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  <span class="badge">v2 Preview</span>
+  <strong>班長制 × Uber接案 × 五大串聯</strong>
+  <span style="color:#6b7280">新增節點：</span>
+  <div class="new-list">
+    <span class="new-node">🪖 班組管理</span>
+    <span class="new-node">📋 任務池</span>
+    <span class="new-node">📅 梯次排班</span>
+    <span class="new-node">🗺️ 作戰指揮圖</span>
+    <span class="new-node">🤝 交接日誌</span>
+    <span class="new-node">💰 金援帳本</span>
+    <span class="new-node">🚑 人員意外</span>
+    <span class="new-node">🤖 智慧媒合</span>
+  </div>
+  <a class="back-link" href="index.html">← 返回主系統</a>
+</div>
+
+<div id="arch-root">
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>🗺️ 系統架構心智圖 <span class="ver" id="arch-ver">v4.0 · v2-Preview</span></h1>
+      <div class="hint">班長制＋任務池＋梯次排班＋作戰指揮圖＋交接日誌＋金援帳本＋人員意外＋智慧媒合。拖曳排版 · 點節點或線看說明 · ▶ 故事導覽逐段講解。</div>
+    </div>
+    <div class="toolbar">
+      <button class="tbtn play" onclick="arch_storyStart()">▶ 故事導覽</button>
+      <button class="tbtn" onclick="arch_resetLayout()">↺ 重置佈局</button>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="lg"><span class="d" style="background:var(--green)"></span>已開通</div>
+    <div class="lg"><span class="d" style="background:var(--amber)"></span>部分</div>
+    <div class="lg"><span class="d" style="background:var(--red)"></span>未開通</div>
+    <div class="lg"><span class="ln"></span>現行</div>
+    <div class="lg"><span class="ln dash"></span>規劃/次要</div>
+    <div class="lg">→ 單向 · ↔ 雙向</div>
+    <div class="lg" style="background:rgba(16,185,129,.08);padding:2px 8px;border-radius:6px;border:1px solid rgba(16,185,129,.25)"><span style="font-size:9px;font-weight:700;color:#10b981">● 新增（v2）</span></div>
+  </div>
+
+  <div class="views" id="arch-views">
+    <button class="vpill act" data-view="decider" onclick="arch_setView('decider')">👔 決策者<span class="vsub">救災怎麼跑</span></button>
+    <button class="vpill" data-view="volunteer" onclick="arch_setView('volunteer')">🙋 志工<span class="vsub">我的一條線</span></button>
+    <button class="vpill" data-view="tech" onclick="arch_setView('tech')">🔧 技術維運<span class="vsub">資料與待修</span></button>
+    <button class="vpill" data-view="health" onclick="arch_setView('health')">🩺 健檢<span class="vsub">補/整合/風險</span></button>
+    <button class="vpill" data-view="all" onclick="arch_setView('all')">◍ 全部</button>
+  </div>
+
+  <div class="main-layout">
+    <div class="stage-col">
+      <div class="stage" id="arch-stage">
+        <svg class="edges" id="arch-edges" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="story-bar" id="arch-storyBar">
+        <div class="story-step" id="arch-storyStep">1 / N</div>
+        <div class="story-text" id="arch-storyText"></div>
+        <div class="story-nav">
+          <button class="snav" id="arch-sPrev" onclick="arch_storyPrev()">‹</button>
+          <button class="snav" id="arch-sNext" onclick="arch_storyNext()">›</button>
+          <button class="snav" onclick="arch_storyEnd()">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail" id="arch-detail">
+      <div class="detail-empty"><div class="detail-placeholder-icon">🗺️</div>點擊任一節點或連線<br>查看設計說明與理念</div>
+    </div>
+  </div>
+  <div class="note">v2-preview：新增現場指揮層（班組管理 / 任務池 / 梯次排班 / 作戰指揮圖 / 交接日誌 / 金援帳本 / 人員意外 / 智慧媒合）。原有架構完整保留，本頁僅供預覽，不影響主系統。</div>
+</div>
+</div>
+
+<div id="arch-pvMask" onclick="if(event.target===this)arch_pvHide()">
+  <div id="arch-pvBox">
+    <div id="arch-pvHead"><h3 id="arch-pvTitle">現況示意</h3><span class="pvtag">示意圖 · 非實際資料</span><button id="arch-pvClose" onclick="arch_pvHide()">✕</button></div>
+    <div id="arch-pvBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+var root=document.getElementById('arch-root');
+
+var ZONES=[
+  {cls:'tzu', lbl:'慈濟基金會 · 指揮', x:2,  y:8,  w:44, h:84},
+  {cls:'vol', lbl:'志工端 · 前線',     x:54, y:4,  w:44, h:42},
+  {cls:'ppl', lbl:'鄉親端 · 受助',     x:54, y:48, w:30, h:30},
+  {cls:'gov', lbl:'政府',             x:88, y:50, w:10, h:26},
+  {cls:'back',lbl:'後端服務層',         x:30, y:82, w:44, h:15},
+  // ── v2 新增 ──
+  {cls:'field',lbl:'現場指揮層 · 班組/梯次', x:46, y:4, w:52, h:40}
+];
+
+var NODES=[
+  {id:'drill',    nm:'平時演練', ico:'🎯', x:14, y:14, status:'live', kind:'trigger', trigger:true,
+    script:'救災能力不是天生的，是練出來的。我設計這個模組的出發點很簡單：如果只有真實災害才能操作系統，那志工第一次用就是最緊張的時候，這不合理。平時演練讓整個系統在沒有壓力的情境下被完整走過一遍，幹部熟悉派工流程、志工熟悉報到步驟、後勤熟悉物資調度。',
+    desc:'平時模式啟動源。排程或手動發起演練，載入情境劇本，進入儀表板平時模式。'},
+  {id:'activate', nm:'戰時啟動', ico:'🚨', x:30, y:9,  status:'live', kind:'trigger', trigger:true,
+    script:'我把戰時啟動設計為「現場發動，不等上面」。傳統模式是等待指揮部下令，但災害現場的狀況往往是第一線志工先知道。讓當區志工能在手機上觸發啟動，系統就立刻切換到戰時模式。',
+    desc:'戰時模式啟動源。當區志工觸發，系統切戰時，依災型/受災等級動態開關模組，進入儀表板。'},
+  {id:'dashboard',nm:'總控儀表板', ico:'📊', x:34, y:24, status:'live', kind:'core',
+    script:'設計這個儀表板的核心想法是：高層不應該靠人回報才知道現場狀況。總控儀表板讓受災戶數、撤離人數、志工到位率、物資完成率在同一個畫面即時呈現。',
+    desc:'高層/總控專用。KPI、情境模擬(10災型)、戰時派遣、可編輯版面、AI 戰術分析。'},
+  {id:'staff',    nm:'幹部/高層', ico:'👔', x:13, y:32, status:'live', kind:'actor',
+    script:'指揮端設計的基本原則是「角色決定視野」。同樣的系統，幹部看到的模組、能執行的操作，和高層、總控不同。',
+    desc:'慈濟指揮端(Web 後台)。幹部、總控、高層，依角色不同權限與可見模組。'},
+  {id:'monitor',  nm:'全域監控', ico:'🖥️', x:11, y:54, status:'live', kind:'core',
+    script:'全域監控是「只看不碰」的設計。我把它獨立出來，是因為在指揮中心裡，投影在大屏上的畫面不能是會被人亂按的操作介面。',
+    desc:'高層唯讀決策視圖：情資彙整、前線需求、即時影像、外部連線狀態。不涉操作。'},
+  {id:'reg',      nm:'報名報到', ico:'📋', x:14, y:73, status:'live', kind:'core',
+    script:'報名報到解決的是一個很現實的問題：志工到場了，但幹部不知道誰來了、能派誰。這個模組讓志工在 Line OA 自助完成報到，資料自動進入幹部端名冊，再進入調度中台成為可派人力。',
+    desc:'幹部端報到管理視圖。Line OA 報到資料寫入名冊，供調度派工。今日報到+明日報名雙軌。'},
+  {id:'sheet_reg',nm:'報名資料總表', ico:'📑', x:28, y:68, status:'partial', kind:'core',
+    script:'這個模組的設計初衷是讓報名資料有一個「主表」。後端程式（GAS）已建好，目前只差設定 /exec 網址就能上線。',
+    desc:'幹部端 Sheets 報名管理(慈誠委員+社區志工)。GAS 後端已建，需設定 /exec 網址。'},
+  {id:'vms',      nm:'志工管理', ico:'👥', x:27, y:42, status:'live', kind:'core',
+    script:'志工管理解決的是調度的基礎問題：你必須先知道有誰、他們能做什麼，才能做出有意義的派工決定。',
+    desc:'人員資料、任務指派、報告。指派結果進調度中台。'},
+  {id:'sysadmin', nm:'系統管理層', ico:'🛡️', x:40, y:58, status:'live', kind:'admin',
+    script:'系統管理層是整個平台的「設定中樞」，讓系統本身可以被配置，而不是寫死在程式裡。',
+    desc:'功能後台(權限矩陣、模組管理)+後台維運(系統設定、Gmail/Line 串接、版本備份還原)。'},
+  {id:'rtsync',   nm:'即時調度中台', ico:'⚡', x:50, y:50, status:'live', kind:'core', center:true, locked:true,
+    script:'我把即時調度中台放在心智圖正中央，不是視覺設計的習慣，而是它真的就是整個系統的核心。調度中台的設計理念是把所有第一線的動作收攏到一個地方——任務建立、派工、物資調度、緊急警報、SOS、點名，全部在同一個介面完成。',
+    desc:'現場唯一指揮橋樑。4 tab：派任務/看進度(含出貨)/結案/緊急(警報+SOS+點名)。所有派工、調度、叫料媒合在此。'},
+  {id:'volunteer',nm:'當區志工', ico:'👥', x:58, y:12, status:'live', kind:'actor',
+    script:'整個系統設計的最終使用者，其實是這群拿著手機在現場服務的志工。所以我的設計原則是：志工在 Line OA 完成所有操作，不需要下載 App，不需要登入帳號，手機開 LINE 就能用。',
+    desc:'前線志工(手機/Line OA)。戰時觸發啟動、報到入列、現場執行與回報。'},
+  {id:'lineoa',   nm:'Line OA', ico:'💬', x:62, y:30, status:'partial', kind:'channel',
+    script:'選擇 LINE OA 作為志工介面，是因為它已經是志工日常生活的一部分。要求志工下載 App、記帳號密碼，這個門檻在緊急狀況下會直接讓人放棄。',
+    desc:'志工自助報到入口 + 收任務 + 勘災回報 + 叫料輸入/派送通知。模擬器已內嵌，真實 Webhook 待接。'},
+  {id:'sorting',  nm:'物資整理站', ico:'📥', x:78, y:14, status:'live', kind:'limb',
+    script:'捐贈物資到達現場的時候，往往是混亂的——不同種類、不同狀況、不同包裝全部混在一起。物資整理站是「讓混亂變成庫存」的第一關。',
+    desc:'志工線。收件→拆箱分類→報廢/覆核→重包裝→入庫。一般物資處理起點。'},
+  {id:'warehouse',nm:'物資倉儲', ico:'📦', x:90, y:26, status:'live', kind:'limb',
+    script:'物資倉儲讓「我們有什麼」這件事變得透明。三級分類造冊讓任何一個幹部打開系統都能立刻知道庫存狀態，不需要問人、不需要靠記憶。',
+    desc:'志工線。三級分類造冊、入庫、發送。一般物資。對外出貨經調度媒合。'},
+  {id:'drive',    nm:'照片回報分類', ico:'📷', x:70, y:44, status:'partial', kind:'limb',
+    script:'現場照片是救災紀錄最重要的一部分，照片回報分類讓志工直接在 LINE 上傳照片，系統自動對應個案和任務、歸類到 Google Drive 正確的資料夾。',
+    desc:'Line OA 回傳照片→Drive→自動分類。前端流程完成，Drive API 待設定。'},
+  {id:'fieldgroup',nm:'L3 現場群', ico:'🏕️', x:66, y:62, status:'live', kind:'limb', center:false,
+    script:'L3 現場群是整個系統最靠近鄉親的地方，也是我設計這套系統最核心的初衷。前面所有的調度、派工、物資管理，最終目的都是讓這一段順暢進行。',
+    desc:'服務鄉親的現場執行群(志工操作、鄉親受助)。安心祝福金併於關懷紀錄發放。',
+    subs:['安置收容管理','個案管理系統','關懷行動紀錄(含安心祝福金)','慈濟資產調度']},
+  {id:'emic',     nm:'政府 EMIC', ico:'🏛️', x:93, y:60, status:'planned', kind:'future', mini:true,
+    script:'政府 EMIC（消防署災害應變系統）的節點先放在這裡，是一個方向性的預留，不是近期實作目標。',
+    desc:'消防署災害應變系統。未來與全域監控雙向交換災情/資源，尚未規劃實作。'},
+  {id:'story',    nm:'故事線結案', ico:'📖', x:55, y:74, status:'live', kind:'core',
+    script:'故事線結案解決的是一個長期被忽視的問題：每一場救災結束後，我們做了什麼、為什麼這樣做、哪裡出了問題，這些經驗往往散落在個人記憶和零散紀錄裡，下一次很難傳承。',
+    desc:'結案讀 audit log 串時間軸敘事，含 session 場次/錯誤聚合/UX 卡頓遙測。匯出 JSON 當演練劇本。'},
+  {id:'backend',  nm:'後端服務層', ico:'🗄️', x:50, y:89, status:'partial', kind:'backend',
+    script:'後端服務層的設計是分三個階段走：第一階段 localStorage，第二階段 Google Sheets + GAS，第三階段 Firebase RTDB。',
+    desc:'資料存放與同步層。本機儲存、雲端後端、即時同步。',
+    subs:['localStorage（本機資料/版本備份/場次/遙測，離線可用）','GAS + Sheets（報名/個案後端，待設定 /exec）','Firebase RTDB（多人共編，規劃中）']},
+
+  /* ── v2 新增：現場指揮層 ── */
+  {id:'squad', nm:'班組管理', ico:'🪖', x:60, y:18, status:'planned', kind:'core',
+    script:'班組是這次架構強化的最核心新增。原有系統的任務分到「人名」，但慈濟真實出班是以「班組」為單位：班長帶 5-10 人，統一接單、統一執行、統一回報。班組管理建立三層指揮鏈（總指揮→區隊長→班長→班員），讓每一筆人力都知道自己屬於哪個班、班屬於哪個梯次、梯次屬於哪個區域。這是所有後續功能（任務池、梯次排班、作戰指揮圖）的資料地基，不建就全卡。',
+    desc:'三層指揮鏈。DATA.squads：班長/班員/配屬車輛/責任區/梯次/狀態/技能標籤。志工報到後自動歸隊，班長手機即時看到本班人數。'},
+  {id:'taskpool', nm:'任務池', ico:'📋', x:75, y:22, status:'planned', kind:'core',
+    script:'任務池是 Uber 接案模式的實體。HQ 建立任務後進入池中，班長手機依「距離/技能/容量」排序看到最適合自己的任務，一鍵接單。三種模式可切換：自由搶單（資源充足時）、HQ 指派（緊急任務）、智慧媒合（系統推薦，班長確認）。關鍵設計：指派優先，15 分鐘無人接才開放搶單；隱藏搶單競爭數字，避免慈濟文化排斥競爭感。',
+    desc:'Uber 接案介面。Task 含：類型/地點GPS/所需技能/優先級P0-P3/狀態/接單班組/完成照片。班長一鍵接，班員自動收 LINE 推播。'},
+  {id:'tier', nm:'梯次排班', ico:'📅', x:58, y:32, status:'planned', kind:'core',
+    script:'梯次是慈濟出班的基本單位，但原有系統沒有這個概念。梯次排班模組讓幹部在出班前排好「誰幾點去哪、開哪台車、集合在哪」。DATA.tiers 綁定班組+車輛+集合點+帶隊幹部，確認後推播給所有班長。類 Google Calendar 時間軸 UI，班組用色塊標示，可拖移調整。',
+    desc:'梯次三要素：時間/班組/車輛。確認後推播班長。系統自動檢查車輛缺口並建議配對。'},
+  {id:'cmdmap', nm:'作戰指揮圖', ico:'🗺️', x:72, y:34, status:'planned', kind:'core',
+    script:'HQ 需要一個畫面同時看到「所有班現在在哪、做什麼、狀態如何」。作戰指揮圖在地圖底圖上疊加班組色塊（待命/執行中/移動中/SOS）、任務熱力圖（紅黃綠點）和人力空白區警示。當某班觸發 SOS，系統自動建議「最近待命班→支援」，HQ 一鍵確認即觸發雙邊通知。',
+    desc:'地圖底圖 + 班組即時狀態色塊 + 任務熱力圖。人力空白區自動警示。一鍵增援觸發雙邊 LINE 通知。'},
+  {id:'handover', nm:'交接日誌', ico:'🤝', x:60, y:46, status:'planned', kind:'core',
+    script:'梯次交接一直靠 LINE 群口頭交接，資訊大量流失。交接日誌在收班時自動從系統抓取快照：未完成任務（附進度和現場備注）、物資差異（借出 vs 歸還 diff）、待追蹤紅標個案、現場安全狀況。班長只需確認並填補空白欄位，不從零開始打字。',
+    desc:'收班強制流程。系統自動生成快照：未完任務/物資差異/待追個案/現場安全。班長確認→推播下梯→不可修改存檔。'},
+  {id:'relief_ledger', nm:'金援帳本', ico:'💰', x:76, y:46, status:'planned', kind:'core',
+    script:'慈濟現金發放缺乏完整簽收鏈，是公信力風險。金援帳本建立嚴格的發放流程：從個案自動帶入受災戶資訊→身份確認→雙人見證→受災戶手機簽名→存證照（含時間戳浮水印）→寫入不可刪除帳本。自動 Gmail 給財務組（附 PDF）。月底自動生成發放總表 CSV 供對帳。',
+    desc:'發放五步驟：身份確認→金額→受災戶簽名→雙人見證→存證照。不可刪帳本。Gmail 自動推財務。月報 CSV 匯出。'},
+  {id:'incident', nm:'人員意外', ico:'🚑', x:58, y:58, status:'planned', kind:'core',
+    script:'志工在現場受傷是慈濟出班一定會遇到的情境，但原有系統完全沒有這個流程。人員意外模組讓班長即時回報：傷者姓名/情況/GPS/任務ID，自動通知總指揮和傷者緊急聯絡人，生成事故記錄（保險理賠用）。報到時間戳+GPS+任務ID構成不可竄改的「出班證明」，確保保險理賠有據可查。',
+    desc:'傷亡即時回報→通知總指揮+緊急聯絡人。自動生成事故記錄（含時間戳/GPS/任務ID）。保險理賠不可竄改依據。'},
+  {id:'matchengine', nm:'智慧媒合引擎', ico:'🤖', x:72, y:58, status:'planned', kind:'future',
+    script:'智慧媒合是 Phase 4 的功能，需要至少 3 次真實出班資料才有意義，做早了是空殼。媒合評分公式：score = (1/距離)×0.4 + 技能匹配×0.3 + 可用容量/需求人數×0.2 + (1/當前負載)×0.1。任務發布時自動計算 Top3 推薦班組並附推薦原因，班長可接受或拒絕。',
+    desc:'Phase 4。媒合評分：距離40%+技能30%+容量20%+負載10%。任務發布自動推薦Top3。SOS觸發重新媒合。需3次以上真實出班資料。'}
+];
+
+var EDGES=[
+  {from:'drill',to:'dashboard',label:'平時啟動',
+    talk:'平時演練和儀表板之間的連線，代表系統有兩種運作模式。這條線確保系統在沒有災害的時候不會閒置——幹部可以隨時發起演練場次，讓所有人在低壓環境下熟悉完整流程。',
+    flow:'平時模式進入。傳輸：演練劇本載入、情境參數初始化，儀表板進入平時模式。'},
+  {from:'volunteer',to:'activate',label:'當區觸發',
+    talk:'這條線代表一個重要的設計選擇：啟動權在現場，不在指揮部。讓第一線志工觸發戰時啟動，系統反應速度就等於志工的反應速度。',
+    flow:'當區志工於災害發生時觸發戰時啟動。傳輸：災害位置、初判等級。'},
+  {from:'activate',to:'dashboard',label:'戰時啟動',
+    talk:'戰時啟動到儀表板這條線，讓系統配置自動跟著災害類型走。不同的災型（颱風、地震、水災）需要開不同的模組，這條連線讓這件事自動發生。',
+    flow:'戰時模式進入。傳輸：災型/受災等級，動態開關模組並預置任務範本，儀表板進入戰時模式。'},
+  {from:'staff',to:'dashboard',label:'操作',
+    talk:'指揮端與儀表板的連線是雙向互動：幹部在儀表板上看數據、下達指令、調整情境模擬。儀表板是幹部日常管理系統的主要入口。',
+    flow:'幹部/高層操作儀表板。傳輸：UI 互動、模擬參數、版面設定。純前端。'},
+  {from:'dashboard',to:'rtsync',label:'戰時派遣',
+    talk:'儀表板到調度中台是「決策轉為行動」的關鍵連線。高層在儀表板做的判斷，透過這條線轉成調度中台的任務範本和優先級，讓現場執行有明確依據。',
+    flow:'戰時自儀表板觸發派遣。傳輸：災型/等級參數，預置調度中台任務範本與優先級。'},
+  {from:'staff',to:'rtsync',label:'指揮',
+    talk:'幹部到調度中台的直接連線，讓指揮和調度能同步進行。幹部不需要透過儀表板中轉就能直接建立任務、調整指派。',
+    flow:'幹部下達指揮。傳輸：任務建立/指派/狀態變更，寫派工並觸發推播與稽核。'},
+  {from:'volunteer',to:'lineoa',label:'報到',
+    talk:'志工用 LINE 報到這條線的設計前提是：不能要求志工在緊急狀況下學新工具。LINE 是他們已經熟悉的通訊軟體，報到流程嵌在裡面，進入系統的門檻就接近零。',
+    flow:'志工經 Line OA 自助報到。傳輸：身分、報到時間、場次標記。'},
+  {from:'lineoa',to:'reg',label:'寫名冊',
+    talk:'LINE OA 到名冊這條線消除了人工抄寫的環節。自動寫入讓「人到位」這個事實立刻進入系統，沒有延遲。',
+    flow:'報到資料寫入幹部端名冊。傳輸：志工身分、報到狀態。'},
+  {from:'reg',to:'rtsync',label:'可派人力',
+    talk:'名冊到調度中台這條線讓「人到了」和「可以被派工」之間沒有斷點。調度中台不需要幹部手動告知「現在有多少人」，它從名冊自動取得可用人力清單。',
+    flow:'名冊提供可派人力。傳輸：在位志工清單、技能標記，供調度媒合。'},
+  {from:'vms',to:'rtsync',label:'指派',
+    talk:'志工管理到調度中台，讓人員編組的決策直接反映在現場執行上。',
+    flow:'志工管理指派結果進中台。傳輸：人員編組、任務分派名單。'},
+  {from:'lineoa',to:'rtsync',label:'叫料/回報 ↔ 派送',bi:true,
+    talk:'LINE OA 和調度中台之間的雙向連線是整個系統使用頻率最高的一條。去程是志工的聲音進入系統；回程是系統通知志工。',
+    flow:'雙向。去程(志工→中台)：叫料需求/勘災回報/完成回執。回程(中台→志工)：派送通知/派工/廣播/點名。'},
+  {from:'sorting',to:'warehouse',label:'入庫',
+    talk:'整理站到倉儲這條線是物資管理流程的第一個轉折點：捐贈物資在整理站完成分類和品質確認後才入庫。',
+    flow:'整理後入庫。傳輸：分類完成物資、品項數量造冊。'},
+  {from:'warehouse',to:'rtsync',label:'庫存可用',
+    talk:'倉儲到調度中台這條連線讓物資分配有了客觀基礎。幹部在調度媒合時直接看到即時庫存，缺料告警也從這裡觸發。',
+    flow:'倉儲回報可用量供調度。傳輸：庫存量、備貨進度、缺料告警。'},
+  {from:'rtsync',to:'fieldgroup',label:'分案/進度',bi:true,
+    talk:'調度中台和現場群之間的雙向線，是「指令」和「執行」之間的橋樑。',
+    flow:'雙向。去程：任務分案/物資指令/人力編組。回程：執行進度/個案紀錄/現場需求。'},
+  {from:'lineoa',to:'drive',label:'照片上傳',
+    talk:'照片從 LINE OA 上傳是最低門檻的現場回報方式。志工不需要額外的工具，拍完直接傳，系統負責對應個案和分類。',
+    flow:'志工回傳照片。傳輸：現場影像→Drive 自動分類。'},
+  {from:'drive',to:'fieldgroup',label:'歸檔',dash:true,
+    talk:'照片歸檔到個案這條線目前是虛線（規劃中），等 Google Drive API 設定完成後啟用。',
+    flow:'照片歸入個案/現場紀錄。後端待設定，虛線。'},
+  {from:'rtsync',to:'story',label:'結案',
+    talk:'調度中台到故事線結案，是讓每一場救災的經驗被留存下來的關鍵連線。',
+    flow:'任務結案彙整。傳輸：全生命週期 audit log、照片、回執，串故事線。'},
+  {from:'rtsync',to:'backend',label:'即時暫存',
+    talk:'調度中台到後端的即時暫存是針對「災區網路不穩定」這個現實設計的。',
+    flow:'調度狀態即時落後端。傳輸：任務/派工/警報狀態寫 localStorage，離線可用，連線後上傳。'},
+  {from:'backend',to:'story',label:'場次遙測',
+    talk:'後端場次遙測到故事線，讓結案報告不只有「做了什麼」，還有「系統表現如何」。',
+    flow:'後端遙測供敘事。傳輸：session 場次、錯誤聚合、UX 卡頓，注入故事線。'},
+  {from:'warehouse',to:'backend',label:'造冊',dash:true,
+    talk:'倉儲造冊到後端這條虛線，等 Google Sheets 設定完成後啟用。',
+    flow:'倉儲造冊同步後端。傳輸：物資與庫存異動至 Sheets。待設定，虛線。'},
+  {from:'fieldgroup',to:'backend',label:'個案存',dash:true,
+    talk:'個案資料寫入後端這條連線帶著最敏感的資料——鄉親的姓名、身分、聯絡方式、受災情況。目前個資未加密是最高優先的資安待修項目（P1）。',
+    flow:'個案資料寫後端。傳輸：訪視紀錄、慰問金、修繕至 GAS/Sheets。含個資待加密，虛線。'},
+  {from:'sysadmin',to:'backend',label:'設定/備份',
+    talk:'系統管理層到後端的連線，讓所有設定都有持久化的記錄。版本備份讓誤操作有後路。',
+    flow:'系統管理讀寫設定與備份。傳輸：權限設定、模組開關、版本備份還原。'},
+  {from:'monitor',to:'rtsync',label:'監看',dash:true,
+    talk:'全域監控唯讀監看的設計原則是「看的人不能誤按到什麼」。這條線是單向虛線，確保監看行為不回寫。',
+    flow:'全域監控唯讀監看。傳輸：任務/需求/連線狀態摘要單向上拋，不回寫，虛線。'},
+  {from:'monitor',to:'emic',label:'未來對接',dash:true,
+    talk:'全域監控和政府 EMIC 之間的連線是一個長期目標的預告。',
+    flow:'規劃中與政府對接。傳輸：與 EMIC 雙向交換災情/資源。尚未實作，虛線。'},
+  {from:'rtsync',to:'backend',label:'同步 ↔',bi:true,dash:true,
+    talk:'調度中台和後端之間的雙向同步（Firebase RTDB）解決的是多站點協作問題。',
+    flow:'雙向(規劃)。多站點即時共編：任務/人力/設備經 Firebase RTDB 雙向同步。介面已預留未啟用，虛線。'},
+
+  /* ── v2 新增邊 ── */
+  {from:'reg', to:'squad', label:'歸隊',
+    talk:'志工報到後不只是「進名冊」，而是立刻歸隊到對應班組。這條線讓班長手機即時看到本班人數，任務執行人力也同步更新。',
+    flow:'報到資料寫入後，查詢 DATA.squads[].members 確認歸屬，班組 currentLoad +1，班長端即時更新。'},
+  {from:'squad', to:'taskpool', label:'接單', bi:true,
+    talk:'班長從任務池接單（或被 HQ 指派），接單後任務狀態從 open→claimed，班員同步收到 LINE 推播。這是 Uber 模式的核心迴路。',
+    flow:'雙向。去程(HQ→班組)：指派任務。回程(班組→任務池)：班長搶單，更新 task.claimedBy 和 claimedAt。'},
+  {from:'tier', to:'squad', label:'排定梯次',
+    talk:'梯次確認後，班組知道自己幾點去哪裡、開哪台車。梯次是出班的時間骨架，班組是執行單位，這條線把時間和人力綁在一起。',
+    flow:'梯次建立後推播給班長（LINE OA）。DATA.tiers[].squads 指向對應班組，班長端顯示梯次資訊。'},
+  {from:'tier', to:'vms', label:'車輛配對', dash:true,
+    talk:'梯次建立時，系統同時檢查每個班組是否有配屬車輛。缺車時自動建議配對，確認後推播給司機。',
+    flow:'梯次建立→檢查 DATA.vehicles 可用清單→缺車警示+配對建議→確認後 vehicle.assignedTier 寫入。'},
+  {from:'vms', to:'squad', label:'車輛派遣',
+    talk:'司機打卡出發後，班長手機收到預計抵達時間。車輛抵達後班員掃碼上車確認，物資裝載觸發倉儲扣庫存。',
+    flow:'vehicle.status = en-route → 班長端推播。抵達後班員確認 → vehicle.cargo 掃描 → 倉儲自動扣庫存。'},
+  {from:'fieldgroup', to:'taskpool', label:'分診建任務',
+    talk:'勘災組到場填寫分診標籤後，系統自動生成對應任務進入任務池：紅標→P0/P1立即任務，黃標→P2一般任務。這條線讓「個案需求」直接驅動「人力派遣」，中間不需要人工中轉。',
+    flow:'Case.triageTag 寫入後自動建 Task，status=open，依顏色設優先級，推入任務池。Case.status 跟隨 Task 更新。'},
+  {from:'taskpool', to:'fieldgroup', label:'任務完成更新', dash:true,
+    talk:'任務完成回報後，對應個案狀態自動更新，完成照片與入場照片自動配對成 Before/After，同時判斷是否需要追蹤任務（48h 後自動觸發）。',
+    flow:'task.status=done → 更新 case.status → Before/After 照片配對 → 若需追蹤，48h 後自動建追蹤任務推入任務池。'},
+  {from:'rtsync', to:'handover', label:'收班快照',
+    talk:'每梯次收班觸發交接流程。調度中台自動抓取當下狀態快照，班長不需從零打字，只需確認並補充空白欄位。',
+    flow:'收班動作 → 系統抓取：未完 Task（status=in-progress）、物資差異（cargo diff）、紅標未結 Case。班長確認→存檔→推播下梯。'},
+  {from:'handover', to:'squad', label:'下梯交接',
+    talk:'交接記錄推播給下一梯的所有班長，讓他們在接任務前就知道前一梯的現場狀況、未完成工作和待追蹤個案。',
+    flow:'交接記錄存檔後推播給 TIER-N+1 的所有班長 LINE OA。下梯班長接單時可看到前一梯的 fieldNotes。'},
+  {from:'fieldgroup', to:'relief_ledger', label:'核准發放',
+    talk:'個案達到金援核准狀態後，自動帶入受災戶資訊建立 RF 單，不允許手動輸入發放對象，防止錯誤發放。',
+    flow:'case.status=approved → 自動建 RF 單，帶入 case.recipient/idLastFour。發放五步驟完成後寫不可刪帳本。'},
+  {from:'relief_ledger', to:'backend', label:'帳務存檔',
+    talk:'每筆發放記錄寫入後端後，自動 Gmail 通知財務組（附 PDF），月底自動匯出總表 CSV。帳本只可新增，不可刪除或修改。',
+    flow:'RF 單確認 → 寫不可刪帳本 → Gmail 推財務組（附 PDF）→ 月底自動 CSV 匯出供對帳。'},
+  {from:'squad', to:'incident', label:'意外回報',
+    talk:'班長在現場回報人員意外，觸發自動通知和保險記錄生成。報到時間戳+GPS+任務ID構成不可竄改的保險理賠依據。',
+    flow:'班長觸發 → 建 MedicalIncident → 通知總指揮+傷者緊急聯絡人 → 生成事故記錄（含報到時間戳/GPS/任務ID）。'},
+  {from:'matchengine', to:'taskpool', label:'媒合推薦', dash:true,
+    talk:'智慧媒合引擎分析歷史出班資料，在任務發布時自動推薦最適合的班組。Phase 4 功能，需有足夠真實資料才有意義。',
+    flow:'任務發布 → 媒合評分（距離/技能/容量/負載）→ Top3 推薦→ HQ 確認或班長接受。SOS 觸發重算。'},
+  {from:'backend', to:'matchengine', label:'歷史資料', dash:true,
+    talk:'智慧媒合需要從後端讀取歷史出班記錄：每個班組的任務類型、完成時間、人力效率，才能做出有意義的預測。',
+    flow:'後端歷史記錄 → 媒合引擎學習模式：每人/每班在不同任務類型的平均效率，用於任務耗時預估和備料建議。'}
+];
+
+var VIEWS={
+  decider:{
+    label:'決策者',
+    nodes:['drill','activate','volunteer','dashboard','staff','rtsync','reg','fieldgroup','sorting','warehouse','story','lineoa',
+           'squad','taskpool','tier','cmdmap','handover','relief_ledger'],
+    stories:[
+      {step:'啟動',on:['activate','volunteer','drill','dashboard'],
+        text:'災害發生，當區志工觸發戰時啟動，系統一鍵切戰時模式，總控儀表板亮起 — 這是所有決策的起點。'},
+      {step:'盤點',on:['dashboard'],
+        text:'儀表板即時顯示受災戶數、撤離人數、志工到位、物資完成率。一眼掌握全局，不必等回報。'},
+      {step:'調度',on:['dashboard','rtsync'],
+        text:'儀表板下達戰時派遣，即時調度中台接手，把任務派到第一線。'},
+      {step:'動員',on:['volunteer','lineoa','reg','rtsync','squad'],
+        text:'志工完成報到後立刻歸隊到班組 — 班長手機即時看到本班人數，任務就能發。'},
+      {step:'照顧',on:['rtsync','fieldgroup'],
+        text:'任務分案到現場，安置、個案、關懷同步啟動，特殊物資與安心祝福金送到鄉親手上。'},
+      {step:'物資',on:['sorting','warehouse','rtsync'],
+        text:'一般物資由志工整理入庫、依需求調撥，缺料即時補。'},
+      {step:'交代',on:['rtsync','story'],
+        text:'每場救災自動串成故事線時間軸 — 做了什麼、誰做的、成效如何，可匯出成完整紀錄向外說明。'},
+      {step:'班組指揮',on:['squad','taskpool','tier','cmdmap'],
+        text:'梯次排班確認誰幾點去哪，班長從任務池一鍵接單，作戰指揮圖讓 HQ 同時看到所有班的即時狀態——從「指揮官拍腦袋」到「資料驅動調度」。'},
+      {step:'交接閉環',on:['handover','squad','rtsync'],
+        text:'每梯收班，系統自動生成交接快照：未完任務、物資差異、待追蹤個案。下梯班長接任前已知前一梯的所有現場狀況，資訊不再靠口頭傳話。'},
+      {step:'帳務透明',on:['relief_ledger','fieldgroup','backend'],
+        text:'金援發放有完整簽收鏈：身份確認、雙人見證、受災戶簽名、存證照、自動 Gmail 給財務。每一筆發放都可追溯，讓慈濟的公信力有資料支撐。'}
+    ]
+  },
+  volunteer:{
+    label:'志工',
+    nodes:['volunteer','lineoa','reg','rtsync','fieldgroup','sorting','warehouse','drive',
+           'squad','taskpool','handover','incident'],
+    stories:[
+      {step:'我報到',on:['volunteer','lineoa'],
+        text:'我用手機開 Line OA，完成報到，系統就知道我到了。'},
+      {step:'我歸隊',on:['lineoa','reg','squad'],
+        text:'我的報到資料進入名冊，同時歸隊到我的班組，班長立刻看到本班人數更新。'},
+      {step:'我收任務',on:['rtsync','lineoa','taskpool','squad'],
+        text:'班長從任務池接單後，我在手機上就收到任務通知，不需要等電話。'},
+      {step:'我叫料',on:['lineoa','rtsync'],
+        text:'現場缺東西，我直接在 Line OA 回報需求，後勤媒合好再通知我領取。'},
+      {step:'我執行',on:['rtsync','fieldgroup'],
+        text:'我到安置點 / 個案家現場服務，發放物資或安心祝福金。'},
+      {step:'我回報',on:['drive','lineoa','rtsync'],
+        text:'我拍照、回填進度，經 Line OA 傳回中台，任務狀態即時更新。'},
+      {step:'梯次交接',on:['handover','squad'],
+        text:'收班時系統自動生成交接快照，我確認後下一梯班長就能看到前一梯的現場狀況。'},
+      {step:'意外回報',on:['squad','incident'],
+        text:'若有班員受傷，班長即時回報，系統自動通知總指揮和緊急聯絡人，保險記錄也同步生成。'}
+    ]
+  },
+  tech:{
+    label:'技術維運',
+    nodes:['lineoa','rtsync','backend','story','sysadmin','monitor','emic','dashboard',
+           'squad','taskpool','tier','cmdmap','handover','relief_ledger','incident','matchengine'],
+    stories:[
+      {step:'入口',on:['lineoa','rtsync','dashboard'],
+        text:'前端是單檔 HTML，無框架。使用者操作與 Line OA 回報都先進即時調度中台這個前端樞紐。'},
+      {step:'落盤',on:['rtsync','backend'],
+        text:'所有狀態即時寫 localStorage（drms_data / 版本備份 / 場次 / 遙測），離線可用，連線後再分段上傳。'},
+      {step:'後端',on:['backend'],
+        text:'後端服務層含三塊 — 本機 localStorage、GAS+Sheets（報名/個案，待設定 /exec）、Firebase RTDB（多人共編，介面已預留未啟用）。'},
+      {step:'設定',on:['sysadmin','backend'],
+        text:'系統管理層讀寫權限設定、模組開關、版本備份還原、戰時災型預設。'},
+      {step:'遙測',on:['backend','story'],
+        text:'場次與錯誤聚合、UX 卡頓資料注入故事線，結案時串成可重播的演練劇本。'},
+      {step:'v2 新模組',on:['squad','taskpool','tier','cmdmap','handover','relief_ledger','incident','matchengine'],
+        text:'v2 八大新模組：班組管理（DATA.squads schema）、任務池（Uber 接案）、梯次排班、作戰指揮圖（Leaflet.js）、交接日誌（強制收班流程）、金援帳本（不可刪帳本）、人員意外、智慧媒合引擎（Phase 4）。'},
+      {step:'待修',on:['backend','sysadmin','lineoa'],warn:['backend','sysadmin','lineoa'],
+        text:'⚠ 個資明文存 localStorage/Sheets 僅前端遮蔽（P1 待加密）；role 判斷前端可竄改（待後端驗證）；GAS URL 硬編碼；政府 EMIC / 警報 API 尚未串接。'}
+    ]
+  }
+};
+var curView='decider';
+function activeStories(){return VIEWS[curView]?VIEWS[curView].stories:[];}
+
+var HEALTH={
+  dashboard:{s:'done',issue:'運作中。但與全域監控 KPI 重疊，建議釐清「可操作總覽 vs 唯讀大屏」分工。AI 戰術分析入口為規劃中。'},
+  monitor:{s:'merge',issue:'與總控儀表板 KPI 重疊。建議整合為儀表板的「簡報/唯讀大屏模式」，或明確分工。即時影像與連線狀態目前為模擬。'},
+  rtsync:{s:'done',issue:'核心運作正常。現場唯一指揮橋樑，4 tab 完整。'},
+  reg:{s:'merge',issue:'與報名資料總表、志工管理共用 Master_Profiles，職責邊界模糊。建議半拆為「志工資料域」群組。'},
+  sheet_reg:{s:'todo',issue:'GAS 後端已建但需設定 /exec 網址；且 GAS URL 目前硬編碼待改（P1）。與 reg/vms 可整合。'},
+  vms:{s:'merge',issue:'人員資料與任務指派。與 reg/sheet_reg 共用名冊資料，建議整合為志工資料域。'},
+  lineoa:{s:'risk',issue:'模擬器完整（報到/3-tap叫料/餐食表單/關懷）但真實 LINE Webhook 後端 0%。個資經此入口，role 前端可竄改（P1 資安）。'},
+  drive:{s:'todo',issue:'前端分類邏輯完成，Google Drive API 串接待設定。'},
+  sorting:{s:'done',issue:'物資整理站運作正常。'},
+  warehouse:{s:'done',issue:'三級造冊運作正常。對外出貨經調度中台媒合。'},
+  fieldgroup:{s:'done',issue:'L3 現場群運作正常。含安置/個案/關懷/資產。個案含個資，寫後端時需加密（見 backend）。'},
+  story:{s:'todo',issue:'單場故事線完成。建議新增「跨場次比較」供決策者看趨勢。'},
+  staff:{s:'done',issue:'指揮端角色正常。'},
+  volunteer:{s:'done',issue:'前線志工角色正常。建議依角色裁剪 Line OA 選單（一般志工不需關懷/提權）。'},
+  sysadmin:{s:'risk',issue:'權限控管所在地。前端 role 判斷可被 console 竄改，提權流程發金鑰全在前端可偽造，需後端驗證（P1）。'},
+  backend:{s:'risk',issue:'個資（身分證/電話）明文存 localStorage 與 Sheets，僅前端遮蔽未加密（P1 最高優先）。多人共編 Firebase 已預留未啟用。'},
+  emic:{s:'todo',issue:'政府 EMIC 與警報 API 尚未串接，近期不做可考慮再縮小或移除。'},
+  drill:{s:'done',issue:'平時演練啟動正常。'},
+  activate:{s:'done',issue:'戰時啟動正常。'},
+  // v2 新增
+  squad:        {s:'todo', issue:'Phase 0-A 核心。DATA.squads schema 尚未建立。志工報到歸隊邏輯、班長手機介面待開發。所有後續功能的地基。'},
+  taskpool:     {s:'todo', issue:'Phase 0-B 核心。Task 資料模型需擴充（status/claimedBy/location/requiredSkills）。班長視角任務池頁面待開發。'},
+  tier:         {s:'todo', issue:'Phase 1-A。梯次排班頁面、車輛缺口自動檢查、班長確認推播待開發。'},
+  cmdmap:       {s:'todo', issue:'Phase 1-C。需要地圖底圖 API（建議 Leaflet.js，免費）。班組即時 GPS 定位、熱力圖層待開發。'},
+  handover:     {s:'todo', issue:'Phase 1-D。收班流程強制走完、快照自動生成邏輯、存檔不可修改機制待開發。'},
+  relief_ledger:{s:'todo', issue:'Phase 3-A。發放五步驟流程、canvas 簽名、不可刪帳本、Gmail PDF 推送待開發。帳務嚴謹，技術難度中等。'},
+  incident:     {s:'todo', issue:'Phase 1-D 附帶。人員意外回報表單、緊急聯絡人通知、保險記錄 PDF 生成待開發。'},
+  matchengine:  {s:'todo', issue:'Phase 4，最後做。需 3+ 次真實出班資料。媒合評分公式已設計，待實作。做早了是空殼。'}
+};
+var HEALTH_LBL={done:'完成',todo:'待補',risk:'風險',merge:'可整合'};
+var MERGE_FRAMES=[
+  {lbl:'建議整合：志工資料域',nodes:['reg','sheet_reg','vms']},
+  {lbl:'建議整合：監控併簡報模式',nodes:['monitor','dashboard']}
+];
+VIEWS.health={
+  label:'健檢',
+  nodes:Object.keys(HEALTH),
+  stories:[
+    {step:'總覽',on:[],
+      text:'健檢視角：綠=完成、黃=待補、紅=資安風險、灰=建議整合。點任一節點看該模組的健檢結論。以下逐項走查。'},
+    {step:'資安風險',on:['backend','sysadmin','lineoa'],warn:['backend','sysadmin','lineoa'],
+      text:'🔴 三個資安紅點：後端（個資明文存 localStorage/Sheets 未加密，P1 最高優先）、系統管理層（role 前端可竄改、提權可偽造）、Line OA（真實 Webhook 0%、個資入口）。'},
+    {step:'待補功能',on:['sheet_reg','drive','story','emic','squad','taskpool','tier','cmdmap','handover','relief_ledger','incident'],
+      text:'🟡 待補：報名總表（GAS /exec 待設定）、照片分類（Drive API 未接）、故事線（缺跨場次比較）、政府 EMIC（未串接）＋ v2 八大新模組（皆為 todo）。'},
+    {step:'可整合',on:['reg','sheet_reg','vms','monitor','dashboard'],
+      text:'⬜ 建議整合：報到/報名總表/志工管理共用名冊→併「志工資料域」；全域監控與儀表板 KPI 重疊→併簡報模式。'},
+    {step:'Phase 4',on:['matchengine'],
+      text:'🤖 智慧媒合引擎（Phase 4）：最後做，需有 3+ 次真實出班資料。評分公式已設計好，等資料。'}
+  ]
+};
+
+var statusTag={live:'🟢 已開通',partial:'🟡 部分 / 待設定',planned:'🔴 未開通 / 規劃中'};
+var nodeById={};NODES.forEach(function(n){nodeById[n.id]=n;});
+var DEFAULT_POS={};NODES.forEach(function(n){DEFAULT_POS[n.id]={x:n.x,y:n.y};});
+var STORE_KEY='drms_arch_v2_layout';
+var stage=document.getElementById('arch-stage');
+var svg=document.getElementById('arch-edges');
+var detail=document.getElementById('arch-detail');
+var VW=1000,VH=688;
+
+function loadPos(){try{var raw=window.sessionStorage.getItem(STORE_KEY);if(raw){var p=JSON.parse(raw);NODES.forEach(function(n){if(p[n.id]&&!n.locked){n.x=p[n.id].x;n.y=p[n.id].y;}});}}catch(e){}}
+function savePos(){var p={};NODES.forEach(function(n){p[n.id]={x:n.x,y:n.y};});try{window.sessionStorage.setItem(STORE_KEY,JSON.stringify(p));}catch(e){}}
+
+function buildZones(){ZONES.forEach(function(z){var el=document.createElement('div');el.className='zone '+z.cls;el.style.left=z.x+'%';el.style.top=z.y+'%';el.style.width=z.w+'%';el.style.height=z.h+'%';el.innerHTML='<div class="zone-lbl">'+z.lbl+'</div>';stage.appendChild(el);});}
+function buildNodes(){NODES.forEach(function(n){var el=document.createElement('div');el.className='node '+n.status+(n.center?' center':'')+(n.trigger?' trigger':'')+(n.mini?' mini':'');el.id='arch-node-'+n.id;el.style.left=n.x+'%';el.style.top=n.y+'%';el.innerHTML='<div class="hbadge" id="arch-hb-'+n.id+'"></div><div class="st '+n.status+'"></div><div class="ico">'+n.ico+'</div><div class="nm">'+n.nm+'</div><div class="kd">'+n.kind+'</div>';stage.appendChild(el);attachDrag(el,n);});}
+function buildMergeFrames(){MERGE_FRAMES.forEach(function(mf,fi){var el=document.createElement('div');el.className='merge-frame';el.id='arch-mf-'+fi;el.innerHTML='<div class="mf-lbl">'+mf.lbl+'</div>';stage.appendChild(el);});}
+function positionMergeFrames(){MERGE_FRAMES.forEach(function(mf,fi){var el=document.getElementById('arch-mf-'+fi);if(!el)return;var xs=[],ys=[];mf.nodes.forEach(function(id){var n=nodeById[id];if(n){xs.push(n.x);ys.push(n.y);}});if(!xs.length)return;var pad=7;var minx=Math.min.apply(null,xs)-pad,maxx=Math.max.apply(null,xs)+pad,miny=Math.min.apply(null,ys)-pad,maxy=Math.max.apply(null,ys)+pad;el.style.left=minx+'%';el.style.top=miny+'%';el.style.width=(maxx-minx)+'%';el.style.height=(maxy-miny)+'%';});}
+function px(p){return p/100*VW;}function py(p){return p/100*VH;}
+function buildEdges(){svg.setAttribute('viewBox','0 0 '+VW+' '+VH);var defs='<defs>'
+  +'<marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#B8B8C0"/></marker>'
+  +'<marker id="arrH" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#6B8CBE"/></marker>'
+  +'<marker id="arrR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse"><path d="M0,0 L7,3 L0,6 Z" fill="#B8B8C0"/></marker>'
+  +'<marker id="arrRH" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse"><path d="M0,0 L7,3 L0,6 Z" fill="#6B8CBE"/></marker>'
+  +'</defs>';svg.innerHTML=defs;EDGES.forEach(function(e,i){drawEdge(e,i);});}
+function edgePath(a,b){
+  var x1=px(a.x),y1=py(a.y),x2=px(b.x),y2=py(b.y);
+  var dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy)||1;
+  var ux=dx/len,uy=dy/len;
+  var nx=-uy,ny=ux;
+  var bow=Math.max(14,Math.min(46,len*0.08));
+  var off=len*0.28;
+  var c1x=x1+ux*off+nx*bow, c1y=y1+uy*off+ny*bow;
+  var c2x=x2-ux*off+nx*bow, c2y=y2-uy*off+ny*bow;
+  var mx=0.125*x1+0.375*c1x+0.375*c2x+0.125*x2;
+  var my=0.125*y1+0.375*c1y+0.375*c2y+0.125*y2;
+  return {d:'M'+x1+','+y1+' C'+c1x+','+c1y+' '+c2x+','+c2y+' '+x2+','+y2, lx:mx, ly:my};
+}
+function drawEdge(e,i){var a=nodeById[e.from],b=nodeById[e.to];if(!a||!b)return;var pp=edgePath(a,b);var path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',pp.d);path.setAttribute('fill','none');path.setAttribute('stroke','#C4C4CC');path.setAttribute('stroke-width','2');path.setAttribute('marker-end','url(#arr)');if(e.dash)path.setAttribute('stroke-dasharray','5,5');if(e.bi)path.setAttribute('marker-start','url(#arrR)');path.setAttribute('id','arch-edge-'+i);path.onclick=(function(idx){return function(){selectEdge(idx);};})(i);svg.appendChild(path);var lab=document.createElement('div');lab.className='elabel';lab.id='arch-elabel-'+i;lab.style.left=(pp.lx/VW*100)+'%';lab.style.top=(pp.ly/VH*100)+'%';lab.textContent=e.label;lab.onclick=(function(idx){return function(){selectEdge(idx);};})(i);stage.appendChild(lab);}
+function refreshEdges(){EDGES.forEach(function(e,i){var a=nodeById[e.from],b=nodeById[e.to];if(!a||!b)return;var pp=edgePath(a,b);var path=document.getElementById('arch-edge-'+i);if(path)path.setAttribute('d',pp.d);var lab=document.getElementById('arch-elabel-'+i);if(lab){lab.style.left=(pp.lx/VW*100)+'%';lab.style.top=(pp.ly/VH*100)+'%';}});}
+
+function attachDrag(el,n){var dragging=false,moved=false,sx,sy;
+  function down(ev){if(n.locked)return;dragging=true;moved=false;el.classList.add('dragging');var pt=ev.touches?ev.touches[0]:ev;sx=pt.clientX;sy=pt.clientY;window.addEventListener('mousemove',move);window.addEventListener('mouseup',up);window.addEventListener('touchmove',move,{passive:false});window.addEventListener('touchend',up);ev.preventDefault();}
+  function move(ev){if(!dragging)return;var pt=ev.touches?ev.touches[0]:ev;if(Math.abs(pt.clientX-sx)>3||Math.abs(pt.clientY-sy)>3)moved=true;var rect=stage.getBoundingClientRect();var nx=(pt.clientX-rect.left)/rect.width*100,ny=(pt.clientY-rect.top)/rect.height*100;nx=Math.max(2,Math.min(98,nx));ny=Math.max(2,Math.min(98,ny));n.x=nx;n.y=ny;el.style.left=nx+'%';el.style.top=ny+'%';refreshEdges();if(curView==='health')positionMergeFrames();ev.preventDefault();}
+  function up(){if(!dragging)return;dragging=false;el.classList.remove('dragging');window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',up);window.removeEventListener('touchmove',move);window.removeEventListener('touchend',up);if(moved){savePos();}else{selectNode(n.id);}}
+  el.addEventListener('mousedown',down);
+  el.addEventListener('touchstart',down,{passive:false});
+  if(n.locked){el.style.cursor='pointer';el.addEventListener('click',function(){selectNode(n.id);});}
+}
+
+function clearSel(){var ss=root.querySelectorAll('.node.sel,.elabel.sel');for(var i=0;i<ss.length;i++)ss[i].classList.remove('sel');EDGES.forEach(function(e,i){var p=document.getElementById('arch-edge-'+i);if(p){p.classList.remove('edge-active');p.setAttribute('stroke','#C4C4CC');p.setAttribute('marker-end','url(#arr)');if(e.bi)p.setAttribute('marker-start','url(#arrR)');}});}
+function selectNode(id){if(storyOn)return;clearSel();var el=document.getElementById('arch-node-'+id);if(el)el.classList.add('sel');var n=nodeById[id];EDGES.forEach(function(e,i){if(e.from===id||e.to===id){var p=document.getElementById('arch-edge-'+i);if(p){p.classList.add('edge-active');p.setAttribute('marker-end','url(#arrH)');if(e.bi)p.setAttribute('marker-start','url(#arrRH)');}}});var subs=n.subs?'<div class="sub-mods">'+n.subs.map(function(s){return '<span class="sub-mod">'+s+'</span>';}).join('')+'</div>':'';var hext='';if(curView==='health'&&HEALTH[id]){var hs=HEALTH[id].s;var hcol={done:'green',todo:'amber',risk:'red',merge:'planned'}[hs];hext='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span class="tag '+hcol+'">🩺 '+HEALTH_LBL[hs]+'</span> <span style="font-size:11px">'+HEALTH[id].issue+'</span></div>';}var scr=n.script?'<div style="background:linear-gradient(135deg,var(--accent-bg),var(--blue-bg));border:1px solid var(--accent-border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:10px;font-size:12.5px;line-height:1.85;color:var(--text)"><span style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.05em">💡 設計說明</span><br>'+n.script+'</div>':'';detail.innerHTML='<div class="detail-head"><div class="dico">'+n.ico+'</div><div class="dt"><h3>'+n.nm+' <span class="tag '+n.status+'">'+statusTag[n.status]+'</span></h3><div class="meta">'+n.id+' · '+n.kind+'</div></div></div><div class="detail-body">'+scr+'<div style="font-size:11px;color:var(--text3)">'+n.desc+'</div>'+subs+hext+'</div>';}
+function selectEdge(i){if(storyOn)return;clearSel();var e=EDGES[i];var p=document.getElementById('arch-edge-'+i);if(p){p.classList.add('edge-active');p.setAttribute('marker-end','url(#arrH)');if(e.bi)p.setAttribute('marker-start','url(#arrRH)');}var lab=document.getElementById('arch-elabel-'+i);if(lab)lab.classList.add('sel');var a=nodeById[e.from],b=nodeById[e.to];var dir=e.bi?'↔ 雙向':'→ 單向';var etalk=e.talk?'<div style="background:linear-gradient(135deg,var(--accent-bg),var(--blue-bg));border:1px solid var(--accent-border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:10px;font-size:12.5px;line-height:1.85;color:var(--text)"><span style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.05em">💡 設計說明</span><br>'+e.talk+'</div>':'';detail.innerHTML='<div class="detail-head"><div class="dico">'+(e.bi?'↔':'→')+'</div><div class="dt"><h3>'+a.nm+' '+(e.bi?'↔':'→')+' '+b.nm+' <span class="tag '+(e.dash?'planned':'live')+'">'+(e.dash?'規劃/次要':'現行')+'</span></h3><div class="meta">'+dir+' · 「'+e.label+'」</div></div></div><div class="detail-body">'+etalk+'<div style="font-size:11px;color:var(--text3)">'+e.flow+'</div></div>';}
+
+var storyOn=false,storyIdx=0;
+function storyStart(){storyOn=true;storyIdx=0;document.getElementById('arch-storyBar').classList.add('show');storyShow();}
+function storyEnd(){storyOn=false;document.getElementById('arch-storyBar').classList.remove('show','warn-bar');clearDim();clearSel();applyView();detail.innerHTML='<div class="detail-empty"><div class="detail-placeholder-icon">🗺️</div>點擊任一節點或連線<br>查看設計說明與理念</div>';}
+function storyPrev(){if(storyIdx>0){storyIdx--;storyShow();}}
+function storyNext(){var S=activeStories();if(storyIdx<S.length-1){storyIdx++;storyShow();}else{storyEnd();}}
+function clearDim(){var ds=root.querySelectorAll('.dim,.hot,.warn,.edge-active');for(var i=0;i<ds.length;i++){ds[i].classList.remove('dim','hot','warn','edge-active');}}
+function storyShow(){
+  var S=activeStories();var s=S[storyIdx];if(!s)return;
+  NODES.forEach(function(n){var el=document.getElementById('arch-node-'+n.id);if(el)el.classList.remove('h-done','h-todo','h-risk','h-merge');});
+  var bar=document.getElementById('arch-storyBar');
+  bar.classList.toggle('warn-bar',!!s.warn);
+  document.getElementById('arch-storyStep').textContent=(storyIdx+1)+' / '+S.length+' · '+s.step;
+  document.getElementById('arch-storyText').textContent=s.text;
+  document.getElementById('arch-sPrev').disabled=(storyIdx===0);
+  document.getElementById('arch-sNext').textContent=(storyIdx===S.length-1)?'✓':'›';
+  var onNodes={};(s.on||[]).forEach(function(id){onNodes[id]=1;});
+  var warnNodes={};(s.warn||[]).forEach(function(id){warnNodes[id]=1;});
+  NODES.forEach(function(n){var el=document.getElementById('arch-node-'+n.id);if(!el)return;el.classList.remove('hot','dim','warn');
+    if(warnNodes[n.id])el.classList.add('warn');
+    else if(onNodes[n.id])el.classList.add('hot');
+    else el.classList.add('dim');});
+  EDGES.forEach(function(e,i){var p=document.getElementById('arch-edge-'+i);var lab=document.getElementById('arch-elabel-'+i);
+    var on=onNodes[e.from]&&onNodes[e.to];
+    if(p){p.classList.toggle('hot',!!on);p.classList.toggle('dim',!on);p.classList.toggle('edge-active',!!on);p.setAttribute('marker-end',on?'url(#arrH)':'url(#arr)');if(e.bi)p.setAttribute('marker-start',on?'url(#arrRH)':'url(#arrR)');}
+    if(lab)lab.classList.toggle('dim',!on);});
+}
+
+function setView(v){
+  curView=v;storyEnd();
+  var pills=root.querySelectorAll('.vpill');
+  for(var i=0;i<pills.length;i++)pills[i].classList.toggle('act',pills[i].getAttribute('data-view')===v);
+  applyView();
+}
+function clearHealth(){root.classList.remove('health-on');NODES.forEach(function(n){var el=document.getElementById('arch-node-'+n.id);if(el)el.classList.remove('h-done','h-todo','h-risk','h-merge');});}
+function applyView(){
+  clearDim();clearSel();clearHealth();
+  if(curView==='health'){
+    root.classList.add('health-on');
+    positionMergeFrames();
+    NODES.forEach(function(n){var el=document.getElementById('arch-node-'+n.id);if(!el)return;el.classList.remove('dim');var h=HEALTH[n.id];if(h){el.classList.add('h-'+h.s);var hb=document.getElementById('arch-hb-'+n.id);if(hb)hb.textContent=HEALTH_LBL[h.s];}});
+    EDGES.forEach(function(e,i){var p=document.getElementById('arch-edge-'+i);var lab=document.getElementById('arch-elabel-'+i);if(p)p.classList.remove('dim');if(lab)lab.classList.remove('dim');});
+    return;
+  }
+  if(curView==='all'){
+    NODES.forEach(function(n){var el=document.getElementById('arch-node-'+n.id);if(el)el.classList.remove('dim');});
+    EDGES.forEach(function(e,i){var p=document.getElementById('arch-edge-'+i);var lab=document.getElementById('arch-elabel-'+i);if(p)p.classList.remove('dim');if(lab)lab.classList.remove('dim');});
+    return;
+  }
+  var set={};(VIEWS[curView].nodes||[]).forEach(function(id){set[id]=1;});
+  NODES.forEach(function(n){var el=document.getElementById('arch-node-'+n.id);if(el)el.classList.toggle('dim',!set[n.id]);});
+  EDGES.forEach(function(e,i){var on=set[e.from]&&set[e.to];var p=document.getElementById('arch-edge-'+i);var lab=document.getElementById('arch-elabel-'+i);if(p)p.classList.toggle('dim',!on);if(lab)lab.classList.toggle('dim',!on);});
+}
+
+function resetLayout(){NODES.forEach(function(n){n.x=DEFAULT_POS[n.id].x;n.y=DEFAULT_POS[n.id].y;var el=document.getElementById('arch-node-'+n.id);if(el){el.style.left=n.x+'%';el.style.top=n.y+'%';}});refreshEdges();savePos();}
+
+function pvHide(){document.getElementById('arch-pvMask').classList.remove('on');}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')pvHide();});
+
+window.arch_storyStart=storyStart;
+window.arch_storyEnd=storyEnd;
+window.arch_storyPrev=storyPrev;
+window.arch_storyNext=storyNext;
+window.arch_resetLayout=resetLayout;
+window.arch_setView=setView;
+window.arch_pvHide=pvHide;
+
+loadPos();buildZones();buildMergeFrames();buildEdges();buildNodes();applyView();
+})();
+</script>
+</body>
+</html>
