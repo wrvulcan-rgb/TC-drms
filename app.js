@@ -3136,6 +3136,34 @@ DATA.tiers=[
   if(!DATA.taskPool) DATA.taskPool=newTasks;
 })();
 
+DATA.vehicles=[
+  {id:'VH-001',type:'遊覽車',plate:'AAA-0001',capacity:45,
+   driver:{name:'林司機',phone:'0900-111-001'},
+   status:'available',assignedTier:null,assignedSquads:[],cargo:[],
+   departureTime:null,returnTime:null},
+  {id:'VH-002',type:'廂型車',plate:'BBB-0002',capacity:15,
+   driver:{name:'陳司機',phone:'0900-111-002'},
+   status:'available',assignedTier:null,assignedSquads:[],cargo:[],
+   departureTime:null,returnTime:null},
+  {id:'VH-003',type:'卡車',plate:'CCC-0003',capacity:8,
+   driver:{name:'張司機',phone:'0900-111-003'},
+   status:'en-route',assignedTier:'TIER-1',assignedSquads:['SQ-001'],
+   cargo:[{itemId:'BED',name:'福慧床',qty:10}],
+   departureTime:'08:15',returnTime:null},
+];
+
+DATA.handovers=[
+  {id:'HO-001',fromTier:'TIER-1',toTier:'TIER-2',
+   createdAt:'2026-06-28 14:00',createdBy:'林師姐',
+   unfinishedTasks:['TSK-0041','TSK-0042'],
+   supplyDiff:[{item:'礦泉水',lent:20,returned:18,diff:-2}],
+   pendingCases:['SOS-2041'],
+   safetyNotes:'B區道路仍有積水，請注意',
+   signedBy:'林師姐',witnessId:'CI-002',
+   status:'signed',
+   nextTierBrief:'注意 TSK-0041 尚未完成，B區積水待清'}
+];
+
 DATA.assets={
   catalog:[
     {id:'BED', name:'福慧床',   icon:'🛏',code:'BED',total:50,repair:2,unit:'張'},
@@ -3997,6 +4025,10 @@ const NAV_CFG=[
   {id:'line_oa',    icon:'💬',label:'Line OA 模擬',     tag:'core', group:'後台系統',roles:['admin','it']},
   {id:'admin',      icon:'🔧',label:'系統管理',        tag:'admin',group:'後台系統',roles:['admin']},
   {id:'arch_doc',   icon:'🗺️',label:'系統架構說明',    tag:'doc',  group:'後台系統',roles:['admin','it']},
+  {id:'tier_scheduler',icon:'📅',label:'梯次排班',        tag:'core', group:'今日行動',roles:['admin','staff']},
+  {id:'vehicle_dispatch',icon:'🚌',label:'車輛派遣',      tag:'core', group:'今日行動',roles:['admin','logistics']},
+  {id:'command_map',  icon:'🗺️',label:'作戰指揮圖',       tag:'core', group:'今日行動',roles:['admin','staff']},
+  {id:'handover',     icon:'📋',label:'交接日誌',          tag:'core', group:'今日行動',roles:['admin','staff']},
 ];
 const GROUPS=[
   {id:'medical',icon:'🏥',name:'醫護組',email:'medical@tzuchi-chiayi.org.tw',linked:true,line:'@tzuchi-medical'},
@@ -4101,6 +4133,10 @@ function showPage(id){
     }
   }
   if(id==='squad_leader') renderSquadLeader();
+  if(id==='tier_scheduler') renderTierScheduler();
+  if(id==='vehicle_dispatch') renderVehicleDispatch();
+  if(id==='command_map') renderCommandMap();
+  if(id==='handover') renderHandover();
   if(id==='vol_hub') renderVolHub();
   if(id==='admin'){
     checkAdminGate();
