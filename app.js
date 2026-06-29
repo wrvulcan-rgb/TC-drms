@@ -6053,6 +6053,7 @@ function saveSimEdit(){
 
 
 // ── PERSIST DATA to localStorage ──
+var STORAGE_VERSION = 1;
 var DATA_KEYS = ['stats','disaster','map','alerts','manpower','ai','warehouse','tasks','persons','shelter_mgt','registry','devTasks','relief_req','coord'];
 function saveData(){
   var payload = {};
@@ -6073,6 +6074,7 @@ function saveData(){
     var ver = parseInt(localStorage.getItem('drms_version')||'0',10) + 1;
     localStorage.setItem('drms_version', String(ver));
     localStorage.setItem('drms_version_time', new Date().toLocaleString('zh-TW'));
+    payload.version = STORAGE_VERSION;
     localStorage.setItem('drms_data', JSON.stringify(payload));
     snapshotBySlot(payload);
   }catch(e){
@@ -6514,6 +6516,13 @@ function loadData(){
   if(!raw) return;
   try{
     var saved = JSON.parse(raw);
+    if(saved.version && saved.version !== STORAGE_VERSION){
+      // 版本不符：備份舊資料並重置
+      localStorage.setItem('drms_data_bak_v'+saved.version, raw);
+      localStorage.removeItem('drms_data');
+      toast('⚠ 儲存格式版本不符（v'+saved.version+'→v'+STORAGE_VERSION+'），已備份舊資料並重置','error');
+      return;
+    }
     for(var i=0;i<DATA_KEYS.length;i++){
       if(saved[DATA_KEYS[i]]) DATA[DATA_KEYS[i]] = saved[DATA_KEYS[i]];
     }
