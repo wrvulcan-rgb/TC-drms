@@ -413,6 +413,7 @@ function loaDispatch(i){
 function triggerSOS(who,detail){
   RTDB.ref('sos').set({active:true,who:who||'前線志工',detail:detail||'緊急求救',time:new Date().toLocaleTimeString('zh-TW')});
   rtAudit('SOS求救',(who||'前線')+'：'+(detail||'緊急求救'));
+  showPage('rtsync'); setRTTab('emergency');
 }
 function showSOSOverlay(data){
   var ov=document.getElementById('sos-overlay'); if(!ov) return;
