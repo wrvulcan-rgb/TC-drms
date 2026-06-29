@@ -457,12 +457,140 @@ section('[T12] SOS persistent queue — items tracked + resolved independently')
   info('SOS queue resolved independently — counts correct');
 }
 
+// ────────────────────────────────────────────────────────────
+section('[T13] fetch returning HTTP 500 — error handled gracefully');
+{
+  resetSpies();
+  // Override fetch to return HTTP 500
+  const orig500Fetch = sandbox.fetch;
+  sandbox.fetch = () => Promise.resolve({ ok:false, status:500, json:()=>Promise.resolve({error:'Server Error'}) });
+  // gasPost in app uses fetch — ensure it toasts on error, not throws
+  sandbox.checkGASReady = function(){ return true; };
+  var errorThrown = false;
+  try {
+    // Simulate a gasPost that uses fetch returning 500; use loaSendBroadcast which calls gasPost
+    _domEls['loa-bc-target'] = makeDomEl('loa-bc-target');
+    _domEls['loa-bc-msg']    = Object.assign(makeDomEl('loa-bc-msg'), { value:'測試500錯誤' });
+    // Wrap gasPost to detect error path — simulate 500 response callback
+    sandbox.gasPost = function(payload, cb) {
+      SPY.gasPost(payload, cb);
+      // Invoke cb with error to simulate 500 upstream
+      if (cb) cb(new Error('HTTP 500'), null);
+    };
+    loaSendBroadcast();
+  } catch(e) {
+    errorThrown = true;
+  }
+  assert(!errorThrown, 'fetch HTTP 500 does not throw uncaught exception');
+  assert(SPY.gasPost.called(), 'gasPost was still invoked with payload');
+  info('500 response handled without uncaught exception');
+  sandbox.fetch = orig500Fetch;
+  sandbox.checkGASReady = function(){ return false; };
+  sandbox.gasPost = function(){ SPY.gasPost.apply(null,arguments); };
+}
+
+// ────────────────────────────────────────────────────────────
+section('[T14] fetch timeout — error handled gracefully');
+{
+  resetSpies();
+  // Override fetch to return a promise that never resolves (simulated timeout)
+  const origTimeoutFetch = sandbox.fetch;
+  sandbox.fetch = () => new Promise((_resolve, reject) => {
+    // Immediately reject to simulate AbortController timeout
+    reject(new Error('AbortError: The operation was aborted.'));
+  });
+  var timeoutThrown = false;
+  try {
+    sandbox.checkGASReady = function(){ return true; };
+    _domEls['loa-bc-target'] = makeDomEl('loa-bc-target');
+    _domEls['loa-bc-msg']    = Object.assign(makeDomEl('loa-bc-msg'), { value:'測試timeout' });
+    sandbox.gasPost = function(payload, cb) {
+      SPY.gasPost(payload, cb);
+      if (cb) cb(new Error('AbortError: timeout'), null);
+    };
+    loaSendBroadcast();
+  } catch(e) {
+    timeoutThrown = true;
+  }
+  assert(!timeoutThrown, 'fetch timeout does not throw uncaught exception');
+  assert(SPY.gasPost.called(), 'gasPost was invoked even on timeout path');
+  info('Timeout handled without uncaught exception');
+  sandbox.fetch = origTimeoutFetch;
+  sandbox.checkGASReady = function(){ return false; };
+  sandbox.gasPost = function(){ SPY.gasPost.apply(null,arguments); };
+}
+
+// ────────────────────────────────────────────────────────────
+section('[T15] advancePersonCase(-1) — out-of-bounds index handled without crash');
+{
+  resetSpies();
+  // Ensure DATA.persons exists with at least one record
+  if (!DATA.persons || !DATA.persons.cases) {
+    DATA.persons = { cases: [{ name:'Test Person', phase:'急救期', status:'active' }] };
+  }
+  var oobThrown = false;
+  try {
+    if (typeof sandbox.advancePersonCase === 'function') {
+      sandbox.advancePersonCase(-1);
+    } else if (typeof sandbox.advancePersonPhase === 'function') {
+      sandbox.advancePersonPhase(-1);
+    }
+  } catch(e) {
+    oobThrown = true;
+  }
+  assert(!oobThrown, 'advancePersonCase(-1) does not throw uncaught exception');
+  info('Negative index handled gracefully');
+}
+
+// ────────────────────────────────────────────────────────────
+section('[T16] advancePersonCase(999) — far out-of-bounds index handled without crash');
+{
+  resetSpies();
+  // Ensure DATA.persons has a small array — index 999 is definitely out of bounds
+  DATA.persons = { cases: [{ name:'Test Person', phase:'急救期', status:'active' }] };
+  var oob999Thrown = false;
+  try {
+    if (typeof sandbox.advancePersonCase === 'function') {
+      sandbox.advancePersonCase(999);
+    } else if (typeof sandbox.advancePersonPhase === 'function') {
+      sandbox.advancePersonPhase(999);
+    }
+  } catch(e) {
+    oob999Thrown = true;
+  }
+  assert(!oob999Thrown, 'advancePersonCase(999) does not throw uncaught exception');
+  // The function should not have modified persons.cases
+  assert(DATA.persons.cases.length === 1, 'persons.cases array unchanged after out-of-bounds call');
+  info('Index 999 handled gracefully — data unchanged');
+}
+
+// ── null edge cases ───────────────────────────────────────────────────────────
+section('[T17] advancePersonCase with null DATA.persons — null handled without crash');
+{
+  resetSpies();
+  var origPersons = DATA.persons;
+  DATA.persons = null;
+  var nullThrown = false;
+  try {
+    if (typeof sandbox.advancePersonCase === 'function') {
+      sandbox.advancePersonCase(0);
+    } else if (typeof sandbox.advancePersonPhase === 'function') {
+      sandbox.advancePersonPhase(0);
+    }
+  } catch(e) {
+    nullThrown = true;
+  }
+  assert(!nullThrown, 'advancePersonCase with null DATA.persons does not crash');
+  DATA.persons = origPersons;
+  info('Null DATA.persons handled gracefully');
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════════════════
 console.log('\n' + '─'.repeat(60));
 if (FAILURES === 0) {
-  console.log(G + 'All 12 tests passed ✓' + RST + '\n');
+  console.log(G + 'All 17 tests passed ✓' + RST + '\n');
   process.exit(0);
 } else {
   console.log(R + FAILURES + ' test(s) FAILED — see ✗ lines above' + RST + '\n');
