@@ -5269,6 +5269,9 @@ function wtBackToLevel(){
 }
 function wtConfirmAndLaunch(){
   var def=WAR_MODULE_DEFAULTS[_wtPendingScenario]||WAR_MODULE_DEFAULTS['quake'];
+  var lvlLabel={L1:'L1 輕度',L2:'L2 中度',L3:'L3 重度',manual:'全手動'}[_wtPendingLevel]||_wtPendingLevel||'';
+  var msg='確定進入 '+def.label+' '+lvlLabel+' 戰時模式？此操作將鎖定平時資料。';
+  if(!confirm(msg)) return;
   var ALL_IDS=['monitor','vol_hub','sorting','warehouse','persons','shelter_mgt','assets','rtsync','line_oa','drive','admin'];
   var enabled=['dashboard'];
   var toHide=[];
