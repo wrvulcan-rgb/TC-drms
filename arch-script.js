@@ -65,11 +65,16 @@ var NODES=[
     script:'現場照片是救災紀錄最重要的一部分，但如果照片散落在每個人的手機裡，事後要整理、對帳、或對外說明時會非常困難。照片回報分類讓志工直接在 LINE 上傳照片，系統自動對應個案和任務、歸類到 Google Drive 正確的資料夾。前端分類流程已完成，目前等待 Google Drive API 金鑰設定完成後就能接上。接好後，每一場救災的影像紀錄都會自動整理完畢，不再需要事後手動分類。',
     desc:'Line OA 回傳照片→Drive→自動分類。前端流程完成，Drive API 待設定。'},
 
-  // 右中=鄉親受助
-  {id:'fieldgroup',nm:'L3 現場群', ico:'\uD83C\uDFD5\uFE0F', x:66, y:62, status:'live', kind:'limb', center:false,
-    script:'L3 現場群是整個系統最靠近鄉親的地方，也是我設計這套系統最核心的初衷。前面所有的調度、派工、物資管理，最終目的都是讓這一段——安置收容、個案管理、關懷紀錄、安心祝福金發放——能夠順暢進行。它把四個面向整合在同一個群組裡，讓志工在現場服務時不需要在多個介面之間切換。安心祝福金併入關懷紀錄發放，是因為金錢援助和關懷探訪本來就是同一個服務流程，不應該被切開記錄。個案資料含有個資，目前是未加密狀態，這是最優先要處理的資安問題。',
-    desc:'服務鄉親的現場執行群(志工操作、鄉親受助)。安心祝福金併於關懷紀錄發放。',
-    subs:['安置收容管理','個案管理系統','關懷行動紀錄(含安心祝福金)','慈濟資產調度']},
+  // 右中=現場雙面板（Incident Operations + Case Management）
+  {id:'incidentOps', nm:'現場作業面板', ico:'⚙️', x:57, y:70, status:'live', kind:'limb',
+    script:'Incident Operations Panel 管理「這次救災期間」的所有現場作業，Incident 結案後封存唯讀。包含：安置收容（床位即時狀況）、資源調度（車輛/設備/物資在 Incident 範圍內的派遣）、即時任務池（Incident-scoped Task，由 TeamSession 接單）、梯次管理。判斷原則：Incident 結案後，這筆資料還需要存在嗎？不需要→屬於這個 Panel。安置床位、即時物資發放、作戰地圖圖層都在這裡。',
+    desc:'Incident 期間現場作業。Incident 結案→封存唯讀。子模組：安置收容/資源調度/即時任務池/梯次管理。',
+    subs:['安置收容管理（床位即時狀況）','資源調度（Incident 範圍）','即時任務池（Incident-scoped Task）','梯次管理']},
+
+  {id:'casePanel', nm:'個案管理面板', ico:'🏠', x:72, y:70, status:'live', kind:'limb',
+    script:'Case Management Panel 的生命週期比 Incident 更長——Incident 結案後 Case 繼續運作，直到個案家庭真正穩定。Case 是 Aggregate Root，掛載所有援助紀錄（AidRecord）和修繕專案（RepairProject）。Incident 進入 phase-3（恢復協助）時，Case Panel 開始主導；Incident 關閉後，Case Panel 繼續由 CaseManager 追蹤。個案資料含個資，是整個系統最高優先的資安待修項目（P1 加密）。狀態機：reported→triaged→in-relief→long-term-care/follow-up→closed。',
+    desc:'跨 Incident 的個案管理。Case 是 Aggregate Root。Incident 結案後繼續運作。子模組：個案清單/分診+Assessment/AidRecord/RepairProject/CaseManager 追蹤。',
+    subs:['個案清單（跨 Incident 持續存在）','分診 + Assessment 評估','AidRecord（金援/物資/修繕/重建）','RepairProject 追蹤','CaseManager 指派與追蹤']},
 
   // 政府(縮小)
   {id:'emic',     nm:'政府 EMIC', ico:'\uD83C\uDFDB\uFE0F', x:93, y:60, status:'planned', kind:'future', mini:true,
@@ -168,15 +173,21 @@ var EDGES=[
   {from:'warehouse',to:'rtsync',label:'庫存可用',story:4,
     talk:'倉儲到調度中台這條連線讓物資分配有了客觀基礎。幹部在調度媒合時直接看到即時庫存，缺料告警也從這裡觸發——決策不再靠記憶或詢問，而是看數字。',
     flow:'倉儲回報可用量供調度。傳輸：庫存量、備貨進度、缺料告警。'},
-  {from:'rtsync',to:'fieldgroup',label:'分案/進度',bi:true,story:5,
-    talk:'調度中台和現場群之間的雙向線，是「指令」和「執行」之間的橋樑。從中台到現場：任務分案、物資指令、人力編組。從現場到中台：執行進度、個案紀錄、現場需求。這條線讓指揮端不需要打電話就能知道現場的實際狀況。',
-    flow:'雙向。去程(中台→現場)：任務分案、特殊物資/安心祝福金發放指令、人力編組、座標。回程(現場→中台)：執行進度、個案/關懷紀錄、現場需求。'},
+  {from:'rtsync',to:'incidentOps',label:'現場任務',bi:true,story:5,
+    talk:'調度中台到現場作業面板：Incident-scoped 任務分案、資源調度指令、安置床位調整。回程：即時任務執行進度、資源回報。Incident 結案後這條線封存。',
+    flow:'雙向。去程：Incident Task 分案/資源指令/安置調整。回程：任務進度/資源狀態。'},
+  {from:'rtsync',to:'casePanel',label:'個案分案',bi:true,
+    talk:'調度中台到個案管理面板：Case-scoped 任務分案（追蹤/驗收），以及從 Case Panel 上來的個案需求和關懷紀錄。這條線在 Incident 期間和結案後都持續運作。',
+    flow:'雙向。去程：Case Task 分案/AidRecord 授權/RepairProject 里程碑。回程：個案狀態更新/CaseManager 回報。'},
+  {from:'incidentOps',to:'casePanel',label:'移交個案',dash:true,
+    talk:'Incident 進入 phase-3 或結案時，尚未解決的個案從 Incident Operations 移交給 Case Management Panel 繼續追蹤。這是兩個 Aggregate Root 生命週期交接的關鍵時刻。',
+    flow:'Incident.status→phase-3/closed → Case 繼續 active。incidentOps 封存唯讀。casePanel 接手所有 open Case。'},
   {from:'lineoa',to:'drive',label:'照片上傳',
     talk:'照片從 LINE OA 上傳是最低門檻的現場回報方式。志工不需要額外的工具，拍完直接傳，系統負責對應個案和分類——讓「留下影像紀錄」這件事的阻力接近零。',
     flow:'志工回傳照片。傳輸：現場影像→Drive 自動分類。'},
-  {from:'drive',to:'fieldgroup',label:'歸檔',dash:true,
-    talk:'照片歸檔到個案這條線目前是虛線（規劃中），等 Google Drive API 設定完成後啟用。設計目標是讓每張照片都自動對應到正確的個案資料，事後整理時不需要人工對號。',
-    flow:'照片歸入個案/現場紀錄。傳輸：分類後影像關聯個案。後端待設定，虛線。'},
+  {from:'drive',to:'casePanel',label:'歸檔',dash:true,
+    talk:'照片歸檔到個案管理面板，每張照片對應到正確的 Case 和 AidRecord。Drive API 設定完成後啟用。',
+    flow:'照片歸入 Case/AidRecord。分類後影像關聯 caseId。後端待設定，虛線。'},
   {from:'rtsync',to:'story',label:'結案',story:6,
     talk:'調度中台到故事線結案，是讓每一場救災的經驗被留存下來的關鍵連線。任務結束後，完整的 audit log 自動進入故事線，不需要人工彙整報告——做了什麼、誰做的、什麼時候、花了多少時間，全部都在。',
     flow:'任務結案彙整。傳輸：全生命週期 audit log、照片、回執，串故事線。'},
@@ -189,9 +200,9 @@ var EDGES=[
   {from:'warehouse',to:'backend',label:'造冊',dash:true,
     talk:'倉儲造冊到後端這條虛線，等 Google Sheets 設定完成後啟用。目標是讓物資進出紀錄有雲端備份，任何幹部都能從不同裝置查閱當前庫存，不受限於哪台電腦有最新資料。',
     flow:'倉儲造冊同步後端。傳輸：物資與庫存異動至 Sheets。待設定，虛線。'},
-  {from:'fieldgroup',to:'backend',label:'個案存',dash:true,
-    talk:'個案資料寫入後端這條連線帶著最敏感的資料——鄉親的姓名、身分、聯絡方式、受災情況。目前這條線是虛線且個資未加密，是整個系統最高優先的資安待修項目（P1）。在加密機制到位之前，個資的操作和存取都需要特別謹慎。',
-    flow:'個案資料寫後端。傳輸：訪視紀錄、慰問金、修繕至 GAS/Sheets。含個資待加密，虛線。'},
+  {from:'casePanel',to:'backend',label:'個案存',dash:true,
+    talk:'個案管理面板的資料寫入後端，帶著最敏感的資料——鄉親的姓名、身分、聯絡方式、受災情況。目前個資未加密，是整個系統最高優先的資安待修項目（P1）。',
+    flow:'Case/AidRecord/RepairProject 資料寫後端 GAS/Sheets。含個資待加密，虛線。'},
   {from:'sysadmin',to:'backend',label:'設定/備份',
     talk:'系統管理層到後端的連線，讓所有設定都有持久化的記錄。版本備份讓誤操作有後路，戰時災型預設讓不同場景的系統配置可以一鍵還原——這條線確保「設定」這件事是可管理的，而不是每次都要重新來過。',
     flow:'系統管理讀寫設定與備份。傳輸：權限設定、模組開關、版本備份還原、戰時災型預設。'},
@@ -241,13 +252,13 @@ var EDGES=[
     flow:'Incident.locationId → Location。同地點多次 incident → 自動標記 location.riskLevel = high。'},
 
   /* ── 需求鏈（Case→Task→Squad） ── */
-  {from:'fieldgroup', to:'taskpool', label:'分診建任務',
-    talk:'勘災組到場填寫分診標籤後，系統自動生成對應任務進入任務池：紅標→P0/P1立即任務，黃標→P2一般任務，綠標→電話追蹤任務。這條線讓「個案需求」直接驅動「人力派遣」，中間不需要人工中轉。',
-    flow:'Case.triageTag 寫入後自動建 Task，status=open，依顏色設優先級，推入任務池。Case.status 跟隨 Task 更新。'},
+  {from:'casePanel', to:'taskpool', label:'分診建任務',
+    talk:'勘災組填寫分診標籤後，Case Panel 自動生成 Incident-scoped Task 進入任務池：紅標→P0/P1，黃標→P2，綠標→電話追蹤（Case-scoped）。這條線讓「個案需求」直接驅動「人力派遣」。',
+    flow:'Case.triageTag 寫入 → 自動建 Task（incidentId or caseId），status=open，依顏色設優先級推入任務池。'},
 
-  {from:'taskpool', to:'fieldgroup', label:'任務完成更新', dash:true,
-    talk:'任務完成回報後，對應個案狀態自動更新，完成照片與入場照片自動配對成 Before/After，同時判斷是否需要追蹤任務（48h 後自動觸發）。',
-    flow:'task.status=done → 更新 case.status → Before/After 照片配對 → 若需追蹤，48h 後自動建追蹤任務推入任務池。'},
+  {from:'taskpool', to:'casePanel', label:'任務完成更新', dash:true,
+    talk:'Incident-scoped 任務完成後，對應 Case 狀態自動更新，Before/After 照片自動配對，並判斷是否觸發 Case-scoped 追蹤任務（48h 後）。',
+    flow:'task.status=done → 更新 case.status → Before/After 配對 → 若需追蹤，48h 後自動建 Case-scoped Task。'},
 
   /* ── 交接鏈 ── */
   {from:'rtsync', to:'handover', label:'收班快照',
@@ -259,7 +270,7 @@ var EDGES=[
     flow:'交接記錄存檔後推播給 TIER-N+1 的所有班長 LINE OA。下梯班長接單時可看到前一梯的 fieldNotes。'},
 
   /* ── 金援鏈 ── */
-  {from:'fieldgroup', to:'aidRecord', label:'核准援助',
+  {from:'casePanel', to:'aidRecord', label:'核准援助',
     talk:'個案（Case）達到援助核准狀態後，自動帶入受災戶資訊建立 AidRecord，型態依核准內容決定（金援/物資/修繕/重建）。Case 是 Aggregate Root，一個案家的所有援助紀錄都掛在同一個 Case 下，不允許手動輸入受助對象。',
     flow:'case.status=approved → 自動建 AidRecord，帶入 case.recipient/type/amount。簽收鏈完成後寫不可刪帳本。'},
 
@@ -287,7 +298,7 @@ var EDGES=[
 var VIEWS={
   decider:{
     label:'決策者',
-    nodes:['drill','activate','volunteer','dashboard','staff','rtsync','reg','fieldgroup','sorting','warehouse','story','lineoa','teamSession','taskpool','tier','cmdmap','handover','aidRecord','resource','location'],
+    nodes:['drill','activate','volunteer','dashboard','staff','rtsync','reg','incidentOps','casePanel','sorting','warehouse','story','lineoa','teamSession','taskpool','tier','cmdmap','handover','aidRecord','resource','location'],
     stories:[
       {step:'啟動',on:['activate','volunteer','drill','dashboard'],
         text:'災害發生，當區志工觸發戰時啟動，系統一鍵切戰時模式，總控儀表板亮起 — 這是所有決策的起點。'},
@@ -297,8 +308,8 @@ var VIEWS={
         text:'儀表板下達戰時派遣，即時調度中台接手，把任務派到第一線。'},
       {step:'動員',on:['volunteer','lineoa','reg','rtsync'],
         text:'志工完成報到後立刻成為可派人力 — 人到位，任務就能發。'},
-      {step:'照顧',on:['rtsync','fieldgroup'],
-        text:'任務分案到現場，安置、個案、關懷同步啟動，特殊物資與安心祝福金送到鄉親手上。'},
+      {step:'照顧',on:['rtsync','incidentOps','casePanel'],
+        text:'任務分案到雙面板：現場作業面板處理安置/即時資源，個案管理面板啟動分診/關懷。兩個 Aggregate Root 同步運作，Incident 結案後 Case 繼續。'},
       {step:'物資',on:['sorting','warehouse','rtsync'],
         text:'一般物資由志工整理入庫、依需求調撥，缺料即時補。'},
       {step:'交代',on:['rtsync','story'],
@@ -307,13 +318,13 @@ var VIEWS={
         text:'梯次建立時同步產生 TeamSession，綁定人力/資源/地點三要素。組長從任務池一鍵接單，作戰指揮圖以 Location GIS 圖層即時顯示所有編組位置——從「指揮官拍腦袋」到「資料驅動調度」。'},
       {step:'交接閉環',on:['handover','teamSession','rtsync'],
         text:'每梯收班，系統自動生成交接快照：未完任務、資源差異、待追蹤個案。下梯組長接任前已知前一梯的所有現場狀況，資訊不再靠口頭傳話。'},
-      {step:'多型態援助透明',on:['aidRecord','fieldgroup','backend'],
+      {step:'多型態援助透明',on:['aidRecord','casePanel','backend'],
         text:'援助紀錄涵蓋金援/物資/修繕/重建，全部綁定 Case，簽收鏈一致。每一筆援助都可追溯，讓慈濟的公信力有資料支撐。'}
     ]
   },
   volunteer:{
     label:'志工',
-    nodes:['volunteer','lineoa','reg','rtsync','fieldgroup','sorting','warehouse','drive','teamSession','taskpool','handover','incident','location'],
+    nodes:['volunteer','lineoa','reg','rtsync','incidentOps','casePanel','sorting','warehouse','drive','teamSession','taskpool','handover','incident','location'],
     stories:[
       {step:'我報到',on:['volunteer','lineoa'],
         text:'我用手機開 Line OA，完成報到，系統就知道我到了。'},
@@ -323,15 +334,15 @@ var VIEWS={
         text:'調度中台把任務透過 Line OA 發給我，我在手機上就收到。'},
       {step:'我叫料',on:['lineoa','rtsync'],
         text:'現場缺東西，我直接在 Line OA 回報需求，後勤媒合好再通知我領取。'},
-      {step:'我執行',on:['rtsync','fieldgroup'],
-        text:'我到安置點 / 個案家現場服務，發放物資或安心祝福金。'},
+      {step:'我執行',on:['rtsync','incidentOps','casePanel'],
+        text:'我到安置點（現場作業面板）或個案家（個案管理面板）現場服務，發放物資或 AidRecord 核准的援助。'},
       {step:'我回報',on:['drive','lineoa','rtsync'],
         text:'我拍照、回填進度，經 Line OA 傳回中台，任務狀態即時更新。'}
     ]
   },
   tech:{
     label:'技術維運',
-    nodes:['lineoa','rtsync','backend','story','sysadmin','monitor','emic','dashboard','teamSession','taskpool','tier','cmdmap','handover','aidRecord','incident','matchengine','resource','location'],
+    nodes:['lineoa','rtsync','backend','story','sysadmin','monitor','emic','dashboard','teamSession','taskpool','tier','cmdmap','handover','aidRecord','incident','matchengine','resource','location','incidentOps','casePanel'],
     stories:[
       {step:'入口',on:['lineoa','rtsync','dashboard'],
         text:'前端是單檔 HTML，無框架。使用者操作與 Line OA 回報都先進即時調度中台這個前端樞紐。'},
@@ -364,7 +375,8 @@ var HEALTH={
   drive:{s:'todo',issue:'前端分類邏輯完成，Google Drive API 串接待設定。'},
   sorting:{s:'done',issue:'物資整理站運作正常。'},
   warehouse:{s:'done',issue:'三級造冊運作正常。對外出貨經調度中台媒合。'},
-  fieldgroup:{s:'done',issue:'L3 現場群運作正常。含安置/個案/關懷/資產。個案含個資，寫後端時需加密（見 backend）。'},
+  incidentOps:{s:'done',issue:'現場作業面板（原 fieldgroup 安置+資產子模組）運作正常。Incident 結案後封存唯讀機制待實作。與 casePanel 的移交流程（phase-3 觸發）待設計。'},
+  casePanel:  {s:'risk',issue:'個案管理面板（原 fieldgroup 個案+關懷子模組）運作正常，但個案含個資（姓名/身分/聯絡方式）未加密，是 P1 最高優先資安待修。Case 作為 Aggregate Root 的 schema 邊界與 Incident 的拆分待工作坊確認。'},
   story:{s:'todo',issue:'單場故事線完成。建議新增「跨場次比較」供決策者看趨勢。'},
   staff:{s:'done',issue:'指揮端角色正常。'},
   volunteer:{s:'done',issue:'前線志工角色正常。建議依角色裁剪 Line OA 選單（一般志工不需關懷/提權）。'},
@@ -403,8 +415,8 @@ VIEWS.health={
       text:'🟡 待補：報名總表（GAS /exec 待設定、URL 硬編碼）、照片分類（Drive API 未接）、故事線（缺跨場次比較）、政府 EMIC（未串接）。'},
     {step:'可整合',on:['reg','sheet_reg','vms','monitor','dashboard'],
       text:'⬜ 建議整合：報到/報名總表/志工管理共用名冊→併「志工資料域」；全域監控與儀表板 KPI 重疊→併簡報模式。新增：resource/location 為獨立 GIS/資源域，勿與 vms 混用。此為建議標記，不動現有結構。'},
-    {step:'新增建議',on:['volunteer','fieldgroup','lineoa'],
-      text:'🟢 新增建議：任務地圖（P3，志工/現場最需要「我要去哪」）；志工選單依角色裁剪（一般志工不需關懷/提權）；Firebase 多人共編演進。'}
+    {step:'新增建議',on:['volunteer','incidentOps','casePanel','lineoa'],
+      text:'🟢 新增建議：任務地圖（P3，志工最需要「我要去哪」）；志工選單依角色裁剪；Incident+Case 雙面板在 Incident phase-3 的交接流程待設計；CaseManager 選任機制待工作坊確認。'}
   ]
 };
 
