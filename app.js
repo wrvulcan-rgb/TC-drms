@@ -1149,6 +1149,16 @@ function rtSubmitClose(){
   RTDB.ref('caseStatus').set({closed:true,closedAt:closedAt,report:{meals:meals,house:house,waste:waste,photos:photos,note:note}});
   rtAudit('結案送出','便當'+meals+'個/服務'+house+'戶/廢棄物'+waste+'噸/照片'+photos+'張');
   logSys('ok','【結案稽核】結構化結案報告已送出');
+  // P1：RT 結案同步回寫至所有仍開啟個案的 timeline
+  var rtTasks=rtGet('tasks');
+  var linkedSosIds={};
+  Object.keys(rtTasks).forEach(function(k){ var t=rtTasks[k]; if(t.sosId) linkedSosIds[t.sosId]=true; });
+  DATA.persons.cases.forEach(function(c){
+    if(c.phase==='結案') return;
+    var summary='RT 結案報告 · 服務'+house+'戶 / 便當'+meals+'個 / 廢棄物'+waste+'噸';
+    c.timeline.push({type:'RT結案報告',summary:summary,recorder:'小隊長',ts:closedAt.slice(0,16)||closedAt});
+  });
+  saveData();
   var f=document.getElementById('rt-close-form'); if(f) f.innerHTML='';
   showModal('✅ 結案報告已送出','結構化數據已寫入，即時戰報已更新。','發放便當：'+meals+' 個 / 服務'+house+' 戶 / 廢棄物'+waste+' 噸 / 照片'+photos+' 張');
   renderRTSync();
@@ -5823,6 +5833,13 @@ function renderTasks(){
     +'</div>'
     +'<div><div class="iep-lbl">任務標題</div><input class="inp" id="nt-title" placeholder="簡短描述任務目標" style="font-size:12px"></div>'
     +'<div><div class="iep-lbl">任務說明</div><textarea class="inp" id="nt-desc" placeholder="詳細任務說明，將同步推播至 Line OA" style="font-size:12px;min-height:60px"></textarea></div>'
+    +(function(){
+        var checkedIn=[].concat(
+          (DATA.registry.innerMembers||[]).filter(function(m){return m.checkin;}).map(function(m){return {uid:m.uid||m.code,name:m.name+'（慈誠）'};}),
+          (DATA.registry.volunteers||[]).filter(function(v){return v.checkin;}).map(function(v){return {uid:v.uid,name:v.name+'（社區）'};}));
+        var opts='<option value="">— 選擇負責人（已報到）—</option>'+checkedIn.map(function(p){return '<option value="'+p.uid+'">'+p.name+'</option>';}).join('');
+        return '<div><div class="iep-lbl">指定負責人</div><select class="inp" id="nt-assignee" style="font-size:12px">'+opts+'</select></div>';
+      })()
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
     +'<div><div class="iep-lbl">截止時間</div><input class="inp" id="nt-due" type="time" value="16:00" style="font-size:12px"></div>'
     +'<div><div class="iep-lbl">當日任務結束時間</div><input class="inp" id="nt-end" type="time" value="18:00" style="font-size:12px"></div>'
@@ -5844,7 +5861,7 @@ function renderTasks(){
       +'<div class="task-icon" style="'+iconBg+'">'+t.icon+'</div>'
       +'<div class="task-meta">'
       +'<div class="task-title">'+t.title+'</div>'
-      +'<div class="task-assign">指派：'+(t.assign&&typeof t.assign==='object'?(t.assign.name+(t.assign.phone?' · '+t.assign.phone:'')):t.assign||'未指派')+'</div>'
+      +'<div class="task-assign">指派：'+(t.assign&&typeof t.assign==='object'?(t.assign.name+(t.assign.phone?' · '+t.assign.phone:'')):t.assign||'未指派')+(t.assigneeName?' · 負責人：<b>'+t.assigneeName+'</b>':'')+'</div>'
       +'</div>'
       +'<div class="task-badges">'
       +(t.lineNotified?'<span class="badge badge-green" style="font-size:9px">LINE ✓</span>':'<span class="badge" style="font-size:9px;background:var(--bg3);color:var(--text4);border:1px solid var(--border)">LINE 待推</span>')
@@ -5895,33 +5912,67 @@ function submitNewTask(){
   var title=sanitizeInput(document.getElementById('nt-title').value.trim());
   var desc=document.getElementById('nt-desc').value.trim();
   var assign=document.getElementById('nt-assign').value;
+  var assigneeEl=document.getElementById('nt-assignee');
+  var assigneeUid=assigneeEl?assigneeEl.value:'';
   var due=document.getElementById('nt-due').value;
   if(!title){toast('⚠ 請填寫任務標題');return;}
   var newId='T'+String(Date.now()).slice(-3);
   var endTime=document.getElementById('nt-end').value||'18:00';
+  // 從 registry 找負責人姓名以利顯示
+  var assigneeName='';
+  if(assigneeUid){
+    var allReg=[].concat(DATA.registry.innerMembers||[],DATA.registry.volunteers||[]);
+    var found=allReg.find(function(p){return (p.uid||p.code)===assigneeUid;});
+    if(found) assigneeName=found.name;
+  }
   DATA.tasks.items.unshift({id:newId,type:tid,icon:tc.icon,title:title,
-    assign:assign,status:'active',pct:0,
+    assign:assign,assigneeUid:assigneeUid,assigneeName:assigneeName,
+    status:'active',pct:0,
     created:new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),
     received:'',endTime:endTime,lineNotified:true,desc:desc||'（無說明）'});
   closeNewTask();
-  renderTasks();
-  toast('✅ 任務 '+newId+' 已建立，Line OA 推播已送出');
+  renderTasks(); saveData();
+  toast('✅ 任務 '+newId+' 已建立'+(assigneeName?' · 負責人：'+assigneeName:''));
 }
 function completeTask(i){
   try{
   var cu=getCurrentUser();
   var tk=DATA.tasks.items[i];
   tk.status='done'; tk.pct=100;
+  var now=new Date();
+  var dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  // 負責人：優先用 assigneeUid，其次 cu.uid
+  var recorderUid=tk.assigneeUid||(cu?cu.uid:'系統自動');
+  var recorderName=tk.assigneeName||(cu?cu.uid:'系統自動');
   // 任務完成 → 回寫至對應個案 timeline（若有 sosId）
   if(tk.sosId){
-    var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
     var pc=DATA.persons.cases.find(function(c){return c.sosId===tk.sosId;});
-    if(pc) pc.timeline.push({type:'任務完成',summary:'【'+tk.title+'】已完成',recorder:(cu?cu.uid:'系統自動'),ts:dtStr});
+    if(pc) pc.timeline.push({type:'任務完成',summary:'【'+tk.title+'】完成 · 負責：'+recorderName,recorder:recorderUid,ts:dtStr});
   }
-  if(cu) logSys('ok','【任務完成】'+tk.id+' 由 '+cu.uid+' 標記完成');
+  // P3：每次完成任務時更新當日交接班快照到 RTDB
+  _pushHandoverSnapshot(dtStr);
+  if(cu) logSys('ok','【任務完成】'+tk.id+' 負責：'+recorderName);
   renderTasks(); saveData();
   toast('✓ 任務已標記完成');
   }catch(e){ toast(e.message,'error'); logSys('err','completeTask 失敗：'+e.message); }
+}
+function _pushHandoverSnapshot(dtStr){
+  try{
+    var done=DATA.tasks.items.filter(function(t){return t.status==='done';}).length;
+    var active=DATA.tasks.items.filter(function(t){return t.status==='active';}).length;
+    var innerChk=(DATA.registry.innerMembers||[]).filter(function(m){return m.checkin;}).length;
+    var outerChk=(DATA.registry.volunteers||[]).filter(function(v){return v.checkin;}).length;
+    RTDB.ref('handover').set({
+      ts:dtStr,
+      tasksTotal:DATA.tasks.items.length,
+      tasksDone:done,
+      tasksActive:active,
+      innerCheckin:innerChk,
+      outerCheckin:outerChk,
+      casesActive:DATA.persons.cases.filter(function(c){return c.phase!=='結案';}).length,
+      casesClosed:DATA.persons.cases.filter(function(c){return c.phase==='結案';}).length,
+    });
+  }catch(e){ logSys('warn','交接班快照失敗：'+e.message); }
 }
 function notifyTask(i){
   DATA.tasks.items[i].lineNotified=true;
