@@ -7482,84 +7482,78 @@ function renderRebuild(){
   else el.innerHTML=renderRebuildProgress();
 }
 function renderRebuildProgress(){
-  var d=DATA.rebuild, phColor={'緊急安置':'badge-red','組合屋':'badge-amber','修繕中':'badge-blue','重建完成':'badge-green'};
-  var html='<div class="card"><div class="card-title">🏗️ '+d.title+' — 重建進度追蹤</div>'
-    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">承接個案管理的緊急救援，往中長期重建銜接：緊急安置 → 組合屋 → 修繕 → 重建完成（補上「緊急→重建」的斷層）。</div>'
-    +'<table class="tbl"><thead><tr><th>編號</th><th>戶別</th><th>地址</th><th>階段</th><th>進度</th><th>最近訪視</th><th>操作</th></tr></thead><tbody>';
-  for(var i=0;i<d.households.length;i++){
-    var h=d.households[i];
-    html+='<tr><td class="sh-time">'+h.caseId+'</td><td style="font-weight:500">'+h.name+'</td><td style="font-size:11px">'+h.addr+'</td>'
-      +'<td><span class="badge '+(phColor[h.phase]||'badge-blue')+'">'+h.phase+'</span></td>'
-      +'<td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;min-width:56px"><div style="height:100%;width:'+h.pct+'%;background:var(--green)"></div></div><span style="font-size:10px;font-family:monospace">'+h.pct+'%</span></div></td>'
-      +'<td class="sh-time">'+h.lastVisit+'</td>'
-      +'<td>'+(h.phase==='重建完成'?'<span style="font-size:9px;color:var(--green)">✓ 完成</span>':'<button class="btn btn-blue btn-xs" onclick="advanceRebuild('+i+')">▶ 推進階段</button>')+'</td></tr>';
-  }
+  var phColor={'緊急安置':'badge-red','組合屋':'badge-amber','修繕中':'badge-blue','重建完成':'badge-green'};
+  // 從 persons.cases 讀取（持久化來源，避免重整後 DATA.rebuild 種子資料覆蓋狀態）
+  var rbCases=DATA.persons.cases.filter(function(c){return c.phase==='重建期';});
+  var html='<div class="card"><div class="card-title">🏗️ 重建進度追蹤</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">承接個案管理的緊急救援，往中長期重建銜接：緊急安置 → 組合屋 → 修繕 → 重建完成。</div>'
+    +'<table class="tbl"><thead><tr><th>編號</th><th>戶別</th><th>地址</th><th>重建階段</th><th>進度</th><th>操作</th></tr></thead><tbody>';
+  rbCases.forEach(function(c){
+    var gi=DATA.persons.cases.indexOf(c);
+    html+='<tr><td class="sh-time">'+c.caseId+'</td><td style="font-weight:500">'+c.name+'</td><td style="font-size:11px">'+c.address+'</td>'
+      +'<td><span class="badge '+(phColor[c.rebuildPhase]||'badge-blue')+'">'+c.rebuildPhase+'</span></td>'
+      +'<td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;min-width:56px"><div style="height:100%;width:'+c.rebuildPct+'%;background:var(--green)"></div></div><span style="font-size:10px;font-family:monospace">'+c.rebuildPct+'%</span></div></td>'
+      +'<td>'+(c.rebuildPhase==='重建完成'?'<span style="font-size:9px;color:var(--green)">✓ 完成</span>':'<button class="btn btn-blue btn-xs" onclick="advancePersonRebuild('+gi+')">▶ 推進階段</button>')+'</td></tr>';
+  });
   html+='</tbody></table></div>';
   return html;
 }
 function advanceRebuild(i){
-  var d=DATA.rebuild, h=d.households[i], idx=d.phases.indexOf(h.phase);
-  if(idx<d.phases.length-1){
-    h.phase=d.phases[idx+1];
-    h.pct=h.phase==='重建完成'?100:Math.min(95,Math.round((idx+2)/d.phases.length*100));
-    // 同步回寫 persons.cases
-    var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-    var pc=DATA.persons.cases.find(function(c){return c.caseId===h.caseId;});
-    if(pc){ pc.rebuildPhase=h.phase; pc.rebuildPct=h.pct; pc.timeline.push({type:'重建推進',summary:'階段推進至「'+h.phase+'」',recorder:'重建組',ts:dtStr}); }
-    logSys('ok','【災後重建】'+h.caseId+' '+h.name+' 推進至「'+h.phase+'」');
-    toast('▶ '+h.caseId+' → '+h.phase); renderRebuild(); saveData();
-  }
+  // 已改為直接操作 persons.cases（renderRebuildProgress 也從 persons 讀取）
+  advancePersonRebuild(i);
+  renderRebuild();
 }
 function renderRebuildCare(){
-  var d=DATA.rebuild, list=d.households.filter(function(h){return h.longCare;});
+  var list=DATA.persons.cases.filter(function(c){return c.phase==='重建期'&&c.longCare;});
   var html='<div class="card"><div class="card-title">💚 長期關懷排程（家庭認養 / 定期訪視）</div>'
     +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">標記為長期陪伴的家戶，由志工定期訪視，銜接「關懷行動紀錄」。</div>';
   if(!list.length) html+='<div style="text-align:center;color:var(--text4);padding:20px">尚無長期陪伴家戶</div>';
-  list.forEach(function(h){
-    var idx=d.households.indexOf(h);
+  list.forEach(function(c){
+    var gi=DATA.persons.cases.indexOf(c);
+    var lastVisit=c.timeline.filter(function(t){return t.type==='訪視排定'||t.type==='訪視關懷';}).slice(-1)[0];
     html+='<div style="display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:8px;background:var(--bg2);border:1px solid var(--green-border);border-radius:var(--r-sm)">'
-      +'<div style="font-size:18px">🏠</div><div style="flex:1"><div style="font-weight:600">'+h.name+'　<span style="font-size:10px;color:var(--text4)">'+h.caseId+' · '+h.addr+'</span></div>'
-      +'<div style="font-size:11px;color:var(--text4)">階段：'+h.phase+'　最近訪視：'+h.lastVisit+'</div></div>'
-      +'<button class="btn btn-green btn-xs" onclick="rebuildSchedule('+idx+')">📅 排定訪視</button></div>';
+      +'<div style="font-size:18px">🏠</div><div style="flex:1"><div style="font-weight:600">'+c.name+'　<span style="font-size:10px;color:var(--text4)">'+c.caseId+' · '+c.address+'</span></div>'
+      +'<div style="font-size:11px;color:var(--text4)">階段：'+c.rebuildPhase+'　最近訪視：'+(lastVisit?lastVisit.ts.slice(5,10):'—')+'</div></div>'
+      +'<button class="btn btn-green btn-xs" onclick="rebuildSchedule('+gi+')">📅 排定訪視</button></div>';
   });
   html+='</div>';
   return html;
 }
 function rebuildSchedule(i){
-  var h=DATA.rebuild.households[i];
+  var c=DATA.persons.cases[i]; if(!c) return;
   var tmr=new Date(Date.now()+86400000), ds=(tmr.getMonth()+1)+'-'+('0'+tmr.getDate()).slice(-2);
   var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  h.lastVisit=ds;
-  // 寫 persons.careLogs（唯一來源）
-  DATA.persons.careLogs.unshift({type:'訪視關懷',target:h.name+'（'+h.addr+'）',summary:'災後重建長期陪伴訪視已排定（'+h.phase+'）',recorder:'重建專案',caseId:h.caseId});
+  DATA.persons.careLogs.unshift({type:'訪視關懷',target:c.name+'（'+c.address+'）',summary:'災後重建長期陪伴訪視已排定（'+c.rebuildPhase+'）',recorder:'重建專案',caseId:c.caseId});
   DATA.persons.careStats.visit++;
-  var pc=DATA.persons.cases.find(function(c){return c.caseId===h.caseId;});
-  if(pc) pc.timeline.push({type:'訪視排定',summary:'長期陪伴訪視排定，下次 '+ds,recorder:'重建專案',ts:dtStr});
-  logSys('ok','【災後重建】'+h.caseId+' 已排定長期關懷訪視 → 同步關懷行動紀錄');
+  c.timeline.push({type:'訪視排定',summary:'長期陪伴訪視排定，下次 '+ds,recorder:'重建專案',ts:dtStr});
+  logSys('ok','【災後重建】'+c.caseId+' 已排定長期關懷訪視 → 同步關懷行動紀錄');
   toast('📅 已排訪視並同步關懷紀錄'); renderRebuild(); saveData();
 }
 function renderRebuildPsych(){
-  var d=DATA.rebuild;
+  var rbCases=DATA.persons.cases.filter(function(c){return c.phase==='重建期';});
   var html='<div class="card"><div class="card-title">🧠 心理重建追蹤</div>'
     +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">災後 PTSD 與心理重建為中長期重點。標記需持續關懷者，必要時轉介專業心理師。</div>'
     +'<table class="tbl"><thead><tr><th>編號</th><th>戶別</th><th>心理狀態</th><th>長期陪伴</th><th>操作</th></tr></thead><tbody>';
-  for(var i=0;i<d.households.length;i++){
-    var h=d.households[i];
-    var pc={'穩定':'badge-green','焦慮':'badge-amber','需持續關懷':'badge-red','已轉介追蹤':'badge-blue'}[h.psych]||'badge-amber';
-    html+='<tr><td class="sh-time">'+h.caseId+'</td><td style="font-weight:500">'+h.name+'</td>'
-      +'<td><span class="badge '+pc+'">'+h.psych+'</span></td><td>'+(h.longCare?'✅':'—')+'</td>'
-      +'<td>'+((h.psych==='焦慮'||h.psych==='需持續關懷')?'<button class="btn btn-purple btn-xs" onclick="rebuildRefer('+i+')">🩺 轉介心理師</button>':'<span style="font-size:9px;color:var(--text4)">✓</span>')+'</td></tr>';
-  }
+  rbCases.forEach(function(c){
+    var gi=DATA.persons.cases.indexOf(c);
+    var pc={'穩定':'badge-green','焦慮':'badge-amber','需持續關懷':'badge-red','已轉介追蹤':'badge-blue'}[c.psych]||'badge-amber';
+    html+='<tr><td class="sh-time">'+c.caseId+'</td><td style="font-weight:500">'+c.name+'</td>'
+      +'<td><span class="badge '+pc+'">'+c.psych||'—'+'</span></td><td>'+(c.longCare?'✅':'—')+'</td>'
+      +'<td>'+((c.psych==='焦慮'||c.psych==='需持續關懷')?'<button class="btn btn-purple btn-xs" onclick="rebuildRefer('+gi+')">🩺 轉介心理師</button>':'<span style="font-size:9px;color:var(--text4)">✓</span>')+'</td></tr>';
+  });
   html+='</tbody></table></div>';
   return html;
 }
 function rebuildRefer(i){
-  var h=DATA.rebuild.households[i]; h.psych='已轉介追蹤'; h.longCare=true;
+  var c=DATA.persons.cases[i]; if(!c) return;
+  c.psych='已轉介追蹤'; c.longCare=true;
   var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  var pc=DATA.persons.cases.find(function(c){return c.caseId===h.caseId;});
-  if(pc){ pc.psych='已轉介追蹤'; pc.longCare=true; pc.timeline.push({type:'心理追蹤',summary:'轉介專業心理師，納入長期陪伴',recorder:'心理重建組',ts:dtStr}); }
-  logSys('warn','【心理重建】'+h.caseId+' '+h.name+' 已轉介專業心理師，納入長期陪伴');
-  toast('🩺 已轉介心理師：'+h.caseId); renderRebuild(); saveData();
+  c.timeline.push({type:'心理追蹤',summary:'轉介專業心理師，納入長期陪伴',recorder:'心理重建組',ts:dtStr});
+  // 同步回 rebuild.households（舊頁面展示用）
+  var h=DATA.rebuild.households.find(function(h){return h.caseId===c.caseId;});
+  if(h){ h.psych='已轉介追蹤'; h.longCare=true; }
+  logSys('warn','【心理重建】'+c.caseId+' '+c.name+' 已轉介專業心理師，納入長期陪伴');
+  toast('🩺 已轉介心理師：'+c.caseId); renderRebuild(); saveData();
 }
 
 function renderCaseMgt(){
