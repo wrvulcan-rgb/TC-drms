@@ -7251,13 +7251,22 @@ function renderWelfare(){
   return html;
 }
 function applyWelfare(i){
-  DATA.persons.cases[i].welfareStatus='審核中';
+  var c=DATA.persons.cases[i]; if(!c) return;
+  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  c.welfareStatus='審核中';
+  c.timeline.push({type:'金援申請',summary:'祝福金申請送出，等待審核',recorder:'系統自動',ts:dtStr});
   toast('📝 已送出申請');
   renderPersons(); saveData();
 }
 function approveWelfare(i){
-  DATA.persons.cases[i].welfareStatus='已核發';
-  toast('💰 祝福金核發完成');
+  var c=DATA.persons.cases[i]; if(!c) return;
+  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var amt=c.phase==='急救期'?3000:10000;
+  c.welfareStatus='已核發';
+  if(!c.reliefLog) c.reliefLog=[];
+  c.reliefLog.push({type:'祝福金',amount:amt,ts:dtStr,approvedBy:'幹部（模擬）',status:'已核發'});
+  c.timeline.push({type:'金援核發',summary:'祝福金 $'+amt.toLocaleString()+' 核發完成',recorder:'財務組',ts:dtStr});
+  toast('💰 祝福金核發完成，已寫入 reliefLog');
   renderPersons(); saveData();
 }
 function renderPersonsCases(){
@@ -7284,6 +7293,11 @@ function renderPersonsCases(){
     if(c.visitStatus!=='已完成'){
       html+='<button class="btn btn-blue btn-xs" onclick="advancePersonCase('+i+')">'+(c.visitStatus==='待訪視'?'▶ 開始':'✓ 完成')+'</button>';
     }
+    // 階段推進按鈕（訪視完成後才能推）
+    var nextPhase=(CASE_TRANSITIONS[c.phase]||[])[0];
+    if(c.visitStatus==='已完成'&&nextPhase&&nextPhase!=='結案'){
+      html+='<button class="btn btn-amber btn-xs" onclick="advancePersonPhase('+i+',\''+nextPhase+'\')">→ '+nextPhase+'</button>';
+    }
     if(canClose){
       html+='<button class="btn btn-green btn-xs" onclick="closePersonCase('+i+')">✅ 結案</button>';
     }
@@ -7292,7 +7306,8 @@ function renderPersonsCases(){
       html+='<tr><td colspan="7" style="padding:4px 12px 8px;background:var(--bg1)">'
         +'<div style="font-size:10px;color:var(--text4);display:flex;gap:10px;flex-wrap:wrap">';
       c.timeline.slice(-3).forEach(function(t){
-        html+='<span><span style="font-family:monospace">'+t.ts.slice(5)+'</span> · <b>'+t.type+'</b> · '+t.summary+'</span>';
+        var tsDisp=(t.ts&&t.ts.length>5)?t.ts.slice(5):t.ts||'';
+        html+='<span><span style="font-family:monospace">'+tsDisp+'</span> · <b>'+t.type+'</b> · '+t.summary+'</span>';
       });
       if(c.timeline.length>3) html+='<span style="color:var(--text4)">…共 '+c.timeline.length+' 筆</span>';
       html+='</div></td></tr>';
