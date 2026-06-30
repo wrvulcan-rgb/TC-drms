@@ -1049,11 +1049,19 @@ function rtReport(k,result){
   var t=rtGet('tasks/'+k);
   var vols=rtGet('volunteers');
   var who=t.assignee&&vols[t.assignee]?vols[t.assignee].name:'前線';
-  var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var now=new Date();
+  var time=now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+time;
   if(result==='已完成'){ RTDB.ref('tasks/'+k).update({status:'已完成',lockedBy:''}); }
   RTDB.ref('reportLog').push({time:time,msg:'📲 '+who+' 回報「'+t.title+'」→ '+result});
+  // 任務完成 → 回寫至對應個案 timeline
+  if(result==='已完成'&&t.sosId){
+    var pc=DATA.persons.cases.find(function(c){return c.sosId===t.sosId;});
+    if(pc) pc.timeline.push({type:'任務完成',summary:'【'+t.title+'】已完成，回報人：'+who,recorder:'系統自動',ts:dtStr});
+  }
   logSys('ok','【LINE回報】'+who+' · '+t.title+' → '+result);
   toast('💬 回報已同步：'+result);
+  saveData();
 }
 // ── 模組四：結案稽核 ──
 function renderRTAudit(){
@@ -3117,13 +3125,13 @@ DATA.devTasks = [
 DATA.persons = {
   PERSONS_TAB: 'cases',
   cases: [
-    {caseId:'C001', name:'張本個案', address:'竹崎鄉中正路 123 號', phase:'急救期', visitStatus:'待訪視', route:'動線A', psych:'', longCare:false, rebuildPct:0, rebuildPhase:'', timeline:[]},
-    {caseId:'C002', name:'李本個案', address:'梅山鄉中山路 45 號',  phase:'急救期', visitStatus:'訪視中', route:'動線B', psych:'', longCare:false, rebuildPct:0, rebuildPhase:'', timeline:[]},
-    {caseId:'C003', name:'王本個案', address:'大埔鄉和平街 67 號',  phase:'急救期', visitStatus:'已完成', route:'動線A', psych:'', longCare:false, rebuildPct:0, rebuildPhase:'', timeline:[{type:'訪視關懷',summary:'個案訪視完成，動線A GPS 軌跡已存',recorder:'系統自動',ts:'06-22'}]},
-    {caseId:'RB-018', name:'林○○一家', address:'大埔鄉和平村', phase:'重建期', visitStatus:'已完成', route:'', psych:'焦慮', longCare:true, rebuildPct:15, rebuildPhase:'緊急安置', timeline:[{type:'訪視關懷',summary:'發放生活包、情緒安撫',recorder:'林師姐',ts:'06-21'}]},
-    {caseId:'RB-015', name:'張○○',    address:'竹崎鄉緞繻村', phase:'重建期', visitStatus:'已完成', route:'', psych:'穩定', longCare:true, rebuildPct:45, rebuildPhase:'組合屋', timeline:[{type:'訪視關懷',summary:'安置期訪視，情緒穩定',recorder:'陳師兄',ts:'06-19'}]},
-    {caseId:'RB-009', name:'黃○○夫婦', address:'梅山鄉太平村', phase:'重建期', visitStatus:'已完成', route:'', psych:'穩定', longCare:false, rebuildPct:70, rebuildPhase:'修繕中', timeline:[]},
-    {caseId:'RB-003', name:'吳○○',    address:'竹崎鄉文峰村', phase:'重建期', visitStatus:'已完成', route:'', psych:'需持續關懷', longCare:true, rebuildPct:100, rebuildPhase:'重建完成', timeline:[{type:'心理追蹤',summary:'持續心理重建，轉介專業師資',recorder:'心理重建組',ts:'06-18'}]},
+    {caseId:'C001', name:'張本個案', address:'竹崎鄉中正路 123 號', phase:'急救期', visitStatus:'待訪視', route:'動線A', psych:'', longCare:false, rebuildPct:0, rebuildPhase:'', assignedTo:'', sosId:null, aidLog:[], reliefLog:[], timeline:[]},
+    {caseId:'C002', name:'李本個案', address:'梅山鄉中山路 45 號',  phase:'急救期', visitStatus:'訪視中', route:'動線B', psych:'', longCare:false, rebuildPct:0, rebuildPhase:'', assignedTo:'', sosId:null, aidLog:[], reliefLog:[], timeline:[]},
+    {caseId:'C003', name:'王本個案', address:'大埔鄉和平街 67 號',  phase:'急救期', visitStatus:'已完成', route:'動線A', psych:'', longCare:false, rebuildPct:0, rebuildPhase:'', assignedTo:'', sosId:null, aidLog:[], reliefLog:[], timeline:[{type:'訪視關懷',summary:'個案訪視完成，動線A GPS 軌跡已存',recorder:'系統自動',ts:'2026-06-22 14:20'}]},
+    {caseId:'RB-018', name:'林○○一家', address:'大埔鄉和平村', phase:'重建期', visitStatus:'已完成', route:'', psych:'焦慮', longCare:true, rebuildPct:15, rebuildPhase:'緊急安置', assignedTo:'林師姐', sosId:'SOS-2039', aidLog:[{item:'生活包',qty:1,ts:'2026-06-21 09:00',by:'物資組'}], reliefLog:[], timeline:[{type:'通報受理',summary:'LINE 求助通報，一家5口含2幼童需安置',recorder:'系統自動',ts:'2026-06-21 08:30'},{type:'訪視關懷',summary:'發放生活包、情緒安撫',recorder:'林師姐',ts:'2026-06-21 10:00'}]},
+    {caseId:'RB-015', name:'張○○',    address:'竹崎鄉緞繻村', phase:'重建期', visitStatus:'已完成', route:'', psych:'穩定', longCare:true, rebuildPct:45, rebuildPhase:'組合屋', assignedTo:'陳師兄', sosId:null, aidLog:[], reliefLog:[{type:'應急慰問金',amount:3000,ts:'2026-06-20 14:00',approvedBy:'幹部A',status:'已核發'}], timeline:[{type:'訪視關懷',summary:'安置期訪視，情緒穩定',recorder:'陳師兄',ts:'2026-06-19 11:00'}]},
+    {caseId:'RB-009', name:'黃○○夫婦', address:'梅山鄉太平村', phase:'重建期', visitStatus:'已完成', route:'', psych:'穩定', longCare:false, rebuildPct:70, rebuildPhase:'修繕中', assignedTo:'', sosId:null, aidLog:[], reliefLog:[], timeline:[]},
+    {caseId:'RB-003', name:'吳○○',    address:'竹崎鄉文峰村', phase:'重建期', visitStatus:'已完成', route:'', psych:'需持續關懷', longCare:true, rebuildPct:100, rebuildPhase:'重建完成', assignedTo:'心理重建組', sosId:null, aidLog:[], reliefLog:[], timeline:[{type:'心理追蹤',summary:'持續心理重建，轉介專業師資',recorder:'心理重建組',ts:'2026-06-18 15:00'}]},
   ],
   careLogs: [
     {type:'訪視關懷', target:'竹崎受災戶',     summary:'發放生活包、情緒安撫',     recorder:'林師姐', caseId:'RB-018'},
@@ -6979,10 +6987,23 @@ function reliefToDispatch(i){
   // D6: also write to DATA.tasks.items with category:'ops'
   if(!DATA.tasks) DATA.tasks={items:[]};
   if(!DATA.tasks.items) DATA.tasks.items=[];
-  DATA.tasks.items.push({id:'OPS-'+r.id,title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assign:null,category:'ops',created:tm,source:'relief_req'});
+  DATA.tasks.items.push({id:'OPS-'+r.id,title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assign:null,category:'ops',created:tm,source:'relief_req',sosId:r.id});
   r.status='已轉派'; r.taskRef='已建任務';
+  // 自動建立 persons 個案（若同 sosId 尚未存在）
+  var nowDt=new Date(), dtStr=nowDt.getFullYear()+'-'+(nowDt.getMonth()+1)+'-'+('0'+nowDt.getDate()).slice(-2)+' '+tm;
+  var exists=DATA.persons.cases.some(function(c){return c.sosId===r.id;});
+  if(!exists){
+    var newCaseId='SOS-'+r.id.replace('SOS-','');
+    DATA.persons.cases.unshift({
+      caseId:newCaseId, name:r.name, address:r.location, phase:'急救期',
+      visitStatus:'待訪視', route:'', psych:'', longCare:false,
+      rebuildPct:0, rebuildPhase:'', assignedTo:'', sosId:r.id,
+      aidLog:[], reliefLog:[],
+      timeline:[{type:'通報受理',summary:r.type+'·'+r.desc,recorder:'系統自動',ts:dtStr}]
+    });
+  }
   logSys('warn','【民眾求助】'+r.id+' 已轉即時調度中台任務池（'+prio+'）'+r.location);
-  toast('⚡ '+r.id+' 已轉調度中台（'+prio+'）');
+  toast('⚡ '+r.id+' 已轉調度中台（'+prio+'），已建個案');
   renderReliefReq(); saveData();
 }
 function reliefMarkDup(i){
@@ -6993,6 +7014,9 @@ function reliefMarkDup(i){
 }
 function reliefClose(i){
   var r=DATA.relief_req.requests[i]; r.status='已結案';
+  var now=new Date(), tm=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var pc=DATA.persons.cases.find(function(c){return c.sosId===r.id;});
+  if(pc) pc.timeline.push({type:'求助結案',summary:'民眾求助通報已結案',recorder:'系統自動',ts:tm});
   logSys('ok','【民眾求助】'+r.id+' 已結案'); toast('✓ '+r.id+' 已結案');
   renderReliefReq(); saveData();
 }
@@ -7238,36 +7262,50 @@ function approveWelfare(i){
 }
 function renderPersonsCases(){
   var d=DATA.persons;
-  var phColor={'急救期':'badge-red','重建期':'badge-blue'};
+  var phColor={'急救期':'badge-red','安置期':'badge-amber','重建期':'badge-blue','結案':'badge-green'};
   var stColor={'待訪視':'badge-amber','訪視中':'badge-blue','已完成':'badge-green'};
+  // 結案個案獨立展開
+  var closedCases=d.cases.filter(function(c){return c.phase==='結案';});
+  var activeCases=d.cases.filter(function(c){return c.phase!=='結案';});
   var html='<div class="card"><div class="card-title">🗂️ 個案名單（全階段）</div>'
-    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">急救期個案完成訪視後自動銜接重建追蹤；點「▶ 開始」推進訪視狀態。</div>'
-    +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>地址</th><th>階段</th><th>訪視狀態</th><th>操作</th></tr></thead><tbody>';
-  d.cases.forEach(function(c,i){
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">急救期→安置期→重建期→結案；結案個案自動展開完整歷程。</div>'
+    +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>地址</th><th>階段</th><th>訪視</th><th>負責人</th><th>操作</th></tr></thead><tbody>';
+  activeCases.forEach(function(c){
+    var i=d.cases.indexOf(c);
+    var canClose=c.visitStatus==='已完成'&&(c.phase==='重建期'?c.rebuildPhase==='重建完成':c.phase!=='急救期');
     html+='<tr>'
       +'<td class="sh-time">'+c.caseId+'</td>'
       +'<td style="font-weight:500">'+c.name+'</td>'
       +'<td style="font-size:11px">'+c.address+'</td>'
       +'<td><span class="badge '+(phColor[c.phase]||'badge-blue')+'">'+c.phase+'</span></td>'
       +'<td><span class="badge '+(stColor[c.visitStatus]||'badge-blue')+'">'+c.visitStatus+'</span></td>'
-      +'<td>';
-    if(c.visitStatus==='已完成'){
-      html+='<span style="font-size:9px;color:var(--green)">✓</span>';
-    } else {
-      html+='<button class="btn btn-blue btn-xs" onclick="advancePersonCase('+i+')">'+(c.visitStatus==='待訪視'?'▶ 開始訪視':'✓ 完成訪視')+'</button>';
+      +'<td style="font-size:11px;color:var(--text3)">'+(c.assignedTo||'—')+'</td>'
+      +'<td style="display:flex;gap:4px;flex-wrap:wrap">';
+    if(c.visitStatus!=='已完成'){
+      html+='<button class="btn btn-blue btn-xs" onclick="advancePersonCase('+i+')">'+(c.visitStatus==='待訪視'?'▶ 開始':'✓ 完成')+'</button>';
+    }
+    if(canClose){
+      html+='<button class="btn btn-green btn-xs" onclick="closePersonCase('+i+')">✅ 結案</button>';
     }
     html+='</td></tr>';
     if(c.timeline&&c.timeline.length){
-      html+='<tr><td colspan="6" style="padding:4px 12px 8px;background:var(--bg1)">'
+      html+='<tr><td colspan="7" style="padding:4px 12px 8px;background:var(--bg1)">'
         +'<div style="font-size:10px;color:var(--text4);display:flex;gap:10px;flex-wrap:wrap">';
-      c.timeline.forEach(function(t){
-        html+='<span>'+t.ts+' · <b>'+t.type+'</b> · '+t.summary+'（'+t.recorder+'）</span>';
+      c.timeline.slice(-3).forEach(function(t){
+        html+='<span><span style="font-family:monospace">'+t.ts.slice(5)+'</span> · <b>'+t.type+'</b> · '+t.summary+'</span>';
       });
+      if(c.timeline.length>3) html+='<span style="color:var(--text4)">…共 '+c.timeline.length+' 筆</span>';
       html+='</div></td></tr>';
     }
   });
   html+='</tbody></table>'
     +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
+  // 結案個案完整歷程
+  if(closedCases.length){
+    html+='<div style="margin-top:16px"><div style="font-weight:600;font-size:13px;color:var(--green);margin-bottom:10px">✅ 已結案個案（'+closedCases.length+' 件）</div>';
+    closedCases.forEach(function(c){ html+=renderPersonsClosure(c); });
+    html+='</div>';
+  }
   return html;
 }
 function advancePersonCase(i){
@@ -7303,10 +7341,59 @@ function advancePersonPhase(i,targetPhase){
     return;
   }
   var next=targetPhase||(allowed[0]||c.phase);
+  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   c.phase=next;
+  c.timeline.push({type:'階段推進',summary:'階段更新為「'+next+'」',recorder:'系統自動',ts:dtStr});
   logSys('ok','【個案】'+c.caseId+' 階段推進 → '+next);
   toast('✓ '+c.caseId+' 階段更新為 '+next);
   renderPersons(); saveData();
+}
+function closePersonCase(i){
+  if(i<0||i>=DATA.persons.cases.length){toast('索引超出範圍','error');return;}
+  var c=DATA.persons.cases[i];
+  if(c.phase==='結案'){toast('此個案已結案','error');return;}
+  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  c.phase='結案'; c.closedAt=dtStr; c.visitStatus='已完成';
+  c.timeline.push({type:'個案結案',summary:'個案正式結案，完整歷程已封存',recorder:'系統自動',ts:dtStr});
+  logSys('ok','【個案結案】'+c.caseId+' '+c.name+' 結案完成');
+  toast('✅ '+c.caseId+' 已結案，歷程封存完畢');
+  renderPersons(); saveData();
+}
+function renderPersonsClosure(c){
+  if(!c) return '';
+  var phColor={'急救期':'badge-red','安置期':'badge-amber','重建期':'badge-blue','結案':'badge-green'};
+  var evtColor={'通報受理':'badge-amber','任務完成':'badge-blue','訪視開始':'badge-blue','訪視關懷':'badge-green','重建推進':'badge-blue','訪視排定':'badge-green','心理追蹤':'badge-purple','階段推進':'badge-blue','求助結案':'badge-green','個案結案':'badge-green'};
+  var html='<div class="card" style="border:2px solid var(--green-border)">'
+    +'<div class="card-title">📋 個案歷程總覽 — '+c.name+' （'+c.caseId+'）</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">'
+    +'<div class="stat-card blue" style="padding:10px"><div class="stat-lbl">最終階段</div><div><span class="badge '+(phColor[c.phase]||'badge-blue')+'">'+c.phase+'</span></div></div>'
+    +'<div class="stat-card green" style="padding:10px"><div class="stat-lbl">關懷事件</div><div class="stat-val">'+(c.timeline?c.timeline.length:0)+'</div></div>'
+    +'<div class="stat-card amber" style="padding:10px"><div class="stat-lbl">物資記錄</div><div class="stat-val">'+(c.aidLog?c.aidLog.length:0)+'</div></div>'
+    +'<div class="stat-card purple" style="padding:10px"><div class="stat-lbl">金援紀錄</div><div class="stat-val">'+(c.reliefLog?c.reliefLog.length:0)+'</div></div>'
+    +'</div>';
+  if(c.timeline&&c.timeline.length){
+    html+='<div style="margin-bottom:8px;font-weight:600;font-size:12px;color:var(--text2)">完整時間軸</div>'
+      +'<div style="border-left:3px solid var(--green);padding-left:12px">';
+    c.timeline.forEach(function(t){
+      html+='<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--text4);font-family:monospace">'+t.ts+'</div>'
+        +'<div><span class="badge '+(evtColor[t.type]||'badge-blue')+'" style="font-size:10px">'+t.type+'</span> '
+        +'<span style="font-size:12px">'+t.summary+'</span> '
+        +'<span style="font-size:10px;color:var(--text4)">— '+t.recorder+'</span></div></div>';
+    });
+    html+='</div>';
+  }
+  if(c.aidLog&&c.aidLog.length){
+    html+='<div style="margin:10px 0 6px;font-weight:600;font-size:12px;color:var(--text2)">物資發放紀錄</div><table class="tbl"><thead><tr><th>品項</th><th>數量</th><th>時間</th><th>記錄人</th></tr></thead><tbody>';
+    c.aidLog.forEach(function(a){html+='<tr><td>'+a.item+'</td><td>'+a.qty+'</td><td style="font-size:10px;font-family:monospace">'+a.ts+'</td><td style="font-size:10px">'+a.by+'</td></tr>';});
+    html+='</tbody></table>';
+  }
+  if(c.reliefLog&&c.reliefLog.length){
+    html+='<div style="margin:10px 0 6px;font-weight:600;font-size:12px;color:var(--text2)">金援發放紀錄</div><table class="tbl"><thead><tr><th>類型</th><th>金額</th><th>時間</th><th>核准人</th><th>狀態</th></tr></thead><tbody>';
+    c.reliefLog.forEach(function(r){html+='<tr><td>'+r.type+'</td><td>$'+r.amount+'</td><td style="font-size:10px;font-family:monospace">'+r.ts+'</td><td style="font-size:10px">'+r.approvedBy+'</td><td><span class="badge badge-green">'+r.status+'</span></td></tr>';});
+    html+='</tbody></table>';
+  }
+  html+='</div>';
+  return html;
 }
 function renderPersonsCare(){
   var d=DATA.persons;
@@ -7336,7 +7423,6 @@ function logPersonsMeal(){
   if(bento){bento.stock-=50;bento.status=bento.stock<bento.need*0.3?'red':(bento.stock<bento.need?'amber':'green');}
   DATA.persons.careStats.fixedPointMeals+=50;
   DATA.persons.careLogs.unshift({type:'定點關懷',target:'梅山國小收容所',summary:'熱食供應 50 份，便當庫存同步扣減',recorder:'系統自動',caseId:''});
-  if(DATA.care_rec){DATA.care_rec.stats.fixedPointMeals+=50;}
   renderPersons(); if(typeof renderField==='function') renderField(); if(typeof renderAlerts==='function') renderAlerts(); saveData();
   toast('🍱 供餐已登記，庫存已同步');
 }
@@ -7416,6 +7502,10 @@ function advanceRebuild(i){
   if(idx<d.phases.length-1){
     h.phase=d.phases[idx+1];
     h.pct=h.phase==='重建完成'?100:Math.min(95,Math.round((idx+2)/d.phases.length*100));
+    // 同步回寫 persons.cases
+    var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+    var pc=DATA.persons.cases.find(function(c){return c.caseId===h.caseId;});
+    if(pc){ pc.rebuildPhase=h.phase; pc.rebuildPct=h.pct; pc.timeline.push({type:'重建推進',summary:'階段推進至「'+h.phase+'」',recorder:'重建組',ts:dtStr}); }
     logSys('ok','【災後重建】'+h.caseId+' '+h.name+' 推進至「'+h.phase+'」');
     toast('▶ '+h.caseId+' → '+h.phase); renderRebuild(); saveData();
   }
@@ -7438,11 +7528,13 @@ function renderRebuildCare(){
 function rebuildSchedule(i){
   var h=DATA.rebuild.households[i];
   var tmr=new Date(Date.now()+86400000), ds=(tmr.getMonth()+1)+'-'+('0'+tmr.getDate()).slice(-2);
+  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   h.lastVisit=ds;
-  if(DATA.care_rec&&DATA.care_rec.logs){
-    DATA.care_rec.logs.unshift({type:'訪視關懷',target:h.name+'（'+h.addr+'）',summary:'災後重建長期陪伴訪視已排定（'+h.phase+'）',recorder:'重建專案'});
-    if(DATA.care_rec.stats) DATA.care_rec.stats.visit++;
-  }
+  // 寫 persons.careLogs（唯一來源）
+  DATA.persons.careLogs.unshift({type:'訪視關懷',target:h.name+'（'+h.addr+'）',summary:'災後重建長期陪伴訪視已排定（'+h.phase+'）',recorder:'重建專案',caseId:h.caseId});
+  DATA.persons.careStats.visit++;
+  var pc=DATA.persons.cases.find(function(c){return c.caseId===h.caseId;});
+  if(pc) pc.timeline.push({type:'訪視排定',summary:'長期陪伴訪視排定，下次 '+ds,recorder:'重建專案',ts:dtStr});
   logSys('ok','【災後重建】'+h.caseId+' 已排定長期關懷訪視 → 同步關懷行動紀錄');
   toast('📅 已排訪視並同步關懷紀錄'); renderRebuild(); saveData();
 }
@@ -7463,76 +7555,59 @@ function renderRebuildPsych(){
 }
 function rebuildRefer(i){
   var h=DATA.rebuild.households[i]; h.psych='已轉介追蹤'; h.longCare=true;
+  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var pc=DATA.persons.cases.find(function(c){return c.caseId===h.caseId;});
+  if(pc){ pc.psych='已轉介追蹤'; pc.longCare=true; pc.timeline.push({type:'心理追蹤',summary:'轉介專業心理師，納入長期陪伴',recorder:'心理重建組',ts:dtStr}); }
   logSys('warn','【心理重建】'+h.caseId+' '+h.name+' 已轉介專業心理師，納入長期陪伴');
   toast('🩺 已轉介心理師：'+h.caseId); renderRebuild(); saveData();
 }
 
 function renderCaseMgt(){
   var el=document.getElementById('case-mgt-content'); if(!el) return;
-  var d=DATA.case_mgt;
+  // 讀 persons.cases 急救期資料（唯一來源）
+  var items=DATA.persons.cases.filter(function(c){return c.phase==='急救期';});
   var stColor={'待訪視':'badge-amber','訪視中':'badge-blue','已完成':'badge-green'};
-  var html='<div class="card"><div class="card-title">🗂️ '+d.title+'</div>'
-    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px;font-family:monospace">📍 '+d.addrNote+'</div>'
-    +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>地址</th><th>動線</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
-  for(var i=0;i<d.items.length;i++){
-    var it=d.items[i];
+  var html='<div class="card"><div class="card-title">🗂️ 個案與動線管理</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px;font-family:monospace">📍 電子地圖 + 公部門開源地址清冊已對接｜資料源：個案全程陪伴</div>'
+    +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>地址</th><th>動線</th><th>狀態</th><th>負責人</th><th>操作</th></tr></thead><tbody>';
+  items.forEach(function(it){
+    var gi=DATA.persons.cases.indexOf(it);
     html+='<tr><td class="sh-time">'+it.caseId+'</td><td style="font-weight:500">'+it.name+'</td>'
       +'<td style="font-size:11px">'+it.address+'</td>'
-      +'<td><span class="badge badge-purple">'+it.route+'</span></td>'
-      +'<td><span class="badge '+(stColor[it.status]||'badge-blue')+'">'+it.status+'</span></td>'
-      +'<td>'+(it.status==='已完成'?'<span style="font-size:9px;color:var(--text4)">✓</span>':'<button class="btn btn-blue btn-xs" onclick="advanceCase('+i+')">'+(it.status==='待訪視'?'▶ 開始訪視':'✓ 完成訪視')+'</button>')+'</td></tr>';
-  }
+      +'<td>'+(it.route?'<span class="badge badge-purple">'+it.route+'</span>':'—')+'</td>'
+      +'<td><span class="badge '+(stColor[it.visitStatus]||'badge-blue')+'">'+it.visitStatus+'</span></td>'
+      +'<td style="font-size:11px;color:var(--text3)">'+(it.assignedTo||'—')+'</td>'
+      +'<td>'+(it.visitStatus==='已完成'?'<span style="font-size:9px;color:var(--green)">✓</span>':'<button class="btn btn-blue btn-xs" onclick="advanceCase('+gi+')">'+(it.visitStatus==='待訪視'?'▶ 開始訪視':'✓ 完成訪視')+'</button>')+'</td></tr>';
+  });
   html+='</tbody></table>'
     +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
   el.innerHTML=html;
 }
 function advanceCase(i){
-  var it=DATA.case_mgt.items[i];
-  if(it.status==='待訪視'){
-    it.status='訪視中';
-    logSys('info','【個案】'+it.caseId+' '+it.name+' 開始訪視（'+it.route+'），GPS 簽到已記錄');
-    toast('▶ '+it.caseId+' 訪視開始');
-  } else if(it.status==='訪視中'){
-    it.status='已完成';
-    DATA.care_rec.logs.unshift({type:'訪視關懷',target:it.name+'（'+it.address.substring(0,6)+'…）',summary:'個案訪視完成，'+it.route+' GPS 軌跡已存',recorder:'系統自動'});
-    DATA.care_rec.stats.visit++;
-    logSys('ok','【個案】'+it.caseId+' 訪視完成 → 自動寫入關懷行動紀錄，訪視統計 +1');
-    toast('✓ '+it.caseId+' 完成，已同步關懷紀錄');
+  // 直接操作 persons.cases（唯一來源）
+  var c=DATA.persons.cases[i]; if(!c) return;
+  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  if(c.visitStatus==='待訪視'){
+    c.visitStatus='訪視中';
+    c.timeline.push({type:'訪視開始',summary:'GPS 簽到記錄'+(c.route?' （'+c.route+'）':''),recorder:'系統自動',ts:dtStr});
+    logSys('info','【個案】'+c.caseId+' '+c.name+' 開始訪視，GPS 簽到已記錄');
+    toast('▶ '+c.caseId+' 訪視開始');
+  } else if(c.visitStatus==='訪視中'){
+    c.visitStatus='已完成';
+    c.timeline.push({type:'訪視關懷',summary:'訪視完成'+(c.route?' （'+c.route+'）':''),recorder:'系統自動',ts:dtStr});
+    DATA.persons.careLogs.unshift({type:'訪視關懷',target:c.name+'（'+c.address.substring(0,6)+'…）',summary:'訪視完成，GPS 軌跡已存',recorder:'系統自動',caseId:c.caseId});
+    DATA.persons.careStats.visit++;
+    logSys('ok','【個案】'+c.caseId+' 訪視完成 → 關懷紀錄 +1');
+    toast('✓ '+c.caseId+' 完成，已同步關懷紀錄');
   }
-  renderCaseMgt();saveData();
+  renderCaseMgt(); saveData();
 }
 function renderCareRec(){
   var el=document.getElementById('care-rec-content'); if(!el) return;
-  var d=DATA.care_rec;
-  var bento=DATA.field.supplies.find(function(x){return x.item==='便當';});
-  var html='<div style="display:flex;justify-content:flex-end;margin-bottom:10px">'
-    +'<button class="btn btn-amber" style="font-size:11px" onclick="logMeal()">🍱 登記定點供餐 +50（便當庫存 '+(bento?bento.stock:0)+'）</button>'
-    +'</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">'
-    +'<div class="stat-card green" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">線上關懷</div><div class="stat-val">'+d.stats.online+'</div><div class="stat-sub">戶</div></div>'
-    +'<div class="stat-card blue" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">訪視關懷</div><div class="stat-val">'+d.stats.visit+'</div><div class="stat-sub">戶</div></div>'
-    +'<div class="stat-card amber" style="padding:14px"><div class="accent-bar"></div><div class="stat-lbl">定點供餐</div><div class="stat-val">'+d.stats.fixedPointMeals+'</div><div class="stat-sub">份</div></div>'
-    +'</div>'
-    +'<div class="card"><div class="card-title">💚 '+d.title+'</div>'
-    +'<table class="tbl"><thead><tr><th>面向</th><th>對象</th><th>摘要</th><th>紀錄人</th></tr></thead><tbody>';
-  var tColor={'訪視關懷':'badge-blue','線上關懷':'badge-green','定點關懷':'badge-amber','法訊關懷':'badge-purple'};
-  for(var i=0;i<d.logs.length;i++){
-    var lg=d.logs[i];
-    html+='<tr><td><span class="badge '+(tColor[lg.type]||'badge-blue')+'">'+lg.type+'</span></td>'
-      +'<td style="font-weight:500">'+lg.target+'</td><td style="font-size:11px">'+lg.summary+'</td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+lg.recorder+'</td></tr>';
-  }
-  html+='</tbody></table></div>';
-  el.innerHTML=html;
+  el.innerHTML=renderPersonsCare(); // 唯一來源：persons
 }
 function logMeal(){
-  var bento=DATA.field.supplies.find(function(x){return x.item==='便當';});
-  if(bento&&bento.stock<50){toast('⚠ 便當庫存不足 50 份，請先補貨或調撥');logSys('warn','供餐登記失敗：便當庫存 '+bento.stock+' < 50');return;}
-  if(bento){bento.stock-=50;bento.status=bento.stock<bento.need*0.3?'red':(bento.stock<bento.need?'amber':'green');}
-  DATA.care_rec.stats.fixedPointMeals+=50;
-  DATA.care_rec.logs.unshift({type:'定點關懷',target:'梅山國小收容所',summary:'熱食供應 50 份，便當庫存同步扣減',recorder:'系統自動'});
-  renderCareRec();renderField();renderAlerts();saveData();
-  logSys('ok','【供餐】定點供餐 +50 → 關懷統計更新，便當庫存 -50（剩 '+(bento?bento.stock:0)+'）');
-  toast('🍱 供餐已登記，庫存已同步');
+  logPersonsMeal(); // 唯一寫入點：logPersonsMeal
 }
 // ══════════════════════════════════════════════════════
 //  原型 A：資源台帳

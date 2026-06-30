@@ -243,3 +243,30 @@
 | 3 | **場次 C**（全流程演練） | A、B 完成後 | ⬜ 待排期 |
 | 4 | **場次 D**（人力/組織） | Phase 1 前 | ⬜ 待排期 |
 | 5 | **場次 E**（各地啟動） | C 完成後 | ⬜ 待排期 |
+
+---
+
+## 技術待辦（設計者可單獨決定，不需工作坊）
+
+> 更新於 2026-06-30。標記 `[API]` 表示模擬已就緒，待真實 API 接口。
+
+### 資訊流串接
+
+| 項目 | 說明 | 前置條件 | 狀態 |
+|------|------|----------|------|
+| Firebase RTDB 接口 | `RTDB.ref().push/update` 已標好呼叫點，換真實 SDK 即可上線 | Firebase 專案建立 + 規則設定 | `[API]` 待串接 |
+| LINE Webhook 後端 | `LOA_CHAT` 模擬已完整，後端只需接收推播並回寫 reportLog | LINE OA 帳號 + GCP/Node 後端 | `[API]` 待串接 |
+| GAS 志工報名 | `DATA.registry.gasUrl` 預留接口，模擬成功回傳已就緒 | GAS 部署 + /exec URL 填入 admin | `[API]` 待串接 |
+| Google Drive 照片 | 前端分類邏輯完成，Drive API 串接點已標記 | Drive API 金鑰 + 資料夾結構 | `[API]` 待串接 |
+
+### 流程完整性（不需工作坊，需設計決策）
+
+| 項目 | 說明 | 影響模組 |
+|------|------|----------|
+| 任務受派確認 | 班長接單後需有「確認接受」動作，目前派出即視為接受 | `rtsync` Task 池 |
+| 物資到場驗收 | warehouse.reqs「已送達」需班長清點簽收 + 數量差異回報 | `warehouse` |
+| 時間戳格式統一 | 全系統改為 `YYYY-MM-DD HH:mm`，長期個案跨天可追溯（已部分修正） | 全系統 |
+| 個案負責人指派流程 | `assignedTo` 欄位已加，指派動作（誰可以指派、通知方式）待設計 | `persons` |
+| 金援五步驟審核鏈 | 目前只有 `welfareStatus` 欄位切換，需加申請人/審核人/核准人/發放人/簽收五角色記錄 | `persons` reliefLog |
+| 交接班自動彙整 | Handover 快照需自動統計本梯：完成任務數/未完成/物資用量/新增個案 | `rtsync` Handover tab |
+| RTDB 持久化 | 目前 RTDB 為記憶體模擬，重整即清空；需改寫進 localStorage 或等待真實 Firebase | `rtsync` |
