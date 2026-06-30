@@ -2641,6 +2641,12 @@ function loaVolSupply(){
   loaUserSay('叫料');
   loaOASay('📦 請選擇需要的物資：', {flex:'supply_items'});
 }
+function loaVolSupplyForCase(caseId){
+  LOA_SUPPLY_STEP = {caseId: caseId};
+  showPage('line_oa');
+  loaUserSay('為個案叫料：'+caseId);
+  loaOASay('📦 個案 '+caseId+'｜請選擇需要的物資：', {flex:'supply_items'});
+}
 function loaSupplyPickItem(item){
   LOA_SUPPLY_STEP.item = item;
   loaUserSay(item);
@@ -2658,7 +2664,9 @@ function loaSupplyPickQty(qty){
     if(nonFull) reqSite=nonFull.shelter;
   }
   if(!reqSite) reqSite='現場';
-  DATA.warehouse.reqs.push({id:id, item:item, qty:qty, site:reqSite, due:'1 小時內', prio:'P2', status:'待派案', driver:''});
+  var reqObj={id:id, item:item, qty:qty, site:reqSite, due:'1 小時內', prio:'P2', status:'待派案', driver:''};
+  if(LOA_SUPPLY_STEP.caseId) reqObj.caseId=LOA_SUPPLY_STEP.caseId;
+  DATA.warehouse.reqs.push(reqObj);
   logSys('ok','【Line OA 模擬】叫料 '+id+'：'+item+' '+qty);
   loaUserSay(qty);
   loaOASay('✅ 叫料需求已送出！\n單號：'+id+'\n'+item+' '+qty+'\n幹部確認後安排配送。');
@@ -7306,6 +7314,9 @@ function renderPersonsCases(){
     if(canClose){
       html+='<button class="btn btn-green btn-xs" onclick="closePersonCase('+i+')">✅ 結案</button>';
     }
+    if(c.phase!=='結案'){
+      html+='<button class="btn btn-gray btn-xs" onclick="loaVolSupplyForCase(\''+c.caseId+'\')">📦 叫料</button>';
+    }
     html+='</td></tr>';
     if(c.timeline&&c.timeline.length){
       html+='<tr><td colspan="7" style="padding:4px 12px 8px;background:var(--bg1)">'
@@ -7998,6 +8009,12 @@ function dispatchReq(rid){
     if(dt){dt.status='done';dt.pct=100;renderTasks();}
     recalcSupplyStat();
     renderWarehouse();renderNav();renderAlerts();
+    // 物資到場 → 寫入對應個案 aidLog（若 req 有 caseId）
+    if(rq.caseId){
+      var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+      var pc=DATA.persons.cases.find(function(c){return c.caseId===rq.caseId||c.sosId===rq.caseId;});
+      if(pc){ if(!pc.aidLog) pc.aidLog=[]; pc.aidLog.push({item:rq.item,qty:rq.qty,ts:dtStr,by:rq.driver||'物資組'}); pc.timeline.push({type:'物資到場',summary:rq.item+' '+rq.qty+' 送達 '+rq.site,recorder:'系統自動',ts:dtStr}); saveData(); }
+    }
     logSys('ok',rid+' ✓ 已送達 '+rq.site+'，需求端已收簽收通知，車輛釋回，任務卡已結案');
     toast('✅ '+rid+' 配送完成');
   },9000);
