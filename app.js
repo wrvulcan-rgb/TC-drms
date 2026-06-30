@@ -5901,12 +5901,17 @@ function submitNewTask(){
 }
 function completeTask(i){
   try{
-  // C1: include current user in task completion log
   var cu=getCurrentUser();
-  DATA.tasks.items[i].status='done';
-  DATA.tasks.items[i].pct=100;
-  if(cu) logSys('ok','【任務完成】'+DATA.tasks.items[i].id+' 由 '+cu.uid+' 標記完成');
-  renderTasks();
+  var tk=DATA.tasks.items[i];
+  tk.status='done'; tk.pct=100;
+  // 任務完成 → 回寫至對應個案 timeline（若有 sosId）
+  if(tk.sosId){
+    var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+    var pc=DATA.persons.cases.find(function(c){return c.sosId===tk.sosId;});
+    if(pc) pc.timeline.push({type:'任務完成',summary:'【'+tk.title+'】已完成',recorder:(cu?cu.uid:'系統自動'),ts:dtStr});
+  }
+  if(cu) logSys('ok','【任務完成】'+tk.id+' 由 '+cu.uid+' 標記完成');
+  renderTasks(); saveData();
   toast('✓ 任務已標記完成');
   }catch(e){ toast(e.message,'error'); logSys('err','completeTask 失敗：'+e.message); }
 }
@@ -6983,7 +6988,7 @@ function reliefToDispatch(i){
   var r=DATA.relief_req.requests[i];
   var prio={'搶救':'P1','醫療':'P1','收容':'P2','物資':'P3'}[r.type]||'P2';
   var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  try{ if(typeof RTDB!=='undefined'&&RTDB.ref){ RTDB.ref('tasks').push({title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assignee:'',lockedBy:'',created:tm}); } }catch(e){}
+  try{ if(typeof RTDB!=='undefined'&&RTDB.ref){ RTDB.ref('tasks').push({title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assignee:'',lockedBy:'',created:tm,sosId:r.id}); } }catch(e){}
   // D6: also write to DATA.tasks.items with category:'ops'
   if(!DATA.tasks) DATA.tasks={items:[]};
   if(!DATA.tasks.items) DATA.tasks.items=[];
