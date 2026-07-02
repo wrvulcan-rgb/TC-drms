@@ -534,6 +534,14 @@ function rtAudit(action,detail){
   var time=new Date().toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
   RTDB.ref('auditLog').push({time:time,actor:(role||'admin'),action:action,detail:detail});
 }
+// 慈濟屬全輔助角色，一般志工不應派入高風險救災現場（搶救/結構倒塌/水域等應由專業救援隊處理）。
+// 暫行規則：僅民眾求助類型「搶救」自動標記 riskProfile='high'；正式分級表待 TODO-WORKSHOP-17 工作坊產出後取代。
+function rtGuardHighRiskAssign(t,vName){
+  if(!t||t.riskProfile!=='high') return true;
+  var ok=confirm('⚠ 高風險任務：'+(t.title||'')+'\n\n慈濟屬全輔助角色，一般志工原則上不應派入危險救災現場（搶救/結構倒塌/水域等應由專業救援隊處理）。\n\n確定要將此任務派給 '+(vName||'志工')+'？此操作將記入稽核日誌。');
+  if(!ok) toast('⛔ 已取消：高風險任務需專業隊伍或幹部覆核');
+  return ok;
+}
 
 var RT_TAB='tasks';
 var rtBound=false;
@@ -590,7 +598,7 @@ function rtCheckFatigue(){
 }
 // ── 派工精靈 + 簡易大字模式 ──
 var RT_SIMPLE=(function(){try{return localStorage.getItem('drms_rt_simple')==='1';}catch(e){return false;}})();
-var RT_WIZ={open:false,step:1,tpl:null,tplLabel:'',prio:null};
+var RT_WIZ={open:false,step:1,tpl:null,tplLabel:'',prio:null,risk:null};
 var RT_ASSIGN_FOR=null;
 var RT_TEMPLATES=[
   {id:'meal', ico:'🍱',label:'送餐'},
@@ -601,7 +609,7 @@ var RT_TEMPLATES=[
   {id:'other',ico:'✏️',label:'其他'}
 ];
 function toggleRTSimple(){ RT_SIMPLE=!RT_SIMPLE; try{localStorage.setItem('drms_rt_simple',RT_SIMPLE?'1':'0');}catch(e){} renderRTSync(); }
-function rtWizOpen(){ RT_WIZ={open:true,step:1,tpl:null,tplLabel:'',prio:null,reliefId:null}; RT_ASSIGN_FOR=null; renderRTSync(); }
+function rtWizOpen(){ RT_WIZ={open:true,step:1,tpl:null,tplLabel:'',prio:null,risk:null,reliefId:null}; RT_ASSIGN_FOR=null; renderRTSync(); }
 // 從「待處理民眾求助」帶入：自動填內容+優先級，直接跳第③步派人
 function rtWizPickRelief(id){
   var list=(DATA.relief_req&&DATA.relief_req.requests)||[];
@@ -609,6 +617,7 @@ function rtWizPickRelief(id){
   if(!r){ toast('⚠ 找不到該求助'); return; }
   RT_WIZ.tplLabel='【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）';
   RT_WIZ.prio={'搶救':'P1','醫療':'P1','收容':'P2','物資':'P3'}[r.type]||'P2';
+  RT_WIZ.risk=(r.type==='搶救')?'high':'normal';
   RT_WIZ.reliefId=id;
   RT_WIZ.step=3;
   renderRTSync();
@@ -622,23 +631,24 @@ function rtWizSubmitFull(){
   var vid=(document.getElementById('rt-wiz-vol')||{}).value||'';
   var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   var title=RT_WIZ.tplLabel+(loc?' @ '+loc:'');
-  var id=RTDB.ref('tasks').push({title:title,priority:RT_WIZ.prio||'P2',status:'待派工',assignee:'',lockedBy:'',created:time,desc:desc,deadline:deadline});
+  var risk=RT_WIZ.risk||'normal';
+  var id=RTDB.ref('tasks').push({title:title,priority:RT_WIZ.prio||'P2',status:'待派工',assignee:'',lockedBy:'',created:time,desc:desc,deadline:deadline,riskProfile:risk});
   // Write to DATA.tasks.items with category:'field' (C4/D1)
   var cu=getCurrentUser();
   DATA.tasks.items.unshift({id:'RT-'+id,type:'field',icon:'⚡',title:title,
     assign:vid?{uid:vid}:'',status:'active',pct:0,category:'field',
     created:time,received:time,endTime:deadline.substring(11,16)||'18:00',lineNotified:true,
-    desc:desc||'（派工精靈建立）'});
-  if(vid){
-    var v=rtGet('volunteers/'+vid);
+    desc:desc||'（派工精靈建立）',riskProfile:risk});
+  var v=vid?rtGet('volunteers/'+vid):null;
+  if(vid && rtGuardHighRiskAssign({riskProfile:risk,title:title},v&&v.name)){
     RTDB.ref('tasks/'+id).update({assignee:vid,status:'進行中'});
     RTDB.ref('volunteers/'+vid).update({task:id,status:'任務中',workStart:String(Date.now())});
-    rtAudit('任務派發',id+' '+title+' → '+vid+' '+(v&&v.name||vid));
+    rtAudit('任務派發',id+' '+title+' → '+vid+' '+(v&&v.name||vid)+(risk==='high'?'（高風險已覆核）':''));
     logSys('ok','【派工精靈D1】'+title+' → '+(v&&v.name||vid));
     toast('已派給 '+(v&&v.name||vid));
   } else {
     rtAudit('任務建立',id+' '+title+'（待派工）');
-    toast('任務已建立，待派工');
+    toast(vid?'⛔ 已取消高風險派工，任務保留待派工':'任務已建立，待派工');
   }
   RT_WIZ.open=false;
   try{ if(typeof loaHook==='function') loaHook('staff','📋 新任務建立\n'+title+'（'+(RT_WIZ.prio||'P2')+'）'); }catch(e){}
@@ -658,18 +668,20 @@ function rtWizConfirmOther(){
 function rtWizPickPrio(p){ RT_WIZ.prio=p; RT_WIZ.step=3; renderRTSync(); }
 function rtWizAssign(vid){
   var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  var id=RTDB.ref('tasks').push({title:RT_WIZ.tplLabel,priority:RT_WIZ.prio||'P2',status:'待派工',assignee:'',lockedBy:'',created:time});
-  if(vid){
-    var v=rtGet('volunteers/'+vid);
+  var risk=RT_WIZ.risk||'normal';
+  var id=RTDB.ref('tasks').push({title:RT_WIZ.tplLabel,priority:RT_WIZ.prio||'P2',status:'待派工',assignee:'',lockedBy:'',created:time,riskProfile:risk});
+  var v=vid?rtGet('volunteers/'+vid):null;
+  var assigned=!!(vid && rtGuardHighRiskAssign({riskProfile:risk,title:RT_WIZ.tplLabel},v&&v.name));
+  if(assigned){
     RTDB.ref('tasks/'+id).update({assignee:vid,status:'進行中'});
     RTDB.ref('volunteers/'+vid).update({task:id,status:'任務中',workStart:String(Date.now())});
-    rtAudit('任務派發',id+' '+RT_WIZ.tplLabel+' → '+vid+' '+v.name);
+    rtAudit('任務派發',id+' '+RT_WIZ.tplLabel+' → '+vid+' '+v.name+(risk==='high'?'（高風險已覆核）':''));
     logSys('ok','【派工精靈】'+RT_WIZ.tplLabel+' → '+v.name);
     toast('✅ 已派給 '+v.name);
   } else {
     rtAudit('任務建立',id+' '+RT_WIZ.tplLabel+'（待派工）');
     logSys('ok','【派工精靈】'+RT_WIZ.tplLabel+'（先放著待派）');
-    toast('✅ 任務已建立，待派工');
+    toast(vid?'⛔ 已取消高風險派工，任務保留待派工':'✅ 任務已建立，待派工');
   }
   // 若任務來自民眾求助，回頭把該求助標記為已轉派，避免重複處理
   if(RT_WIZ.reliefId && DATA.relief_req && DATA.relief_req.requests){
@@ -678,7 +690,7 @@ function rtWizAssign(vid){
   }
   // 通知幹部手機
   if(typeof loaHook==='function'){
-    if(vid && v) loaHook('staff','🎯 任務已派發\n'+RT_WIZ.tplLabel+'\n指派：'+v.name+'\n優先：'+(RT_WIZ.prio||'P2'));
+    if(assigned) loaHook('staff','🎯 任務已派發\n'+RT_WIZ.tplLabel+'\n指派：'+v.name+'\n優先：'+(RT_WIZ.prio||'P2'));
     else loaHook('staff','📋 新任務建立\n'+RT_WIZ.tplLabel+'（待派工）');
   }
   RT_WIZ.open=false; renderRTSync();
@@ -688,9 +700,10 @@ function rtDoAssign(k,vid){
   var v=rtGet('volunteers/'+vid);
   if(v.fatigue){ toast('⚠ '+v.name+' 疲勞中，無法派工'); return; }
   var t=rtGet('tasks/'+k);
+  if(!rtGuardHighRiskAssign(t,v.name)) return;
   RTDB.ref('tasks/'+k).update({assignee:vid,status:'進行中'});
   RTDB.ref('volunteers/'+vid).update({task:k,status:'任務中',workStart:String(Date.now())});
-  rtAudit('任務派發',k+' '+t.title+' → '+vid+' '+v.name);
+  rtAudit('任務派發',k+' '+t.title+' → '+vid+' '+v.name+(t.riskProfile==='high'?'（高風險已覆核）':''));
   logSys('ok','【即時任務】'+k+' 派工給 '+vid);
   toast('✅ 已派給 '+v.name);
   RT_ASSIGN_FOR=null; renderRTSync();
@@ -7043,29 +7056,34 @@ function renderReliefInbox(){
     +'<div style="font-size:10px;color:var(--text4);margin-top:10px">💡 「⚡ 轉調度中台」自動於即時調度中台任務池建立任務（搶救/醫療→P1、收容→P2、物資→P3），打通「民眾求助→指揮派工」的斷點。</div></div>';
   return html;
 }
+// 共用：民眾求助轉為任務並自動建個案。reliefToDispatch（直接派工）與 confirmMatch（跨單位媒合）
+// 兩個入口都會把 relief_req 轉為實際任務，共用同一段邏輯，確保兩條路徑資訊流不斷鏈。
+function reliefSpawnTaskAndCase(req,prio,opts){
+  var risk=(req.type==='搶救')?'high':'normal';
+  var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var title=opts.titlePrefix+req.id+'】'+req.type+'·'+req.location+opts.titleSuffix;
+  try{ if(typeof RTDB!=='undefined'&&RTDB.ref){ RTDB.ref('tasks').push({title:title,priority:prio,status:'待派工',assignee:'',lockedBy:'',created:tm,sosId:req.id,riskProfile:risk}); } }catch(e){}
+  if(!DATA.tasks) DATA.tasks={items:[]};
+  if(!DATA.tasks.items) DATA.tasks.items=[];
+  DATA.tasks.items.push({id:opts.idPrefix+req.id,title:title,priority:prio,status:'待派工',assign:null,category:'ops',created:tm,source:opts.source,sosId:req.id,riskProfile:risk});
+  // 自動建立 persons 個案（若同 sosId 尚未存在）
+  var nowDt=new Date(), dtStr=nowDt.getFullYear()+'-'+(nowDt.getMonth()+1)+'-'+('0'+nowDt.getDate()).slice(-2)+' '+tm;
+  var exists=DATA.persons.cases.some(function(c){return c.sosId===req.id;});
+  if(!exists){
+    DATA.persons.cases.unshift({
+      caseId:'SOS-'+req.id.replace('SOS-',''), name:req.name, address:req.location, phase:'急救期',
+      visitStatus:'待訪視', route:'', psych:'', longCare:false,
+      rebuildPct:0, rebuildPhase:'', assignedTo:'', sosId:req.id,
+      aidLog:[], reliefLog:[],
+      timeline:[{type:'通報受理',summary:req.type+'·'+req.desc+(opts.extraNote||''),recorder:'系統自動',ts:dtStr}]
+    });
+  }
+}
 function reliefToDispatch(i){
   var r=DATA.relief_req.requests[i];
   var prio={'搶救':'P1','醫療':'P1','收容':'P2','物資':'P3'}[r.type]||'P2';
-  var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  try{ if(typeof RTDB!=='undefined'&&RTDB.ref){ RTDB.ref('tasks').push({title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assignee:'',lockedBy:'',created:tm,sosId:r.id}); } }catch(e){}
-  // D6: also write to DATA.tasks.items with category:'ops'
-  if(!DATA.tasks) DATA.tasks={items:[]};
-  if(!DATA.tasks.items) DATA.tasks.items=[];
-  DATA.tasks.items.push({id:'OPS-'+r.id,title:'【民眾求助 '+r.id+'】'+r.type+'·'+r.location+'（'+r.people+'人）',priority:prio,status:'待派工',assign:null,category:'ops',created:tm,source:'relief_req',sosId:r.id});
+  reliefSpawnTaskAndCase(r,prio,{titlePrefix:'【民眾求助 ',titleSuffix:'（'+r.people+'人）',idPrefix:'OPS-',source:'relief_req'});
   r.status='已轉派'; r.taskRef='已建任務';
-  // 自動建立 persons 個案（若同 sosId 尚未存在）
-  var nowDt=new Date(), dtStr=nowDt.getFullYear()+'-'+(nowDt.getMonth()+1)+'-'+('0'+nowDt.getDate()).slice(-2)+' '+tm;
-  var exists=DATA.persons.cases.some(function(c){return c.sosId===r.id;});
-  if(!exists){
-    var newCaseId='SOS-'+r.id.replace('SOS-','');
-    DATA.persons.cases.unshift({
-      caseId:newCaseId, name:r.name, address:r.location, phase:'急救期',
-      visitStatus:'待訪視', route:'', psych:'', longCare:false,
-      rebuildPct:0, rebuildPhase:'', assignedTo:'', sosId:r.id,
-      aidLog:[], reliefLog:[],
-      timeline:[{type:'通報受理',summary:r.type+'·'+r.desc,recorder:'系統自動',ts:dtStr}]
-    });
-  }
   logSys('warn','【民眾求助】'+r.id+' 已轉即時調度中台任務池（'+prio+'）'+r.location);
   toast('⚡ '+r.id+' 已轉調度中台（'+prio+'），已建個案');
   renderReliefReq(); saveData();
@@ -7192,14 +7210,17 @@ function renderCoordMatch(){
 // D5: confirm match function
 function confirmMatch(reqId,resourceId){
   var req=(DATA.relief_req&&DATA.relief_req.requests||[]).find(function(r){return r.id===reqId;});
-  if(req){ req.status='已轉派'; req.taskRef='媒合-'+resourceId; }
   var d=DATA.coord;
-  if(d.partners){
-    var par=d.partners.find(function(p){return p.id===resourceId;});
-    if(par) par.status='媒合中';
+  var par=(d.partners||[]).find(function(p){return p.id===resourceId;});
+  if(par) par.status='媒合中';
+  if(req){
+    var prio={'搶救':'P1','醫療':'P1','收容':'P2','物資':'P3'}[req.type]||'P2';
+    // 跨單位媒合與直接派工共用 reliefSpawnTaskAndCase，避免此入口漏建任務/個案（原本只改 status，資訊流斷在這）
+    reliefSpawnTaskAndCase(req,prio,{titlePrefix:'【跨單位媒合 ',titleSuffix:' ↔ '+(par?par.name:resourceId),idPrefix:'COORD-',source:'coord',extraNote:'（跨單位媒合：'+(par?par.name:resourceId)+'）'});
+    req.status='已轉派'; req.taskRef='媒合-'+resourceId;
   }
-  logSys('ok','【缺口媒合】'+reqId+' ↔ '+resourceId+' 確認媒合');
-  toast('媒合完成：'+reqId+' ↔ '+resourceId,'ok');
+  logSys('ok','【缺口媒合】'+reqId+' ↔ '+resourceId+' 確認媒合，已建任務與個案');
+  toast('媒合完成：'+reqId+' ↔ '+resourceId+'，已同步建任務','ok');
   renderCoord(); saveData();
 }
 function coordMatch(i){
@@ -7437,6 +7458,11 @@ function closePersonCase(i){
   var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   c.phase='結案'; c.closedAt=dtStr; c.visitStatus='已完成';
   c.timeline.push({type:'個案結案',summary:'個案正式結案，完整歷程已封存',recorder:'系統自動',ts:dtStr});
+  // 回寫上一層：對應的民眾求助通報同步標記已結案，避免 relief_req 與 persons 統計兜不起來
+  if(c.sosId && DATA.relief_req && DATA.relief_req.requests){
+    var rr=DATA.relief_req.requests.find(function(x){return x.id===c.sosId;});
+    if(rr && rr.status!=='已結案') rr.status='已結案';
+  }
   logSys('ok','【個案結案】'+c.caseId+' '+c.name+' 結案完成');
   toast('✅ '+c.caseId+' 已結案，歷程封存完畢');
   renderPersons(); saveData();
