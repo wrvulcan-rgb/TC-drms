@@ -98,8 +98,8 @@ ARCH_V2 以 Squad 為執行主體、明寫「班長APP 目前透過 LINE OA 代�
 | 📢 發送廣播 | — | push | ✅ 現有 |
 | 📡 發起點名 | ⑥ | rollcall 推播 | ✅ 現有 |
 | 🎯 查看任務 | ② | — | ✅ 現有 |
-| **✅ 高風險派工覆核** | ② | `risk_approve`（需新增） | ⬜ 缺——前端已有 `rtGuardHighRiskAssign` 守門，LOA 端無對應通知卡 |
-| **📋 結案確認** | ⑧ | `case_close`（需新增） | ⬜ 缺——closePersonCase 的行動端觸發 |
+| **✅ 高風險派工覆核** | ② | `risk_approve` | ✅ 已實作（班長請求→幹部收覆核卡→核准/駁回都通知班長＋留稽核） |
+| **📋 結案確認** | ⑧ | `case_close` | ✅ 已實作（統一走 closePersonCase：timeline 封存＋relief_req 回寫） |
 
 ### 任務類型觸發卡（不開角色）
 

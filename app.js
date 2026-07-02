@@ -2605,6 +2605,31 @@ function loaChatBubbleOA(m){
       }).join('')
       +'</div>';
   }
+  if(m.card==='risk_approve'){
+    // 即時讀任務池，卡片重繪時狀態自動更新（已核准的不再顯示按鈕）
+    var rts=(typeof rtGet==='function')?(rtGet('tasks')||{}):{};
+    var hks=Object.keys(rts).filter(function(k){return rts[k].riskProfile==='high'&&rts[k].status==='待派工';}).slice(0,3);
+    if(!hks.length) inner+='<div style="margin-top:6px;font-size:10px;color:#888">（目前無待覆核的高風險任務）</div>';
+    hks.forEach(function(k){
+      var t=rts[k];
+      inner+='<div style="margin-top:6px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:6px 8px;font-size:10px">'
+        +'⚠ <b>'+k+'</b> '+t.title+'（'+(t.priority||'P1')+'）'
+        +'<div style="margin-top:4px;display:flex;gap:4px">'
+        +'<button onclick="loaStaffRiskApprove(\''+k+'\')" style="flex:1;background:#06C755;color:#fff;border:none;border-radius:4px;padding:4px;font-size:10px;cursor:pointer">✅ 核准派遣</button>'
+        +'<button onclick="loaStaffRiskReject(\''+k+'\')" style="flex:1;background:#ef4444;color:#fff;border:none;border-radius:4px;padding:4px;font-size:10px;cursor:pointer">⛔ 駁回</button>'
+        +'</div></div>';
+    });
+  }
+  if(m.card==='case_close'){
+    var ccs=(DATA.persons&&DATA.persons.cases||[]).filter(function(c){return c.phase!=='結案';}).slice(0,3);
+    if(!ccs.length) inner+='<div style="margin-top:6px;font-size:10px;color:#888">（目前無未結案個案）</div>';
+    ccs.forEach(function(c){
+      inner+='<div style="margin-top:6px;background:#f5f5f5;border-radius:8px;padding:6px 8px;font-size:10px">'
+        +'<b>'+c.caseId+'</b> '+c.name+'（'+c.phase+'·'+(c.visitStatus||'—')+'）'
+        +'<br><button onclick="loaStaffCaseCloseConfirm(\''+c.caseId+'\')" style="margin-top:4px;background:#06C755;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer">📋 確認結案</button>'
+        +'</div>';
+    });
+  }
 
   return '<div style="display:flex;gap:6px;align-items:flex-start">'
     +'<div style="width:28px;height:28px;background:#06C755;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px">🏥</div>'
@@ -2652,6 +2677,8 @@ function loaRenderActions(){
       {label:'📢 發送廣播', fn:'loaStaffBroadcast()'},
       {label:'📡 發起點名', fn:'loaStaffRollcall()'},
       {label:'🎯 查看任務', fn:'loaStaffViewTasks()'},
+      {label:'✅ 高風險覆核',fn:'loaStaffRiskReview()'},
+      {label:'📋 結案確認', fn:'loaStaffCaseClose()'},
     ],
     driver: [
       {label:'🚛 查看派送單', fn:'loaDriverViewReqs()'},
@@ -2780,6 +2807,47 @@ function loaStaffTaskDone(id){
   loaOASay('✅ 任務 '+id+' 完工已記錄，感謝師兄/姐！');
   if(typeof renderRTSync==='function') renderRTSync();
 }
+// ── 幹部：高風險覆核 + 結案確認（LOA_ROLES_SPEC 優先序5；GAS risk_approve/case_close 待串接）──
+function loaStaffRiskReview(){
+  loaUserSay('高風險覆核');
+  loaOASay('⚠ 待覆核的高風險任務：',{card:'risk_approve'});
+}
+function loaStaffRiskApprove(k){
+  var t=rtGet('tasks/'+k);
+  if(!t||!t.title){ loaOASay('⚠ 找不到任務 '+k); return; }
+  if(t.status!=='待派工'){ loaOASay('任務 '+k+' 已處理（'+t.status+'），無需重複覆核。'); return; }
+  RTDB.ref('tasks/'+k).update({status:'進行中',lockedBy:'SQ-01'});
+  rtAudit('任務派發',k+' '+t.title+' → 班組 SQ-01（高風險已覆核）');
+  logSys('warn','【LOA 覆核】高風險任務 '+k+' 幹部核准 → SQ-01');
+  loaHook('leader','✅ 幹部已核准高風險任務\n「'+t.title+'」\n請確實配戴防護裝備、隨時回報。');
+  loaOASay('✅ 已核准 '+k+'「'+t.title+'」派遣班組 SQ-01，已通知班長。');
+  if(typeof renderRTSync==='function') renderRTSync();
+  saveData();
+}
+function loaStaffRiskReject(k){
+  var t=rtGet('tasks/'+k);
+  if(!t||!t.title){ loaOASay('⚠ 找不到任務 '+k); return; }
+  if(t.status!=='待派工'){ loaOASay('任務 '+k+' 已處理（'+t.status+'）。'); return; }
+  rtAudit('覆核駁回',k+' '+t.title+' 幹部駁回班組承接，待專業隊伍');
+  logSys('warn','【LOA 覆核】高風險任務 '+k+' 幹部駁回班組承接');
+  loaHook('leader','⛔ 幹部駁回高風險任務承接\n「'+t.title+'」\n請等待專業救援隊伍處理，勿自行進場。');
+  loaOASay('⛔ 已駁回 '+k+'，任務保留給專業隊伍，已通知班長。');
+}
+function loaStaffCaseClose(){
+  loaUserSay('結案確認');
+  loaOASay('📋 未結案個案（點擊確認結案）：',{card:'case_close'});
+}
+function loaStaffCaseCloseConfirm(caseId){
+  var cases=(DATA.persons&&DATA.persons.cases)||[];
+  var idx=-1;
+  for(var i=0;i<cases.length;i++){ if(cases[i].caseId===caseId){ idx=i; break; } }
+  if(idx<0){ loaOASay('⚠ 找不到個案 '+caseId); return; }
+  if(cases[idx].phase==='結案'){ loaOASay('個案 '+caseId+' 已結案。'); return; }
+  // 統一走 closePersonCase：timeline 封存 + relief_req 回寫，同儀表板行為
+  closePersonCase(idx);
+  loaOASay('✅ '+caseId+' '+cases[idx].name+' 已結案，歷程封存、求助單同步更新。');
+}
+
 // ── 志工：查看任務並完工回報（GAS 端對應 ACTION.TASK_DONE）──
 function loaVolMyTasks(){
   loaUserSay('任務完成');
@@ -2798,7 +2866,7 @@ function loaLeaderAccept(){
   if(t.riskProfile==='high'){
     // 全輔助角色守門：班組不可自行承接高風險任務，轉幹部覆核
     loaOASay('⛔ 「'+t.title+'」為高風險任務，班組不可自行承接，已通知幹部覆核派遣。');
-    loaHook('staff','⚠ 高風險任務 '+k+'「'+t.title+'」有班組請求承接，需您覆核派遣。');
+    loaHook('staff','⚠ 高風險任務有班組請求承接，請覆核：',{card:'risk_approve'});
     rtAudit('接單攔截','班長 SQ-01 請求承接高風險任務 '+k+'，轉幹部覆核');
     return;
   }
@@ -3003,6 +3071,8 @@ var LOA_PHONE_BTNS={
     {label:'📢 廣播',   fn:'loaStaffBroadcast()',  cls:'btn-blue'},
     {label:'📡 點名',   fn:'loaStaffRollcall()',   cls:'btn-amber'},
     {label:'🎯 查任務', fn:'loaStaffViewTasks()',  cls:'btn-ghost'},
+    {label:'✅ 覆核',   fn:'loaStaffRiskReview()', cls:'btn-green'},
+    {label:'📋 結案',   fn:'loaStaffCaseClose()',  cls:'btn-ghost'},
   ],
   driver:[
     {label:'🚛 查派送單',fn:'loaDriverViewReqs()', cls:'btn-blue'},

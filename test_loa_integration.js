@@ -451,6 +451,69 @@ section('[T16] 訪視角色 — 訪視/慰問金/心理轉介全寫入 persons�
   sandbox.LOA_ROLE='vol';
 }
 
+section('[T17] 幹部高風險覆核 — 班長請求→幹部核准/駁回全閉環（優先序5）');
+{
+  resetSpies();
+  ['loaStaffRiskReview','loaStaffRiskApprove','loaStaffRiskReject','loaStaffCaseClose','loaStaffCaseCloseConfirm']
+    .forEach(fn=>assert(typeof sandbox[fn]==='function', fn+'() 存在'));
+
+  // 班長請求承接高風險 → 幹部手機收到 risk_approve 卡
+  sandbox.LOA_CHAT.staff=[];
+  sandbox.LOA_ROLE='leader';
+  seedRTDB({
+    tasks:{'T-RA':{title:'高風險搶救',priority:'P1',status:'待派工',assignee:'',riskProfile:'high'}},
+    volunteers:{}, auditLog:{}, sos:{active:false},
+  });
+  sandbox.loaLeaderAccept();
+  assert((sandbox.LOA_CHAT.staff||[]).some(m=>m.card==='risk_approve'), '幹部手機收到 risk_approve 覆核卡');
+
+  // 幹部核准 → 任務派給班組 + 班長收到通知
+  sandbox.LOA_ROLE='staff';
+  sandbox.loaStaffRiskApprove('T-RA');
+  var t=rtGet('tasks/T-RA');
+  assert(t.status==='進行中' && t.lockedBy==='SQ-01', '核准後任務派給班組');
+  assert(SPY.rtAudit.calls.some(c=>String(c[1]).includes('高風險已覆核')), '稽核註記高風險已覆核');
+  assert((sandbox.LOA_CHAT.leader||[]).some(m=>String(m.text||'').includes('已核准')), '班長手機收到核准通知');
+
+  resetSpies();
+  sandbox.loaStaffRiskApprove('T-RA');
+  assert(!SPY.rtAudit.called(), '重複覆核被擋下（已處理任務不重派）');
+
+  // 駁回路徑：任務留在待派工
+  seedRTDB({
+    tasks:{'T-RJ':{title:'高風險水域',priority:'P1',status:'待派工',assignee:'',riskProfile:'high'}},
+    volunteers:{}, auditLog:{}, sos:{active:false},
+  });
+  resetSpies();
+  sandbox.loaStaffRiskReject('T-RJ');
+  t=rtGet('tasks/T-RJ');
+  assert(t.status==='待派工', '駁回後任務保留待派工');
+  assert(SPY.rtAudit.calls.some(c=>String(c[0]).includes('覆核駁回')), '稽核記錄覆核駁回');
+  assert((sandbox.LOA_CHAT.leader||[]).some(m=>String(m.text||'').includes('駁回')), '班長手機收到駁回通知');
+  sandbox.LOA_ROLE='vol';
+}
+
+section('[T18] 幹部結案確認 — LOA 端觸發 closePersonCase 完整閉環（優先序5）');
+{
+  resetSpies();
+  sandbox.LOA_ROLE='staff';
+  DATA.relief_req.requests=[{id:'SOS-5001',status:'已轉派',type:'物資',location:'x',people:1,desc:'',name:'',phone:'',dup:false}];
+  DATA.persons.cases=[{caseId:'SOS-5001',name:'測試壬',address:'x',phase:'重建期',visitStatus:'已完成',sosId:'SOS-5001',timeline:[]}];
+  sandbox.loaStaffCaseCloseConfirm('SOS-5001');
+  var c=DATA.persons.cases[0];
+  assert(c.phase==='結案', 'LOA 結案確認觸發 closePersonCase');
+  assert(c.timeline.some(e=>e.type==='個案結案'), 'timeline 收到個案結案封存');
+  assert(DATA.relief_req.requests[0].status==='已結案', '求助單同步回寫已結案（走同一條閉環）');
+  resetSpies();
+  sandbox.loaStaffCaseCloseConfirm('SOS-5001');
+  var msgs=sandbox.LOA_CHAT.staff||[];
+  assert(String((msgs[msgs.length-1]||{}).text||'').includes('已結案'), '重複結案被擋下');
+  sandbox.loaStaffCaseCloseConfirm('NOT-EXIST');
+  msgs=sandbox.LOA_CHAT.staff||[];
+  assert(String((msgs[msgs.length-1]||{}).text||'').includes('找不到'), '不存在個案回覆找不到');
+  sandbox.LOA_ROLE='vol';
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════════════════
