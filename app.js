@@ -2461,12 +2461,12 @@ function monitorRenderMapList(){
 // ══ Line OA 手機互動模擬（page-line_oa）══
 // 完全 inline，不用 iframe，按鈕直接呼叫主系統函數
 var LOA_ROLE = 'vol';
-var LOA_CHAT = { vol:[], leader:[], staff:[], driver:[] }; // 各角色聊天紀錄
+var LOA_CHAT = { vol:[], leader:[], kitchen:[], visitor:[], staff:[], driver:[] }; // 各角色聊天紀錄
 var LOA_SUPPLY_STEP = {}; // 叫料精靈狀態
 
 function setLOARole(r){
   LOA_ROLE = r;
-  ['vol','leader','staff','driver','flow'].forEach(function(k){
+  ['vol','leader','kitchen','visitor','staff','driver','flow'].forEach(function(k){
     var b=document.getElementById('loatab-'+k);
     if(b) b.className='btn '+(k===r?'btn-blue':'btn-ghost');
   });
@@ -2501,10 +2501,9 @@ function renderLineOA(targetId){
     +'<div id="loa-status-area"></div>'
     +'<div style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px"><span class="dot blink" style="background:var(--green);margin-right:4px"></span><span style="color:var(--text3)">推播紀錄：</span><span id="loa-log" style="color:var(--text3)">等待操作...</span></div>'
     +'</div>'
-    // ── 主區：雙手機居中放大 ──
+    // ── 主區：雙手機居中放大（當前角色 + 幹部端，角色多了排不下固定殼）──
     +'<div style="display:flex;justify-content:center;align-items:start;gap:24px;flex-wrap:wrap">'
-    +'<div>'+makeLoaPhoneShell('vol','loa-phone-vol',280)+'</div>'
-    +'<div>'+makeLoaPhoneShell('leader','loa-phone-leader',280)+'</div>'
+    +'<div>'+makeLoaPhoneShell(LOA_ROLE==='staff'?'vol':LOA_ROLE,'loa-phone-'+(LOA_ROLE==='staff'?'vol':LOA_ROLE),280)+'</div>'
     +'<div>'+makeLoaPhoneShell('staff','loa-phone-staff',280)+'</div>'
     +'</div>'
     // 隱藏的 loa-chat（loaRenderChat 需要這個 id）
@@ -2522,6 +2521,12 @@ function loaInitChat(role){
     ],
     leader: [
       {from:'oa', text:'🪖 班長您好！\n\n下方選單：接單 / 班員點名 / 進度回報 / 現場受阻 / 交接快照。\n高風險任務不可自行承接，系統會轉幹部覆核。'},
+    ],
+    kitchen: [
+      {from:'oa', text:'🍱 香積師姐/師兄您好！\n\n下方選單：開伙登記 / 食材叫料 / 出餐完成。\n開伙份數會同步到倉儲供需預估。'},
+    ],
+    visitor: [
+      {from:'oa', text:'🏠 訪視師姐/師兄您好！\n\n下方選單：開始訪視 / 完成訪視 / 慰問金申請 / 轉介心理。\n所有紀錄自動寫入個案歷程。'},
     ],
     staff: [
       {from:'oa', text:'📋 幹部您好，目前任務狀態：', card:'tasks'},
@@ -2578,7 +2583,7 @@ function loaChatBubbleOA(m){
   }
   if(m.flex==='supply_items'){
     inner += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">'
-      +['礦泉水','便當','醫療耗材','毛毯','發電機燃油','清潔用品'].map(function(item){
+      +['礦泉水','便當','白米','蔬菜','醫療耗材','毛毯','發電機燃油','清潔用品'].map(function(item){
         return '<button onclick="loaSupplyPickItem(\''+item+'\')" '
           +'style="background:#f0f0f0;border:1px solid #ddd;border-radius:8px;padding:6px;font-size:11px;cursor:pointer;text-align:left">'+item+'</button>';
       }).join('')
@@ -2589,6 +2594,14 @@ function loaChatBubbleOA(m){
       +['×10','×20','×50','×100'].map(function(q){
         return '<button onclick="loaSupplyPickQty(\''+q+'\')" '
           +'style="flex:1;background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">'+q+'</button>';
+      }).join('')
+      +'</div>';
+  }
+  if(m.flex==='meal_qty'){
+    inner += '<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">'
+      +[100,300,500,800].map(function(q){
+        return '<button onclick="loaKitchenSetCount('+q+')" '
+          +'style="flex:1;background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">'+q+' 份</button>';
       }).join('')
       +'</div>';
   }
@@ -2623,6 +2636,17 @@ function loaRenderActions(){
       {label:'📈 進度回報', fn:'loaLeaderReport()'},
       {label:'⚠ 現場受阻', fn:'loaLeaderBlocked()', red:true},
       {label:'🤝 交接快照', fn:'loaLeaderHandover()'},
+    ],
+    kitchen: [
+      {label:'🍱 開伙登記', fn:'loaKitchenCount()'},
+      {label:'📦 食材叫料', fn:'loaVolSupply()'},
+      {label:'✅ 出餐完成', fn:'loaKitchenServed()'},
+    ],
+    visitor: [
+      {label:'🏠 開始訪視', fn:'loaVisitStart()'},
+      {label:'✍ 完成訪視', fn:'loaVisitDone()'},
+      {label:'💰 慰問金申請',fn:'loaVisitAid()'},
+      {label:'🧠 轉介心理', fn:'loaVisitPsych()'},
     ],
     staff: [
       {label:'📢 發送廣播', fn:'loaStaffBroadcast()'},
@@ -2820,6 +2844,98 @@ function loaLeaderHandover(){
   rtAudit('交接快照','班長 SQ-01 產生收班交接快照');
 }
 
+// ── 香積操作（LOA_ROLES_SPEC 優先序3；掛既有 DATA.kitchen；GAS meal_* ACTION 待串接）──
+// ponytail: 單香積站模擬（sites[0]）；多站切換待工作坊定案
+function loaKitchenCount(){
+  loaUserSay('開伙登記');
+  loaOASay('🍱 請選擇今日開伙份數：',{flex:'meal_qty'});
+}
+function loaKitchenSetCount(n){
+  var site=(DATA.kitchen&&DATA.kitchen.sites&&DATA.kitchen.sites[0])||null;
+  var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  if(site){ site.mealsToday=n; site.status='備餐中'; }
+  if(DATA.kitchen&&DATA.kitchen.mealLog) DATA.kitchen.mealLog.unshift({time:tm,site:site?site.name:'香積站',qty:n,note:'開伙登記（Line OA）'});
+  // 回寫上一層：便當需求量 → 倉儲供需預估同步更新
+  var sup=(DATA.field&&DATA.field.supplies||[]).find(function(s){return s.item==='便當';});
+  if(sup){ sup.need=n; sup.status=sup.stock>=n?'green':(sup.stock>=n*0.5?'amber':'red'); }
+  loaHook('staff','🍱 香積站開伙登記\n'+(site?site.name:'香積站')+'：'+n+' 份\n倉儲供需預估已更新');
+  logSys('ok','【Line OA 模擬】香積開伙登記 '+n+' 份');
+  loaOASay('✅ 已登記今日開伙 '+n+' 份\n倉儲供需預估已同步更新。');
+  loaRenderStatus(); saveData();
+}
+function loaKitchenServed(){
+  var site=(DATA.kitchen&&DATA.kitchen.sites&&DATA.kitchen.sites[0])||null;
+  var qty=site?site.mealsToday:0;
+  var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  loaUserSay('出餐完成');
+  if(!qty){ loaOASay('尚未登記今日開伙份數，請先按「🍱 開伙登記」。'); return; }
+  if(site) site.status='供餐完成';
+  if(DATA.kitchen&&DATA.kitchen.mealLog) DATA.kitchen.mealLog.unshift({time:tm,site:site.name,qty:qty,note:'出餐完成（Line OA）'});
+  rtAudit('香積出餐',(site?site.name:'香積站')+' 出餐 '+qty+' 份完成');
+  loaHook('staff','✅ 香積出餐完成\n'+(site?site.name:'香積站')+'：'+qty+' 份');
+  logSys('ok','【Line OA 模擬】香積出餐完成 '+qty+' 份');
+  loaOASay('✅ 出餐完成已回報（'+qty+' 份），感恩師兄師姐！');
+  saveData();
+}
+
+// ── 訪視操作（LOA_ROLES_SPEC 優先序4；直接寫 persons，複用 applyWelfare/referPersonPsych）──
+function _loaVisitFind(status){
+  var cases=(DATA.persons&&DATA.persons.cases)||[];
+  for(var i=0;i<cases.length;i++){
+    if(cases[i].phase!=='結案'&&cases[i].visitStatus===status) return i;
+  }
+  return -1;
+}
+function loaVisitStart(){
+  loaUserSay('開始訪視');
+  var i=_loaVisitFind('待訪視');
+  if(i<0){ loaOASay('目前沒有待訪視的個案。'); return; }
+  var c=DATA.persons.cases[i];
+  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  c.visitStatus='訪視中';
+  c.timeline.push({type:'訪視開始',summary:'訪視志工抵達，開始關懷訪視',recorder:'訪視志工（LOA）',ts:dtStr});
+  logSys('ok','【Line OA 模擬】開始訪視 '+c.caseId);
+  loaOASay('🏠 已登記開始訪視：\n'+c.caseId+' '+c.name+'\n地址：'+(c.address||'—')+'\n完成後請按「✍ 完成訪視」。');
+  saveData();
+}
+function loaVisitDone(){
+  loaUserSay('完成訪視');
+  var i=_loaVisitFind('訪視中');
+  if(i<0){ loaOASay('目前沒有訪視中的個案，請先按「🏠 開始訪視」。'); return; }
+  var c=DATA.persons.cases[i];
+  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  c.visitStatus='已完成';
+  c.timeline.push({type:'訪視關懷',summary:'訪視完成，關懷紀錄已建檔',recorder:'訪視志工（LOA）',ts:dtStr});
+  if(DATA.persons.careStats) DATA.persons.careStats.visit++;
+  loaHook('staff','🏠 訪視完成回報\n'+c.caseId+' '+c.name+'\n關懷紀錄已寫入個案歷程');
+  logSys('ok','【Line OA 模擬】訪視完成 '+c.caseId);
+  loaOASay('✅ 訪視紀錄已建檔（'+c.caseId+' '+c.name+'），感恩！');
+  saveData();
+}
+function loaVisitAid(){
+  loaUserSay('慰問金申請');
+  var cases=(DATA.persons&&DATA.persons.cases)||[];
+  var i=-1;
+  for(var j=0;j<cases.length;j++){
+    if(cases[j].phase!=='結案'&&(!cases[j].welfareStatus||cases[j].welfareStatus==='待申請')){ i=j; break; }
+  }
+  if(i<0){ loaOASay('目前沒有可申請慰問金的個案（皆已申請或結案）。'); return; }
+  var c=cases[i];
+  applyWelfare(i); // 複用既有流程：welfareStatus='審核中' + timeline 金援申請
+  loaHook('staff','💰 慰問金申請\n'+c.caseId+' '+c.name+'（'+c.phase+'）\n請至個案頁審核');
+  loaOASay('💰 慰問金申請已送出：\n'+c.caseId+' '+c.name+'\n狀態：審核中，幹部審核後核發。');
+}
+function loaVisitPsych(){
+  loaUserSay('轉介心理');
+  var i=_loaVisitFind('訪視中');
+  if(i<0) i=_loaVisitFind('待訪視');
+  if(i<0){ loaOASay('目前沒有進行中的訪視個案。'); return; }
+  var c=DATA.persons.cases[i];
+  referPersonPsych(i); // 複用既有流程：psych 標記 + longCare + timeline 心理追蹤
+  loaHook('staff','🧠 心理轉介\n'+c.caseId+' '+c.name+' 已轉介專業心理師，納入長期陪伴');
+  loaOASay('🧠 已轉介心理師：'+c.caseId+' '+c.name+'\n個案已納入長期陪伴名單。');
+}
+
 // ── 物流操作 ──
 function loaDriverViewReqs(){
   loaUserSay('查看派送單');
@@ -2848,7 +2964,7 @@ function loaOASay(text, extra){
 // 廣播到所有手機
 function loaOASayAll(text, extra){
   var msg = Object.assign({from:'oa', text:text}, extra||{});
-  ['vol','leader','staff','driver'].forEach(function(r){
+  ['vol','leader','kitchen','visitor','staff','driver'].forEach(function(r){
     if(!LOA_CHAT[r]||!LOA_CHAT[r].length) loaInitChat(r);
     LOA_CHAT[r].push(Object.assign({},msg));
   });
@@ -2872,6 +2988,17 @@ var LOA_PHONE_BTNS={
     {label:'⚠ 受阻',    fn:'loaLeaderBlocked()',  cls:'btn-red'},
     {label:'🤝 交接',    fn:'loaLeaderHandover()', cls:'btn-ghost'},
   ],
+  kitchen:[
+    {label:'🍱 開伙登記', fn:'loaKitchenCount()',  cls:'btn-amber'},
+    {label:'📦 食材叫料', fn:'loaVolSupply()',     cls:'btn-blue'},
+    {label:'✅ 出餐完成', fn:'loaKitchenServed()', cls:'btn-green'},
+  ],
+  visitor:[
+    {label:'🏠 開始訪視', fn:'loaVisitStart()',  cls:'btn-blue'},
+    {label:'✍ 完成訪視', fn:'loaVisitDone()',   cls:'btn-green'},
+    {label:'💰 慰問金',  fn:'loaVisitAid()',    cls:'btn-amber'},
+    {label:'🧠 轉介心理', fn:'loaVisitPsych()',  cls:'btn-ghost'},
+  ],
   staff:[
     {label:'📢 廣播',   fn:'loaStaffBroadcast()',  cls:'btn-blue'},
     {label:'📡 點名',   fn:'loaStaffRollcall()',   cls:'btn-amber'},
@@ -2883,8 +3010,8 @@ var LOA_PHONE_BTNS={
 };
 function makeLoaPhoneShell(role, chatId, W){
   W=W||200;
-  var labels={vol:'🧑 志工端',leader:'🪖 班長端',staff:'📋 幹部端',driver:'🚛 物流端'};
-  var roleNames={vol:'陳建宏（志工）',leader:'張明德（班長）',staff:'林師姐（幹部）',driver:'王師兄（物流）'};
+  var labels={vol:'🧑 志工端',leader:'🪖 班長端',kitchen:'🍱 香積端',visitor:'🏠 訪視端',staff:'📋 幹部端',driver:'🚛 物流端'};
+  var roleNames={vol:'陳建宏（志工）',leader:'張明德（班長）',kitchen:'李秀英（香積）',visitor:'黃淑真（訪視）',staff:'林師姐（幹部）',driver:'王師兄（物流）'};
   if(!LOA_CHAT[role]||!LOA_CHAT[role].length) loaInitChat(role);
   var msgs=LOA_CHAT[role]||[];
   var chatHtml=msgs.map(function(m){return m.from==='oa'?loaChatBubbleOA(m):loaChatBubbleUser(m);}).join('');
@@ -2927,7 +3054,7 @@ function makeLoaPhoneShell(role, chatId, W){
     +'</div>';
 }
 function loaRefreshPhones(){
-  ['vol','leader','staff','driver'].forEach(function(role){
+  ['vol','leader','kitchen','visitor','staff','driver'].forEach(function(role){
     var el=document.getElementById('rt-phone-'+role)||document.getElementById('loa-phone-'+role);
     if(!el) return;
     var msgs=LOA_CHAT[role]||[];

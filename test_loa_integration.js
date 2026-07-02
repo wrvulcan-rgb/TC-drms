@@ -387,6 +387,70 @@ section('[T14] loaStaffTaskDone — LOA 端完工統一走 completeTask 回寫�
   sandbox.LOA_ROLE='vol';
 }
 
+section('[T15] 香積角色 — 開伙登記回寫倉儲供需、出餐完成回報（優先序3）');
+{
+  resetSpies();
+  sandbox.LOA_ROLE='kitchen';
+  assert(Array.isArray(sandbox.LOA_CHAT.kitchen), 'LOA_CHAT.kitchen 已註冊');
+  ['loaKitchenCount','loaKitchenSetCount','loaKitchenServed'].forEach(fn=>assert(typeof sandbox[fn]==='function', fn+'() 存在'));
+
+  DATA.kitchen={sites:[{id:'K01',name:'測試香積站',staff:5,mealsToday:0,status:'備餐中',menu:''}],supplies:[],mealLog:[]};
+  DATA.field={supplies:[{item:'便當',unit:'份',stock:400,need:350,status:'green'}]};
+  sandbox.loaKitchenServed();
+  assert(DATA.kitchen.mealLog.length===0, '未登記開伙時出餐被擋下');
+
+  sandbox.loaKitchenSetCount(500);
+  assert(DATA.kitchen.sites[0].mealsToday===500, '開伙份數寫入香積站');
+  assert(DATA.kitchen.mealLog.length===1 && DATA.kitchen.mealLog[0].qty===500, 'mealLog 收到開伙紀錄');
+  var bento=DATA.field.supplies.find(s=>s.item==='便當');
+  assert(bento.need===500, '回寫上一層：倉儲便當需求量同步更新');
+  assert(bento.status==='amber', '庫存 400/需求 500 → 供需狀態轉 amber');
+
+  sandbox.loaKitchenServed();
+  assert(DATA.kitchen.sites[0].status==='供餐完成', '出餐完成更新站點狀態');
+  assert(DATA.kitchen.mealLog.length===2, 'mealLog 收到出餐紀錄');
+  assert(SPY.rtAudit.calls.some(c=>String(c[0]).includes('香積出餐')), '稽核記錄出餐');
+  sandbox.LOA_ROLE='vol';
+}
+
+section('[T16] 訪視角色 — 訪視/慰問金/心理轉介全寫入 persons（優先序4）');
+{
+  resetSpies();
+  sandbox.LOA_ROLE='visitor';
+  assert(Array.isArray(sandbox.LOA_CHAT.visitor), 'LOA_CHAT.visitor 已註冊');
+  ['loaVisitStart','loaVisitDone','loaVisitAid','loaVisitPsych'].forEach(fn=>assert(typeof sandbox[fn]==='function', fn+'() 存在'));
+
+  DATA.persons.cases=[
+    {caseId:'SOS-6001',name:'測試庚',address:'測試村1號',phase:'急救期',visitStatus:'待訪視',timeline:[],reliefLog:[]},
+    {caseId:'SOS-6002',name:'測試辛',address:'測試村2號',phase:'結案',visitStatus:'待訪視',timeline:[],reliefLog:[]},
+  ];
+  DATA.persons.careStats={online:0,visit:0,fixedPointMeals:0};
+
+  sandbox.loaVisitStart();
+  var c=DATA.persons.cases[0];
+  assert(c.visitStatus==='訪視中', '開始訪視更新狀態（跳過已結案個案）');
+  assert(c.timeline.some(e=>e.type==='訪視開始'), 'timeline 收到訪視開始');
+
+  sandbox.loaVisitPsych();
+  assert(c.psych==='已轉介追蹤' && c.longCare===true, '心理轉介複用 referPersonPsych：標記+長期陪伴');
+  assert(c.timeline.some(e=>e.type==='心理追蹤'), 'timeline 收到心理追蹤');
+
+  sandbox.loaVisitDone();
+  assert(c.visitStatus==='已完成', '完成訪視更新狀態');
+  assert(c.timeline.some(e=>e.type==='訪視關懷'), 'timeline 收到訪視關懷');
+  assert(DATA.persons.careStats.visit===1, 'careStats.visit 累計');
+
+  sandbox.loaVisitAid();
+  assert(c.welfareStatus==='審核中', '慰問金申請複用 applyWelfare：狀態審核中');
+  assert(c.timeline.some(e=>e.type==='金援申請'), 'timeline 收到金援申請');
+
+  resetSpies();
+  sandbox.loaVisitDone();
+  var msgs=sandbox.LOA_CHAT.visitor||[];
+  assert(String((msgs[msgs.length-1]||{}).text||'').includes('沒有訪視中'), '無訪視中個案時擋下重複完成');
+  sandbox.LOA_ROLE='vol';
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════════════════
