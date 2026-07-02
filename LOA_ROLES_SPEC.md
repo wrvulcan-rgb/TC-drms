@@ -46,11 +46,12 @@
 | 📦 叫料（三步驟） | ④ | `SUPPLY_*` | ✅ 現有 |
 | 📡 安全回報 | ⑥ | `SAFE` | ✅ 現有 |
 | 🆘 SOS | ⑥ | `SOS` | ✅ 現有 |
-| **✓ 任務完成** | ③ | `TASK_DONE` | ⬜ **缺**——GAS 端已寫好，前端模擬器沒這顆 |
+| **✓ 任務完成** | ③ | `TASK_DONE` | ✅ 已實作（模擬端，統一走 completeTask 回寫 persons.timeline） |
 
 ### 2. 班長（缺，P0 優先）
 
 ARCH_V2 以 Squad 為執行主體、明寫「班長APP 目前透過 LINE OA 代替」，但 LOA 無班長角色＝整個 Squad 模型沒有行動端入口。
+**狀態：✅ 模擬端 5 顆已實作（單班 SQ-01；高風險任務接單自動攔截轉幹部覆核）；GAS `squad_*` ACTION 待串接；DATA.squads 正式 schema 待 Phase 0-A。**
 
 | 按鈕 | 串接點 | ACTION（需新增） | 寫入 |
 |------|--------|-----------------|------|

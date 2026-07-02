@@ -2461,12 +2461,12 @@ function monitorRenderMapList(){
 // ══ Line OA 手機互動模擬（page-line_oa）══
 // 完全 inline，不用 iframe，按鈕直接呼叫主系統函數
 var LOA_ROLE = 'vol';
-var LOA_CHAT = { vol:[], staff:[], driver:[] }; // 各角色聊天紀錄
+var LOA_CHAT = { vol:[], leader:[], staff:[], driver:[] }; // 各角色聊天紀錄
 var LOA_SUPPLY_STEP = {}; // 叫料精靈狀態
 
 function setLOARole(r){
   LOA_ROLE = r;
-  ['vol','staff','driver','flow'].forEach(function(k){
+  ['vol','leader','staff','driver','flow'].forEach(function(k){
     var b=document.getElementById('loatab-'+k);
     if(b) b.className='btn '+(k===r?'btn-blue':'btn-ghost');
   });
@@ -2504,6 +2504,7 @@ function renderLineOA(targetId){
     // ── 主區：雙手機居中放大 ──
     +'<div style="display:flex;justify-content:center;align-items:start;gap:24px;flex-wrap:wrap">'
     +'<div>'+makeLoaPhoneShell('vol','loa-phone-vol',280)+'</div>'
+    +'<div>'+makeLoaPhoneShell('leader','loa-phone-leader',280)+'</div>'
     +'<div>'+makeLoaPhoneShell('staff','loa-phone-staff',280)+'</div>'
     +'</div>'
     // 隱藏的 loa-chat（loaRenderChat 需要這個 id）
@@ -2518,6 +2519,9 @@ function loaInitChat(role){
   var welcome = {
     vol: [
       {from:'oa', text:'歡迎加入慈濟災害應變系統！\n\n請使用下方選單操作，或輸入關鍵字：\n「報到」「叫料」「安全」「SOS」'},
+    ],
+    leader: [
+      {from:'oa', text:'🪖 班長您好！\n\n下方選單：接單 / 班員點名 / 進度回報 / 現場受阻 / 交接快照。\n高風險任務不可自行承接，系統會轉幹部覆核。'},
     ],
     staff: [
       {from:'oa', text:'📋 幹部您好，目前任務狀態：', card:'tasks'},
@@ -2608,9 +2612,17 @@ function loaRenderActions(){
   var btns = {
     vol: [
       {label:'✅ 報到',   fn:'loaVolCheckin()'},
+      {label:'✓ 任務完成',fn:'loaVolMyTasks()'},
       {label:'📦 叫料',   fn:'loaVolSupply()'},
       {label:'📡 安全回報',fn:'loaVolSafe()'},
       {label:'🆘 SOS 求救',fn:'loaVolSOS()', red:true},
+    ],
+    leader: [
+      {label:'🎯 接單',    fn:'loaLeaderAccept()'},
+      {label:'👥 班員點名', fn:'loaLeaderRollcall()'},
+      {label:'📈 進度回報', fn:'loaLeaderReport()'},
+      {label:'⚠ 現場受阻', fn:'loaLeaderBlocked()', red:true},
+      {label:'🤝 交接快照', fn:'loaLeaderHandover()'},
     ],
     staff: [
       {label:'📢 發送廣播', fn:'loaStaffBroadcast()'},
@@ -2735,10 +2747,77 @@ function loaStaffViewTasks(){
   loaOASay('目前任務清單：', {card:'tasks'});
 }
 function loaStaffTaskDone(id){
-  var tk=(DATA.tasks&&DATA.tasks.items||[]).find(function(t){return t.id===id;});
-  if(tk){ tk.status='done'; logSys('ok','【Line OA 模擬】任務 '+id+' 完工回報'); saveData(); }
+  var items=(DATA.tasks&&DATA.tasks.items)||[];
+  var idx=-1;
+  for(var i=0;i<items.length;i++){ if(items[i].id===id){ idx=i; break; } }
+  if(idx<0){ loaOASay('⚠ 找不到任務 '+id); return; }
+  // 統一走 completeTask：回寫 persons.timeline + 交接快照，避免 LOA 端完工漏寫個案歷程
+  completeTask(idx);
   loaOASay('✅ 任務 '+id+' 完工已記錄，感謝師兄/姐！');
   if(typeof renderRTSync==='function') renderRTSync();
+}
+// ── 志工：查看任務並完工回報（GAS 端對應 ACTION.TASK_DONE）──
+function loaVolMyTasks(){
+  loaUserSay('任務完成');
+  loaOASay('您目前的任務（點擊完工回報）：',{card:'tasks'});
+}
+
+// ── 班長操作（LOA_ROLES_SPEC 優先序1；模擬端，GAS squad_* ACTION 待串接）──
+// ponytail: 班組固定 SQ-01 單班模擬；DATA.squads 正式 schema 待 ARCH_V2 Phase 0-A
+function loaLeaderAccept(){
+  var tasks=rtGet('tasks')||{};
+  var keys=Object.keys(tasks).filter(function(k){return tasks[k].status==='待派工';})
+    .sort(function(a,b){return String(tasks[a].priority||'P9').localeCompare(String(tasks[b].priority||'P9'));});
+  loaUserSay('接單');
+  if(!keys.length){ loaOASay('目前任務池沒有待派工任務。'); return; }
+  var k=keys[0], t=tasks[k];
+  if(t.riskProfile==='high'){
+    // 全輔助角色守門：班組不可自行承接高風險任務，轉幹部覆核
+    loaOASay('⛔ 「'+t.title+'」為高風險任務，班組不可自行承接，已通知幹部覆核派遣。');
+    loaHook('staff','⚠ 高風險任務 '+k+'「'+t.title+'」有班組請求承接，需您覆核派遣。');
+    rtAudit('接單攔截','班長 SQ-01 請求承接高風險任務 '+k+'，轉幹部覆核');
+    return;
+  }
+  RTDB.ref('tasks/'+k).update({status:'進行中',lockedBy:'SQ-01'});
+  rtAudit('班長接單',k+' '+t.title+' → 班組 SQ-01');
+  logSys('ok','【Line OA 模擬】班長接單 '+k);
+  loaOASay('🎯 已接單：「'+t.title+'」（'+(t.priority||'P2')+'）\n系統已通知班員集合。');
+  if(typeof renderRTSync==='function') renderRTSync();
+  saveData();
+}
+function loaLeaderRollcall(){
+  loaUserSay('班員點名');
+  loaHook('vol','📡 班長發起班組點名，請立即回報安全狀態。',{flex:'rollcall'});
+  rtAudit('班組點名','班長 SQ-01 發起班內安全點名');
+  loaOASay('📡 班組點名已推播給班員，等待回報。');
+}
+function loaLeaderReport(){
+  var tasks=rtGet('tasks')||{};
+  var k=Object.keys(tasks).filter(function(x){return tasks[x].lockedBy==='SQ-01'&&tasks[x].status==='進行中';})[0];
+  loaUserSay('進度回報');
+  if(!k){ loaOASay('目前班組沒有進行中的任務。'); return; }
+  RTDB.ref('reportLog').push({time:new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),msg:'🪖 班長回報「'+tasks[k].title+'」進行中'});
+  loaHook('staff','📈 班組 SQ-01 進度回報\n「'+tasks[k].title+'」執行中');
+  loaOASay('📈 進度已回報指揮中心。');
+}
+function loaLeaderBlocked(){
+  var tasks=rtGet('tasks')||{};
+  var k=Object.keys(tasks).filter(function(x){return tasks[x].lockedBy==='SQ-01'&&tasks[x].status==='進行中';})[0];
+  loaUserSay('現場受阻');
+  if(!k){ loaOASay('目前班組沒有進行中的任務。'); return; }
+  RTDB.ref('tasks/'+k).update({status:'受阻'});
+  rtAudit('現場受阻',k+' '+tasks[k].title+' 班長回報受阻');
+  loaHook('staff','⚠ 班組 SQ-01 回報現場受阻\n「'+tasks[k].title+'」需指揮中心協調');
+  loaOASay('⚠ 受阻狀態已上報，請於原地等候指揮中心指示。');
+  if(typeof renderRTSync==='function') renderRTSync();
+}
+function loaLeaderHandover(){
+  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  _pushHandoverSnapshot(dtStr);
+  var h=rtGet('handover')||{};
+  loaUserSay('交接快照');
+  loaOASay('🤝 交接快照已產生（'+dtStr+'）\n任務：完成 '+(h.tasksDone||0)+' / 進行中 '+(h.tasksActive||0)+'\n個案：追蹤中 '+(h.casesActive||0)+' / 已結案 '+(h.casesClosed||0)+'\n請下梯班長於系統確認簽收。');
+  rtAudit('交接快照','班長 SQ-01 產生收班交接快照');
 }
 
 // ── 物流操作 ──
@@ -2769,7 +2848,7 @@ function loaOASay(text, extra){
 // 廣播到所有手機
 function loaOASayAll(text, extra){
   var msg = Object.assign({from:'oa', text:text}, extra||{});
-  ['vol','staff','driver'].forEach(function(r){
+  ['vol','leader','staff','driver'].forEach(function(r){
     if(!LOA_CHAT[r]||!LOA_CHAT[r].length) loaInitChat(r);
     LOA_CHAT[r].push(Object.assign({},msg));
   });
@@ -2781,9 +2860,17 @@ function loaOASayAll(text, extra){
 var LOA_PHONE_BTNS={
   vol:[
     {label:'✅ 報到',   fn:'loaVolCheckin()',  cls:'btn-green'},
+    {label:'✓ 任務完成',fn:'loaVolMyTasks()',  cls:'btn-green'},
     {label:'📦 叫料',   fn:'loaVolSupply()',   cls:'btn-blue'},
     {label:'📡 安全回報',fn:'loaVolSafe()',    cls:'btn-ghost'},
     {label:'🆘 SOS 求救',fn:'loaVolSOS()',    cls:'btn-red'},
+  ],
+  leader:[
+    {label:'🎯 接單',    fn:'loaLeaderAccept()',   cls:'btn-blue'},
+    {label:'👥 班員點名', fn:'loaLeaderRollcall()', cls:'btn-amber'},
+    {label:'📈 進度回報', fn:'loaLeaderReport()',   cls:'btn-green'},
+    {label:'⚠ 受阻',    fn:'loaLeaderBlocked()',  cls:'btn-red'},
+    {label:'🤝 交接',    fn:'loaLeaderHandover()', cls:'btn-ghost'},
   ],
   staff:[
     {label:'📢 廣播',   fn:'loaStaffBroadcast()',  cls:'btn-blue'},
@@ -2796,8 +2883,8 @@ var LOA_PHONE_BTNS={
 };
 function makeLoaPhoneShell(role, chatId, W){
   W=W||200;
-  var labels={vol:'🧑 志工端',staff:'📋 幹部端',driver:'🚛 物流端'};
-  var roleNames={vol:'陳建宏（志工）',staff:'林師姐（幹部）',driver:'王師兄（物流）'};
+  var labels={vol:'🧑 志工端',leader:'🪖 班長端',staff:'📋 幹部端',driver:'🚛 物流端'};
+  var roleNames={vol:'陳建宏（志工）',leader:'張明德（班長）',staff:'林師姐（幹部）',driver:'王師兄（物流）'};
   if(!LOA_CHAT[role]||!LOA_CHAT[role].length) loaInitChat(role);
   var msgs=LOA_CHAT[role]||[];
   var chatHtml=msgs.map(function(m){return m.from==='oa'?loaChatBubbleOA(m):loaChatBubbleUser(m);}).join('');
@@ -2840,7 +2927,7 @@ function makeLoaPhoneShell(role, chatId, W){
     +'</div>';
 }
 function loaRefreshPhones(){
-  ['vol','staff','driver'].forEach(function(role){
+  ['vol','leader','staff','driver'].forEach(function(role){
     var el=document.getElementById('rt-phone-'+role)||document.getElementById('loa-phone-'+role);
     if(!el) return;
     var msgs=LOA_CHAT[role]||[];

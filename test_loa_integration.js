@@ -328,6 +328,65 @@ section('[T12] 邊界情況 — 索引越界 / null 不應拋例外（既有防�
   assert(threw===true || threw===false, 'null DATA.persons 執行完成（不論擋下或防呆，至少不掛整支程式）');
 }
 
+section('[T13] 班長角色 — 接單/守門/受阻/交接（LOA_ROLES_SPEC 優先序1）');
+{
+  resetSpies();
+  ['loaLeaderAccept','loaLeaderRollcall','loaLeaderReport','loaLeaderBlocked','loaLeaderHandover','loaVolMyTasks']
+    .forEach(fn=>assert(typeof sandbox[fn]==='function', fn+'() 存在'));
+  assert(sandbox.LOA_CHAT && Array.isArray(sandbox.LOA_CHAT.leader), 'LOA_CHAT.leader 已註冊');
+
+  sandbox.LOA_ROLE='leader';
+  // 高風險任務 → 班長不可自行承接
+  seedRTDB({
+    tasks:{'T-HI':{title:'搶救受困',priority:'P1',status:'待派工',assignee:'',riskProfile:'high'}},
+    volunteers:{}, auditLog:{}, sos:{active:false},
+  });
+  sandbox.loaLeaderAccept();
+  var t=rtGet('tasks/T-HI');
+  assert(t.status==='待派工', '高風險任務未被班長承接（守門生效）');
+  assert(SPY.rtAudit.calls.some(c=>String(c[0]).includes('接單攔截')), '稽核記錄接單攔截');
+  var staffMsgs=sandbox.LOA_CHAT.staff||[];
+  assert(staffMsgs.some(m=>String(m.text||'').includes('覆核')), '幹部手機收到覆核通知');
+
+  // 一般任務 → 接單成功 → 受阻上報
+  resetSpies();
+  seedRTDB({
+    tasks:{'T-NM':{title:'物資搬運',priority:'P2',status:'待派工',assignee:'',riskProfile:'normal'}},
+    volunteers:{}, auditLog:{}, sos:{active:false},
+  });
+  sandbox.loaLeaderAccept();
+  t=rtGet('tasks/T-NM');
+  assert(t.status==='進行中' && t.lockedBy==='SQ-01', '一般任務接單成功，鎖定班組');
+  sandbox.loaLeaderBlocked();
+  t=rtGet('tasks/T-NM');
+  assert(t.status==='受阻', '受阻回報更新任務狀態');
+
+  // 交接快照
+  resetSpies();
+  DATA.tasks.items=[{id:'X1',status:'done'},{id:'X2',status:'active'}];
+  DATA.persons.cases=[{caseId:'C1',phase:'急救期',timeline:[]},{caseId:'C2',phase:'結案',timeline:[]}];
+  sandbox.loaLeaderHandover();
+  var h=rtGet('handover');
+  assert(h && h.tasksDone===1 && h.tasksActive===1, '交接快照統計任務數正確');
+  assert(h.casesActive===1 && h.casesClosed===1, '交接快照統計個案數正確');
+  sandbox.LOA_ROLE='vol';
+}
+
+section('[T14] loaStaffTaskDone — LOA 端完工統一走 completeTask 回寫個案 timeline');
+{
+  resetSpies();
+  sandbox.LOA_ROLE='staff';
+  DATA.persons.cases=[{caseId:'SOS-7001',name:'測試己',phase:'急救期',sosId:'SOS-7001',timeline:[]}];
+  DATA.tasks.items=[{id:'OPS-SOS-7001',title:'LOA完工測試',status:'active',pct:0,sosId:'SOS-7001'}];
+  sandbox.loaStaffTaskDone('OPS-SOS-7001');
+  assert(DATA.tasks.items[0].status==='done', 'LOA 完工任務標記 done');
+  assert(DATA.persons.cases[0].timeline.some(e=>e.type==='任務完成'), 'LOA 完工回寫個案 timeline（原本漏寫）');
+  resetSpies();
+  sandbox.loaStaffTaskDone('NOT-EXIST');
+  assert(DATA.tasks.items[0].status==='done', '不存在的任務 ID 不影響既有資料');
+  sandbox.LOA_ROLE='vol';
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════════════════
