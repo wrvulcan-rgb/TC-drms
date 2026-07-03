@@ -193,7 +193,7 @@ govreport:{s:'todo',   issue:'效益報告/媒體素材自動生成待開發。'
 ## 執行指令（下次開場直接貼給Claude）
 
 ```
-讀取 /home/user/TC-drms/ARCH_V2_SPEC.md，
+讀取 /home/user/TC-drms/docs/ARCH_V2_SPEC.md，
 完整替換 arch-script-v2.js 的 ZONES/NODES/EDGES/HEALTH/VIEWS，
 對齊規格檔的資料，保留所有 arch2- 前綴與 window.arch2_* 結構，
 完成後 syntax check → commit → push feature branch → merge main。

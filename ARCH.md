@@ -9,12 +9,19 @@
 
 ```
 TC-drms/
-├── index.html          ← 骨架 HTML（pages + 引用）
-├── style.css           ← 全域樣式（原 L8–604）
-├── arch-style.css      ← 心智圖樣式（原 L1494–1693）
-├── arch-script.js      ← 心智圖腳本（原 L1788–2285）
-├── app.js              ← 主應用邏輯（原 L2290–8842）
-└── ARCH.md             ← 本文件
+├── index.html               ← 骨架 HTML（pages + 引用）
+├── style.css                ← 全域樣式（原 L8–604）
+├── arch-style.css           ← 心智圖樣式（原 L1494–1693）
+├── arch-script.js           ← 心智圖腳本（原 L1788–2285）
+├── arch-script-v2.js        ← Task 中心五鏈架構圖（v6.0）
+├── app.js                   ← 主應用邏輯（原 L2290–8842）
+├── intake.html              ← 需求結論收集站（獨立頁）
+├── test_loa_integration.js  ← LOA 整合自檢
+├── gas/                     ← Line OA 後端（GAS Webhook）
+├── docs/                    ← 規格與工作坊文件
+│   ├── ARCH_V2_SPEC.md / LOA_ROLES_SPEC.md / SECURITY_APPROVAL.md
+│   └── TODO_WORKSHOP.md / WORKSHOP_0406 / B / C / D / E
+└── ARCH.md                  ← 本文件
 ```
 
 ---
