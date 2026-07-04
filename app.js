@@ -701,12 +701,32 @@ function rtDoAssign(k,vid){
   if(v.fatigue){ toast('⚠ '+v.name+' 疲勞中，無法派工'); return; }
   var t=rtGet('tasks/'+k);
   if(!rtGuardHighRiskAssign(t,v.name)) return;
-  RTDB.ref('tasks/'+k).update({assignee:vid,status:'進行中'});
-  RTDB.ref('volunteers/'+vid).update({task:k,status:'任務中',workStart:String(Date.now())});
-  rtAudit('任務派發',k+' '+t.title+' → '+vid+' '+v.name+(t.riskProfile==='high'?'（高風險已覆核）':''));
-  logSys('ok','【即時任務】'+k+' 派工給 '+vid);
-  toast('✅ 已派給 '+v.name);
+  RTDB.ref('tasks/'+k).update({assignee:vid,status:'待確認'});
+  RTDB.ref('volunteers/'+vid).update({task:k,status:'待確認'});
+  rtAudit('任務派發（待確認）',k+' '+t.title+' → '+vid+' '+v.name+(t.riskProfile==='high'?'（高風險已覆核）':''));
+  logSys('ok','【即時任務】'+k+' 派工給 '+v.name+'（待本人確認接受）');
+  toast('📨 已派給 '+v.name+'，等待確認接受');
   RT_ASSIGN_FOR=null; renderRTSync();
+}
+function rtAcceptTask(k){
+  var t=rtGet('tasks/'+k);
+  if(!t||t.status!=='待確認') return;
+  RTDB.ref('tasks/'+k).update({status:'進行中'});
+  if(t.assignee) RTDB.ref('volunteers/'+t.assignee).update({status:'任務中',workStart:String(Date.now())});
+  rtAudit('任務確認接受',k+' '+t.title+' 由 '+t.assignee+' 確認接受');
+  logSys('ok','【任務確認】'+k+' '+t.title+' 已確認接受');
+  toast('✅ 任務已接受，開始執行');
+}
+function rtRejectTask(k){
+  var t=rtGet('tasks/'+k);
+  if(!t||t.status!=='待確認') return;
+  var prevAssignee=t.assignee;
+  var vols=rtGet('volunteers');
+  if(prevAssignee&&vols[prevAssignee]) RTDB.ref('volunteers/'+prevAssignee).update({task:'',status:'待命',workStart:''});
+  RTDB.ref('tasks/'+k).update({status:'待派工',assignee:''});
+  rtAudit('任務拒絕',k+' '+t.title+' 被 '+prevAssignee+' 拒絕，回池待重派');
+  logSys('warn','【任務拒絕】'+k+' '+t.title+' 被拒絕，回到待派工');
+  toast('↩ 任務已退回待派工池');
 }
 // 共用：列出「現在有空」的志工卡，onclickTpl 內以 VK 當作志工 id 佔位
 function rtPersonCards(onclickTpl,big){
@@ -809,6 +829,7 @@ function rtCardCtrls(k,t,big){
   var locked=!!t.lockedBy, btns='', expand='';
   if(big){
     if(t.status==='待派工'){ btns+='<button class="btn btn-blue" style="font-size:15px;padding:11px 20px" onclick="rtPickAssign(\''+k+'\')">'+(RT_ASSIGN_FOR===k?'✕ 收起':'👤 派人')+'</button>'; }
+    else if(t.status==='待確認'){ btns+='<button class="btn btn-green" style="font-size:15px;padding:11px 20px" onclick="rtAcceptTask(\''+k+'\')">✓ 確認接受</button><button class="btn btn-ghost" style="font-size:15px;padding:11px 20px" onclick="rtRejectTask(\''+k+'\')">✕ 拒絕</button>'; }
     else if(t.status==='進行中'){ btns+='<button class="btn btn-green" style="font-size:15px;padding:11px 20px" onclick="rtReport(\''+k+'\',\'已完成\')">✅ 完成</button>'; }
     if(RT_ASSIGN_FOR===k && t.status==='待派工'){
       expand='<div style="margin-top:8px;padding:10px;background:var(--bg3);border-radius:8px"><div style="font-size:13px;color:var(--text3);margin-bottom:8px">點一下要派的人：</div>'+rtPersonCards("rtDoAssign('"+k+"','VK')",big)+'</div>';
@@ -821,11 +842,12 @@ function rtCardCtrls(k,t,big){
         +avail.map(function(vk){var skl=(vols[vk].skills||[]).join('/');return '<option value="'+vk+'">'+vols[vk].name+(skl?'（'+skl+'）':'')+'</option>';}).join('')
         +'</select><button class="btn btn-blue btn-xs" onclick="rtAssignTask(\''+k+'\')">派工</button>';
     }
+    if(t.status==='待確認'){ btns+='<button class="btn btn-green btn-xs" onclick="rtAcceptTask(\''+k+'\')">✓ 接受</button><button class="btn btn-ghost btn-xs" onclick="rtRejectTask(\''+k+'\')">✕ 拒絕</button>'; }
     if(!t.forced&&t.status!=='已完成'){ btns+='<button class="btn btn-red btn-xs" onclick="rtForceTop(\''+k+'\')" title="強制置頂最高優先">⬆ 置頂</button>'; }
     if(t.status==='進行中'){ btns+='<button class="btn btn-amber btn-xs" onclick="rtBlockedRelease(\''+k+'\')" title="斷橋/受阻回報，釋放任務">🌉 受阻釋放</button>'; }
     if(locked){ btns+='<button class="btn btn-ghost btn-xs" onclick="rtForceRelease(\''+k+'\')">🔓 解鎖</button>'; }
     else if(t.status==='已完成'){ btns+='<button class="btn btn-ghost btn-xs" onclick="rtReopenTask(\''+k+'\')" title="改回進行中">↺ 重啟</button>'; }
-    else if(t.status!=='待派工'){ btns+='<button class="btn btn-ghost btn-xs" onclick="rtLockTask(\''+k+'\')">🔒 鎖定</button>'; }
+    else if(t.status!=='待派工'&&t.status!=='待確認'){ btns+='<button class="btn btn-ghost btn-xs" onclick="rtLockTask(\''+k+'\')">🔒 鎖定</button>'; }
   }
   return {btns:btns, expand:expand};
 }
@@ -883,7 +905,7 @@ function renderRTTasks(){
     html+='<div style="font-size:13px;color:var(--text4);text-align:center;padding:18px 0">目前沒有任務，按上面的「⚡ 派新任務」開始</div>';
   } else if(RT_VIEW==='board'){
     // 三欄看板：等人做 / 進行中 / 做完了
-    var cols=[{key:'待派工',ico:'⏳',name:'等人做',color:'--amber'},{key:'進行中',ico:'🏃',name:'進行中',color:'--blue'},{key:'已完成',ico:'✅',name:'做完了',color:'--green'}];
+    var cols=[{key:'待派工',ico:'⏳',name:'等人做',color:'--amber'},{key:'待確認',ico:'📨',name:'待確認',color:'--purple'},{key:'進行中',ico:'🏃',name:'進行中',color:'--blue'},{key:'已完成',ico:'✅',name:'做完了',color:'--green'}];
     html+='<div class="rt-board">';
     cols.forEach(function(col){
       var items=ids.filter(function(x){return tasks[x].status===col.key;});
@@ -913,7 +935,7 @@ function renderRTTasks(){
         +'<span style="font-weight:700;font-family:monospace;color:'+(pc[t.priority]||'var(--text3)')+';font-size:'+(big?'14px':'12px')+'">'+t.priority+'</span>'
         +'<div style="flex:1;min-width:120px"><div style="font-size:'+f1+';font-weight:600">'+t.title+'</div>'
         +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)">'+k+' · '+t.created+(asgName?' · 指派：'+asgName:'')+(locked?' · 🔒 鎖定：'+t.lockedBy:'')+'</div></div>'
-        +'<span class="badge badge-'+(t.status==='進行中'?'blue':t.status==='已完成'?'green':'amber')+'">'+t.status+'</span>'
+        +'<span class="badge badge-'+(t.status==='進行中'?'blue':t.status==='已完成'?'green':t.status==='待確認'?'purple':'amber')+'">'+t.status+'</span>'
         +c.btns
         +(c.expand?'<div style="flex-basis:100%">'+c.expand+'</div>':'')
         +'</div>';
@@ -964,11 +986,11 @@ function rtAssignTask(k){
   var v=rtGet('volunteers/'+vid);
   if(v.fatigue){ toast('⚠ '+v.name+' 疲勞中，無法派工'); return; }
   var t=rtGet('tasks/'+k);
-  RTDB.ref('tasks/'+k).update({assignee:vid,status:'進行中'});
-  RTDB.ref('volunteers/'+vid).update({task:k,status:'任務中',workStart:String(Date.now())});
-  rtAudit('任務派發',k+' '+t.title+' → '+vid+' '+v.name);
-  logSys('ok','【即時任務】'+k+' 派工給 '+vid);
-  toast('✅ 已派工給 '+v.name);
+  RTDB.ref('tasks/'+k).update({assignee:vid,status:'待確認'});
+  RTDB.ref('volunteers/'+vid).update({task:k,status:'待確認'});
+  rtAudit('任務派發（待確認）',k+' '+t.title+' → '+vid+' '+v.name);
+  logSys('ok','【即時任務】'+k+' 派工給 '+v.name+'（待確認）');
+  toast('📨 已派給 '+v.name+'，等待確認');
 }
 function rtLockTask(k){
   RTDB.ref('tasks/'+k).update({lockedBy:role||'admin'});
@@ -984,7 +1006,7 @@ function rtForceRelease(k){
 // ── 模組三：狀態回報（模擬 LINE 雙向）──
 function renderRTReport(){
   var tasks=rtGet('tasks'), vols=rtGet('volunteers');
-  var active=Object.keys(tasks).filter(function(k){return tasks[k].status==='進行中'||tasks[k].status==='已完成';});
+  var active=Object.keys(tasks).filter(function(k){return tasks[k].status==='進行中'||tasks[k].status==='已完成'||tasks[k].status==='待確認';});
   // 推播控制台
   var allSkills={}; Object.keys(vols).forEach(function(k){(vols[k].skills||[]).forEach(function(sk){allSkills[sk]=true;});});
   var skillOpts=Object.keys(allSkills).map(function(sk){return '<option value="'+sk+'">'+sk+'</option>';}).join('');
@@ -2908,7 +2930,20 @@ function loaLeaderHandover(){
   _pushHandoverSnapshot(dtStr);
   var h=rtGet('handover')||{};
   loaUserSay('交接快照');
-  loaOASay('🤝 交接快照已產生（'+dtStr+'）\n任務：完成 '+(h.tasksDone||0)+' / 進行中 '+(h.tasksActive||0)+'\n個案：追蹤中 '+(h.casesActive||0)+' / 已結案 '+(h.casesClosed||0)+'\n請下梯班長於系統確認簽收。');
+  var msg='🤝 交接快照已產生（'+dtStr+'）\n'
+    +'━━ 本梯任務統計 ━━\n'
+    +'即時調度：完成 '+(h.rtTasksDone||0)+' / 進行中 '+(h.rtTasksActive||0)+' / 待派 '+(h.rtTasksPending||0)+'\n'
+    +'系統任務：完成 '+(h.tasksDone||0)+' / 進行中 '+(h.tasksActive||0)+' / 待處理 '+(h.tasksPending||0)+'\n'
+    +'━━ 物資配送 ━━\n'
+    +'已送達 '+(h.warehouseDelivered||0)+' / 配送中 '+(h.warehouseInTransit||0)+' / 總需求 '+(h.warehouseTotal||0)
+    +(h.warehouseQtyIssues?'\n⚠ 數量差異 '+h.warehouseQtyIssues+' 筆':'')+'\n'
+    +'━━ 個案追蹤 ━━\n'
+    +'追蹤中 '+(h.casesActive||0)+' / 已結案 '+(h.casesClosed||0)+' / 本梯新增 '+(h.casesNewThisShift||0)+'\n'
+    +'━━ 人力 ━━\n'
+    +'內勤報到 '+(h.innerCheckin||0)+' / 外勤報到 '+(h.outerCheckin||0)+'\n'
+    +'━━━━━━━━━━━━\n'
+    +'請下梯班長於系統確認簽收。';
+  loaOASay(msg);
   rtAudit('交接快照','班長 SQ-01 產生收班交接快照');
 }
 
@@ -3011,8 +3046,9 @@ function loaDriverViewReqs(){
 }
 function loaDriverConfirm(reqId){
   var req=(DATA.warehouse.reqs||[]).find(function(r){return r.id===reqId;});
-  if(req){ req.status='已送達'; logSys('ok','【Line OA 模擬】'+reqId+' 到貨確認'); saveData(); }
-  loaOASay('✅ 到貨確認（'+reqId+'）已記錄，感謝師兄！');
+  if(req){ req.status='待驗收'; logSys('info','【Line OA 模擬】'+reqId+' 司機確認到場，待班長驗收'); saveData(); }
+  loaOASay('📦 到場確認（'+reqId+'）已記錄，請通知現場班長清點簽收。');
+  if(typeof loaHook==='function') loaHook('leader','📦 物資到場\n'+reqId+' '+(req?req.item:'')+'\n請前往清點驗收');
   if(typeof renderWarehouse==='function') renderWarehouse();
   loaRenderStatus();
 }
@@ -6269,17 +6305,46 @@ function _pushHandoverSnapshot(dtStr){
   try{
     var done=DATA.tasks.items.filter(function(t){return t.status==='done';}).length;
     var active=DATA.tasks.items.filter(function(t){return t.status==='active';}).length;
+    var pending=DATA.tasks.items.filter(function(t){return t.status!=='done'&&t.status!=='active';}).length;
     var innerChk=(DATA.registry.innerMembers||[]).filter(function(m){return m.checkin;}).length;
     var outerChk=(DATA.registry.volunteers||[]).filter(function(v){return v.checkin;}).length;
+    // RTDB 即時任務統計
+    var rtTasks=rtGet('tasks')||{};
+    var rtKeys=Object.keys(rtTasks);
+    var rtDone=rtKeys.filter(function(k){return rtTasks[k].status==='已完成';}).length;
+    var rtActive=rtKeys.filter(function(k){return rtTasks[k].status==='進行中';}).length;
+    var rtPending=rtKeys.filter(function(k){return rtTasks[k].status==='待派工'||rtTasks[k].status==='待確認';}).length;
+    // 物資使用統計
+    var reqs=DATA.warehouse.reqs||[];
+    var reqsDelivered=reqs.filter(function(r){return r.status==='已送達';}).length;
+    var reqsInTransit=reqs.filter(function(r){return r.status==='配送中'||r.status==='待驗收'||r.status==='已派案';}).length;
+    var qtyDiffs=reqs.filter(function(r){return r.qtyDiff&&r.qtyDiff!==0;});
+    // 新增個案（本梯期間新增 = 有 timeline 且第一筆時間在本場次後）
+    var sessionStart=SESSION?SESSION.startTime:'';
+    var casesAll=DATA.persons.cases||[];
+    var casesNew=0;
+    if(sessionStart){
+      casesNew=casesAll.filter(function(c){return c.timeline&&c.timeline.length&&c.timeline[0].ts>=sessionStart;}).length;
+    }
     RTDB.ref('handover').set({
       ts:dtStr,
       tasksTotal:DATA.tasks.items.length,
       tasksDone:done,
       tasksActive:active,
+      tasksPending:pending,
+      rtTasksTotal:rtKeys.length,
+      rtTasksDone:rtDone,
+      rtTasksActive:rtActive,
+      rtTasksPending:rtPending,
       innerCheckin:innerChk,
       outerCheckin:outerChk,
-      casesActive:DATA.persons.cases.filter(function(c){return c.phase!=='結案';}).length,
-      casesClosed:DATA.persons.cases.filter(function(c){return c.phase==='結案';}).length,
+      casesActive:casesAll.filter(function(c){return c.phase!=='結案';}).length,
+      casesClosed:casesAll.filter(function(c){return c.phase==='結案';}).length,
+      casesNewThisShift:casesNew,
+      warehouseDelivered:reqsDelivered,
+      warehouseInTransit:reqsInTransit,
+      warehouseTotal:reqs.length,
+      warehouseQtyIssues:qtyDiffs.length,
     });
   }catch(e){ logSys('warn','交接班快照失敗：'+e.message); }
 }
@@ -8256,7 +8321,7 @@ function renderWarehouse(targetId){
   var d=DATA.warehouse;
   var stColor={'配送中':'badge-blue','待命':'badge-amber','回程中':'badge-green'};
   var pC={P1:'var(--red)',P2:'var(--amber)',P3:'var(--green)'};
-  var qC={'待派案':'badge-amber','已派案':'badge-blue','配送中':'badge-purple','已送達':'badge-green'};
+  var qC={'待派案':'badge-amber','已派案':'badge-blue','配送中':'badge-purple','待驗收':'badge-red','已送達':'badge-green'};
   var qhtml='<div class="card" style="margin-bottom:14px"><div class="card-title"><span class="dot blink" style="background:var(--amber)"></span>供需派案台 — 前線 Line 需求單</div>'
     +'<table class="tbl"><thead><tr><th>急迫</th><th>單號</th><th>品項</th><th>送達</th><th>時限</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
   var sorted=d.reqs.slice().sort(function(a,b){return a.prio.localeCompare(b.prio);});
@@ -8269,7 +8334,7 @@ function renderWarehouse(targetId){
       +'<td style="font-size:11px">'+rq.site+'</td>'
       +'<td style="font-size:11px;color:'+((rq.due&&rq.due.includes('1 小時'))?'var(--red)':'var(--text3)')+'">'+( rq.due||'—')+'</td>'
       +'<td><span class="badge '+qC[rq.status]+'">'+rq.status+'</span>'+(rq.driver?'<div style="font-size:9px;color:var(--text4)">'+rq.driver+'</div>':'')+'</td>'
-      +'<td>'+(rq.status==='待派案'?'<button class="btn btn-amber btn-xs" onclick="dispatchReq(\''+rq.id+'\')">🚛 派案</button>':'')+'</td>'
+      +'<td>'+(rq.status==='待派案'?'<button class="btn btn-amber btn-xs" onclick="dispatchReq(\''+rq.id+'\')">🚛 派案</button>':(rq.status==='待驗收'?'<button class="btn btn-green btn-xs" onclick="verifyDelivery(\''+rq.id+'\')">📋 驗收簽收</button>':''))+'</td>'
       +'</tr>';
   }
   qhtml+='</tbody></table></div>';
@@ -8328,7 +8393,7 @@ function renderShelterMgt(targetId){
 function recalcSupplyStat(){
   var reqs=DATA.warehouse.reqs;
   if(!reqs.length) return;
-  var done=reqs.filter(function(x){return x.status==='已送達';}).length;
+  var done=reqs.filter(function(x){return x.status==='已送達'||x.status==='待驗收';}).length;
   var pct=Math.round(done/reqs.length*100);
   DATA.stats[4].val=pct+'%';
   DATA.stats[4].sub='派案 '+done+'/'+reqs.length+' 完成';
@@ -8375,22 +8440,43 @@ function dispatchReq(rid){
   },4000);
   setTimeout(function(){
     if(rq.status!=='配送中') return;
-    rq.status='已送達';
+    rq.status='待驗收';
     var tr=DATA.warehouse.trucks.find(function(t){return rq.driver.includes(t.truckId);});
     if(tr){tr.status='待命';tr.route='返回待命';}
-    var dt=DATA.tasks.items.find(function(t){return t.id===rid.replace('REQ','TD');});
-    if(dt){dt.status='done';dt.pct=100;renderTasks();}
     recalcSupplyStat();
     renderWarehouse();renderNav();renderAlerts();
-    // 物資到場 → 寫入對應個案 aidLog（若 req 有 caseId）
-    if(rq.caseId){
-      var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-      var pc=DATA.persons.cases.find(function(c){return c.caseId===rq.caseId||c.sosId===rq.caseId;});
-      if(pc){ if(!pc.aidLog) pc.aidLog=[]; pc.aidLog.push({item:rq.item,qty:rq.qty,ts:dtStr,by:rq.driver||'物資組'}); pc.timeline.push({type:'物資到場',summary:rq.item+' '+rq.qty+' 送達 '+rq.site,recorder:'系統自動',ts:dtStr}); saveData(); }
-    }
-    logSys('ok',rid+' ✓ 已送達 '+rq.site+'，需求端已收簽收通知，車輛釋回，任務卡已結案');
-    toast('✅ '+rid+' 配送完成');
+    logSys('info',rid+' 已抵達 '+rq.site+'，等待現場班長清點簽收');
+    toast('📦 '+rid+' 已到場，待班長驗收簽收');
+    if(typeof loaHook==='function') loaHook('leader','📦 物資到場通知\n'+rq.item+' '+rq.qty+'\n地點：'+rq.site+'\n請前往清點簽收');
   },9000);
+}
+function verifyDelivery(rid){
+  var rq=DATA.warehouse.reqs.find(function(x){return x.id===rid;});
+  if(!rq||rq.status!=='待驗收') return;
+  var expected=rq.qty;
+  var actual=prompt('清點實收數量（預期：'+expected+'）：',expected.replace(/[^\d]/g,''));
+  if(actual===null) return;
+  var diff=parseInt(actual,10)-parseInt(expected.replace(/[^\d]/g,''),10);
+  rq.status='已送達';
+  rq.verifiedQty=actual;
+  rq.qtyDiff=diff;
+  var dt=DATA.tasks.items.find(function(t){return t.id===rid.replace('REQ','TD');});
+  if(dt){dt.status='done';dt.pct=100;renderTasks();}
+  recalcSupplyStat();
+  if(rq.caseId){
+    var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+    var pc=DATA.persons.cases.find(function(c){return c.caseId===rq.caseId||c.sosId===rq.caseId;});
+    if(pc){ if(!pc.aidLog) pc.aidLog=[]; pc.aidLog.push({item:rq.item,qty:actual,ts:dtStr,by:rq.driver||'物資組'}); pc.timeline.push({type:'物資到場',summary:rq.item+' 實收'+actual+' 送達 '+rq.site+(diff?'（差異：'+diff+'）':''),recorder:'系統自動',ts:dtStr}); }
+  }
+  if(diff!==0){
+    logSys('warn','【物資驗收】'+rid+' 數量差異：預期 '+expected+'，實收 '+actual+'（差 '+diff+'）');
+    rtAudit('物資差異',rid+' '+rq.item+' 差異 '+diff);
+    toast('⚠ '+rid+' 已簽收，數量有差異（'+diff+'）');
+  } else {
+    logSys('ok','【物資驗收】'+rid+' '+rq.item+' 數量正確，班長簽收完成');
+    toast('✅ '+rid+' 驗收完成，數量無誤');
+  }
+  renderWarehouse();renderNav();renderAlerts();saveData();
 }
 function shelterAct(i,kind){
   var r=DATA.shelter_mgt.records[i];
