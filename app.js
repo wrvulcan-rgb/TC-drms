@@ -9,6 +9,18 @@ function setCurrentUser(obj){
 }
 
 // ══════════════════════════════════════════════════════
+//  時間戳統一 — 全系統個案/歷程一律 YYYY-MM-DD HH:mm
+//  （月/日/時/分皆補零；長期個案跨天可追溯）
+// ══════════════════════════════════════════════════════
+function fmtTS(d){
+  d=d||new Date();
+  var mm=('0'+(d.getMonth()+1)).slice(-2), dd=('0'+d.getDate()).slice(-2);
+  var hh=('0'+d.getHours()).slice(-2), mi=('0'+d.getMinutes()).slice(-2);
+  return d.getFullYear()+'-'+mm+'-'+dd+' '+hh+':'+mi;
+}
+function fmtTSSec(d){ d=d||new Date(); return fmtTS(d)+':'+('0'+d.getSeconds()).slice(-2); }
+
+// ══════════════════════════════════════════════════════
 //  C5: Case Status Transition Validation
 // ══════════════════════════════════════════════════════
 var CASE_TRANSITIONS = { '急救期':['安置期'], '安置期':['重建期'], '重建期':['結案'] };
@@ -1180,7 +1192,7 @@ function rtSubmitClose(){
   if(parseInt(photos,10)<1){ toast('⚠ 須附上至少 1 張現場照片'); return; }
   var tasks=rtGet('tasks');
   var done=Object.keys(tasks).filter(function(k){return tasks[k].status==='已完成';}).length;
-  var closedAt=new Date().toLocaleString('zh-TW');
+  var closedAt=fmtTS();
   RTDB.ref('caseStatus').set({closed:true,closedAt:closedAt,report:{meals:meals,house:house,waste:waste,photos:photos,note:note}});
   rtAudit('結案送出','便當'+meals+'個/服務'+house+'戶/廢棄物'+waste+'噸/照片'+photos+'張');
   logSys('ok','【結案稽核】結構化結案報告已送出');
@@ -2001,7 +2013,7 @@ function submitPhotoReport(){
   var fileInput=document.getElementById('photo-file-input');
   var site=(document.getElementById('photo-site')||{}).value||'未知地點';
   var desc=(document.getElementById('photo-desc')||{}).value||'';
-  var ts=new Date().toLocaleString('zh-TW');
+  var ts=fmtTS();
   var fileRef=fileInput&&fileInput.files&&fileInput.files[0]?fileInput.files[0].name:'(no file)';
   // Store metadata in DATA.drive (actual upload deferred to GAS)
   var rec={ts:ts,site:site,desc:desc,fileRef:fileRef,status:'待上傳(GAS未接)'};
@@ -2052,7 +2064,7 @@ function simulateUpload(){
 function renderSheetReg(){
   var el=document.getElementById('sheet-reg-content'); if(!el) return;
   var d=DATA.registry;
-  var canSee=(role==='admin'||role==='it');
+  var canSee=canViewFullPII();
   var innerChk=d.innerMembers.filter(function(m){return m.checkin;}).length;
   var outerChk=d.volunteers.filter(function(v){return v.checkin;}).length;
   var html=makeStatGrid([
@@ -2094,7 +2106,7 @@ function renderSheetReg(){
     for(var j=0;j<d.volunteers.length;j++){
       var v=d.volunteers[j];
       html+='<tr><td style="color:var(--text4);font-family:monospace">'+(j+1)+'</td>'
-        +'<td style="font-weight:500">'+v.name+'</td>'
+        +'<td style="font-weight:500">'+maskPII(v.name,'name')+'</td>'
         +'<td style="font-family:monospace;font-size:10px">'+maskPII(v.idno,'id')+'</td>'
         +'<td style="font-family:monospace;font-size:10px">'+maskPII(v.phone,'phone')+'</td>'
         +'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text3)')+'">'+v.diet+'</td>'
@@ -2926,7 +2938,7 @@ function loaLeaderBlocked(){
   if(typeof renderRTSync==='function') renderRTSync();
 }
 function loaLeaderHandover(){
-  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var now=new Date(), dtStr=fmtTS(now);
   _pushHandoverSnapshot(dtStr);
   var h=rtGet('handover')||{};
   loaUserSay('交接快照');
@@ -2994,7 +3006,7 @@ function loaVisitStart(){
   var i=_loaVisitFind('待訪視');
   if(i<0){ loaOASay('目前沒有待訪視的個案。'); return; }
   var c=DATA.persons.cases[i];
-  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var now=new Date(), dtStr=fmtTS(now);
   c.visitStatus='訪視中';
   c.timeline.push({type:'訪視開始',summary:'訪視志工抵達，開始關懷訪視',recorder:'訪視志工（LOA）',ts:dtStr});
   logSys('ok','【Line OA 模擬】開始訪視 '+c.caseId);
@@ -3006,7 +3018,7 @@ function loaVisitDone(){
   var i=_loaVisitFind('訪視中');
   if(i<0){ loaOASay('目前沒有訪視中的個案，請先按「🏠 開始訪視」。'); return; }
   var c=DATA.persons.cases[i];
-  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var now=new Date(), dtStr=fmtTS(now);
   c.visitStatus='已完成';
   c.timeline.push({type:'訪視關懷',summary:'訪視完成，關懷紀錄已建檔',recorder:'訪視志工（LOA）',ts:dtStr});
   if(DATA.persons.careStats) DATA.persons.careStats.visit++;
@@ -4714,11 +4726,20 @@ function toggleLine(id){
 }
 
 // ── REG ──
+// ══ 個資動態遮蔽層 ══
+// 前端依角色遮蔽個資（身分證/電話/Email/姓名/地址）。
+// 完整檢視權限暫定 admin/it，其餘角色一律遮蔽；正式分級（P0~P4）待 TODO-WORKSHOP-09 授權矩陣。
+// 註：此為前端遮蔽，非加密。真正欄位級加密需後端存取層（見開發待辦 P1）。
+function canViewFullPII(){ return role==='admin'||role==='it'; }
 function maskPII(v,kind){
-  if(role==='admin'||role==='it') return v;
-  if(kind==='id')    return v.substring(0,3)+'*******';
-  if(kind==='phone') return v.substring(0,4)+'***'+v.substring(7);
-  if(kind==='email'){ if(!v) return ''; var at=v.indexOf('@'); if(at<2) return (v[0]||'')+'***'+(at>=0?v.substring(at):''); return v.substring(0,2)+'***'+v.substring(at); }
+  v=(v==null)?'':String(v);
+  if(canViewFullPII()) return v;
+  if(!v) return '—';
+  if(kind==='id'){    return v.length<=4 ? (v.charAt(0)+'****') : (v.substring(0,3)+'****'+v.slice(-2)); }
+  if(kind==='phone'){ var dg=v.replace(/\D/g,''); return dg.length<7 ? (v.substring(0,2)+'****') : (v.substring(0,4)+'***'+v.slice(-3)); }
+  if(kind==='email'){ var at=v.indexOf('@'); return at<1 ? '***' : (v.charAt(0)+'***'+v.substring(at)); }
+  if(kind==='name'){  return v.length<=1 ? v : (v.charAt(0)+'○'.repeat(Math.max(1,v.length-1))); }
+  if(kind==='address'){ return v.replace(/\s*\d+\s*號?.*$/,'').trim()+' ***'; }
   return v;
 }
 function makeFunnelRow(items){
@@ -5159,7 +5180,7 @@ function renderRegCheckinPanel(){
 function renderRegistry(){
   var el=document.getElementById('registry-content'); if(!el) return;
   var d=DATA.registry;
-  var canSee=(role==='admin'||role==='it');
+  var canSee=canViewFullPII();
   // header tabs
   var activeTab=DATA.registry._tab||'inner';
   var html='<div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border)">'
@@ -6285,7 +6306,7 @@ function completeTask(i){
   var tk=DATA.tasks.items[i];
   tk.status='done'; tk.pct=100;
   var now=new Date();
-  var dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var dtStr=fmtTS(now);
   // 負責人：優先用 assigneeUid，其次 cu.uid
   var recorderUid=tk.assigneeUid||(cu?cu.uid:'系統自動');
   var recorderName=tk.assigneeName||(cu?cu.uid:'系統自動');
@@ -7457,7 +7478,7 @@ function reliefMarkDup(i){
 }
 function reliefClose(i){
   var r=DATA.relief_req.requests[i]; r.status='已結案';
-  var now=new Date(), tm=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var now=new Date(), tm=fmtTS(now);
   var pc=DATA.persons.cases.find(function(c){return c.sosId===r.id;});
   if(pc) pc.timeline.push({type:'求助結案',summary:'民眾求助通報已結案',recorder:'系統自動',ts:tm});
   logSys('ok','【民眾求助】'+r.id+' 已結案'); toast('✓ '+r.id+' 已結案');
@@ -7710,10 +7731,7 @@ function _welfareActor(){
   var map={admin:'總控',it:'IT 志工',staff:'行政組',logistics:'物資組',vol:'前線志工',leader:'組長/調度'};
   return map[role]||role||'操作者';
 }
-function _welfareNow(){
-  var n=new Date();
-  return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+('0'+n.getDate()).slice(-2)+' '+n.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-}
+function _welfareNow(){ return fmtTS(); }
 function applyWelfare(i){
   var c=DATA.persons.cases[i]; if(!c) return;
   if(c.welfareChain){ toast('⚠ 本案已有進行中的金援申請'); return; }
@@ -7825,7 +7843,18 @@ function renderPersonsCases(){
     if(c.phase!=='結案'){
       html+='<button class="btn btn-gray btn-xs" onclick="loaVolSupplyForCase(\''+c.caseId+'\')">📦 叫料</button>';
     }
+    if(canAssignCase()){
+      html+='<button class="btn btn-ghost btn-xs" onclick="toggleCaseAssign('+i+')">'+(CASE_ASSIGN_FOR===i?'✕ 收起':(c.assignedTo?'🔄 改派':'👤 指派'))+'</button>';
+    }
     html+='</td></tr>';
+    if(CASE_ASSIGN_FOR===i){
+      html+='<tr><td colspan="7" style="padding:8px 12px;background:var(--bg3)">'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+        +'<span style="font-size:11px;color:var(--text3)">指派負責人給 '+c.caseId+' '+c.name+'：</span>'
+        +'<select class="inp" style="width:auto;font-size:11px;padding:4px 6px" id="case-asg-'+i+'">'+caseAssigneeOptions(c.assignedTo)+'</select>'
+        +'<button class="btn btn-blue btn-xs" onclick="doAssignCase('+i+')">✓ 確認指派</button>'
+        +'</div></td></tr>';
+    }
     if(c.timeline&&c.timeline.length){
       html+='<tr><td colspan="7" style="padding:4px 12px 8px;background:var(--bg1)">'
         +'<div style="font-size:10px;color:var(--text4);display:flex;gap:10px;flex-wrap:wrap">';
@@ -7850,7 +7879,7 @@ function renderPersonsCases(){
 function advancePersonCase(i){
   // C5: bounds check and phase transition validation
   if(i<0||i>=DATA.persons.cases.length){toast('索引超出範圍','error');return;}
-  var c=DATA.persons.cases[i], now=new Date(), ds=(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2);
+  var c=DATA.persons.cases[i], ds=fmtTS();
   // Phase-level transition guard: only allow defined transitions
   if(c.phase&&CASE_TRANSITIONS[c.phase]){
     // phase advancement is only triggered externally; visitStatus changes are the normal flow
@@ -7870,6 +7899,39 @@ function advancePersonCase(i){
   }
   renderPersons(); saveData();
 }
+// ══ 個案負責人指派流程 ══
+// 候選人取內部志工/幹部（innerMembers）；僅幹部以上（admin/staff/leader）可指派；
+// 指派/改派寫入 timeline 並推播通知負責人。
+var CASE_ASSIGN_FOR=null;
+function canAssignCase(){ return role==='admin'||role==='staff'||role==='leader'; }
+function toggleCaseAssign(i){
+  if(!canAssignCase()){ toast('⚠ 僅幹部以上可指派個案負責人'); return; }
+  CASE_ASSIGN_FOR=(CASE_ASSIGN_FOR===i?null:i);
+  renderPersons();
+}
+function caseAssigneeOptions(current){
+  var members=(DATA.registry&&DATA.registry.innerMembers)||[];
+  var opts='<option value="">選擇負責人…</option>';
+  members.forEach(function(m){
+    var label=m.name+(m.group?('（'+m.group+'）'):'');
+    opts+='<option value="'+label+'"'+(current===label?' selected':'')+'>'+label+'</option>';
+  });
+  return opts;
+}
+function doAssignCase(i){
+  if(!canAssignCase()){ toast('⚠ 權限不足'); return; }
+  var sel=document.getElementById('case-asg-'+i); var val=sel?sel.value:'';
+  if(!val){ toast('⚠ 請先選擇負責人'); return; }
+  var c=DATA.persons.cases[i]; if(!c) return;
+  var prev=c.assignedTo||'', ts=fmtTS(), actor=_welfareActor();
+  c.assignedTo=val;
+  c.timeline.push({type:'負責人指派',summary:(prev?('由「'+prev+'」改派為「'+val+'」'):('指派負責人「'+val+'」'))+'（指派人：'+actor+'）',recorder:actor,ts:ts});
+  logSys('ok','【個案】'+c.caseId+' 負責人'+(prev?'改派':'指派')+'為 '+val+'（'+actor+'）');
+  if(typeof loaHook==='function') loaHook('staff','🫂 個案指派通知\n'+c.caseId+' '+c.name+'\n負責人：'+val+'\n請至個案頁接手陪伴。');
+  toast('✅ '+c.caseId+' 已指派給 '+val);
+  CASE_ASSIGN_FOR=null;
+  renderPersons(); saveData();
+}
 // C5: advance person case PHASE with transition validation
 function advancePersonPhase(i,targetPhase){
   if(i<0||i>=DATA.persons.cases.length){toast('索引超出範圍','error');return;}
@@ -7880,7 +7942,7 @@ function advancePersonPhase(i,targetPhase){
     return;
   }
   var next=targetPhase||(allowed[0]||c.phase);
-  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var now=new Date(), dtStr=fmtTS(now);
   c.phase=next;
   c.timeline.push({type:'階段推進',summary:'階段更新為「'+next+'」',recorder:'系統自動',ts:dtStr});
   logSys('ok','【個案】'+c.caseId+' 階段推進 → '+next);
@@ -7891,7 +7953,7 @@ function closePersonCase(i){
   if(i<0||i>=DATA.persons.cases.length){toast('索引超出範圍','error');return;}
   var c=DATA.persons.cases[i];
   if(c.phase==='結案'){toast('此個案已結案','error');return;}
-  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var now=new Date(), dtStr=fmtTS(now);
   c.phase='結案'; c.closedAt=dtStr; c.visitStatus='已完成';
   c.timeline.push({type:'個案結案',summary:'個案正式結案，完整歷程已封存',recorder:'系統自動',ts:dtStr});
   // 回寫上一層：對應的民眾求助通報同步標記已結案，避免 relief_req 與 persons 統計兜不起來
@@ -8074,7 +8136,7 @@ function renderRebuildCare(){
 function rebuildSchedule(i){
   var c=DATA.persons.cases[i]; if(!c) return;
   var tmr=new Date(Date.now()+86400000), ds=(tmr.getMonth()+1)+'-'+('0'+tmr.getDate()).slice(-2);
-  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var now=new Date(), dtStr=fmtTS(now);
   DATA.persons.careLogs.unshift({type:'訪視關懷',target:c.name+'（'+c.address+'）',summary:'災後重建長期陪伴訪視已排定（'+c.rebuildPhase+'）',recorder:'重建專案',caseId:c.caseId});
   DATA.persons.careStats.visit++;
   c.timeline.push({type:'訪視排定',summary:'長期陪伴訪視排定，下次 '+ds,recorder:'重建專案',ts:dtStr});
@@ -8099,7 +8161,7 @@ function renderRebuildPsych(){
 function rebuildRefer(i){
   var c=DATA.persons.cases[i]; if(!c) return;
   c.psych='已轉介追蹤'; c.longCare=true;
-  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var now=new Date(), dtStr=fmtTS(now);
   c.timeline.push({type:'心理追蹤',summary:'轉介專業心理師，納入長期陪伴',recorder:'心理重建組',ts:dtStr});
   // 同步回 rebuild.households（舊頁面展示用）
   var h=DATA.rebuild.households.find(function(h){return h.caseId===c.caseId;});
@@ -8132,7 +8194,7 @@ function renderCaseMgt(){
 function advanceCase(i){
   // 直接操作 persons.cases（唯一來源）
   var c=DATA.persons.cases[i]; if(!c) return;
-  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  var now=new Date(), dtStr=fmtTS(now);
   if(c.visitStatus==='待訪視'){
     c.visitStatus='訪視中';
     c.timeline.push({type:'訪視開始',summary:'GPS 簽到記錄'+(c.route?' （'+c.route+'）':''),recorder:'系統自動',ts:dtStr});
@@ -8547,7 +8609,7 @@ function verifyDelivery(rid){
   if(dt){dt.status='done';dt.pct=100;renderTasks();}
   recalcSupplyStat();
   if(rq.caseId){
-    var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+    var now=new Date(), dtStr=fmtTS(now);
     var pc=DATA.persons.cases.find(function(c){return c.caseId===rq.caseId||c.sosId===rq.caseId;});
     if(pc){ if(!pc.aidLog) pc.aidLog=[]; pc.aidLog.push({item:rq.item,qty:actual,ts:dtStr,by:rq.driver||'物資組'}); pc.timeline.push({type:'物資到場',summary:rq.item+' 實收'+actual+' 送達 '+rq.site+(diff?'（差異：'+diff+'）':''),recorder:'系統自動',ts:dtStr}); }
   }
