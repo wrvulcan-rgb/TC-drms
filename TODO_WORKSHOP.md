@@ -267,6 +267,6 @@
 | 物資到場驗收 | warehouse.reqs「已送達」需班長清點簽收 + 數量差異回報 | `warehouse` | ✅ 已完成 |
 | 時間戳格式統一 | 全系統改為 `YYYY-MM-DD HH:mm`，長期個案跨天可追溯（已部分修正） | 全系統 | 🔶 部分完成 |
 | 個案負責人指派流程 | `assignedTo` 欄位已加，指派動作（誰可以指派、通知方式）待設計 | `persons` | ⬜ 待設計 |
-| 金援五步驟審核鏈 | 目前只有 `welfareStatus` 欄位切換，需加申請人/審核人/核准人/發放人/簽收五角色記錄 | `persons` reliefLog | ⬜ 待設計 |
+| 金援五步驟審核鏈 | 申請→審核→核准→發放→簽收，每步留痕（誰/何時），核准層級依金額（暫行），責任分離提醒，全鏈封存 reliefLog | `persons` reliefLog | ✅ 已完成 |
 | 交接班自動彙整 | Handover 快照需自動統計本梯：完成任務數/未完成/物資用量/新增個案 | `rtsync` Handover tab | ✅ 已完成 |
 | RTDB 持久化 | 目前 RTDB 為記憶體模擬，重整即清空；需改寫進 localStorage 或等待真實 Firebase | `rtsync` | ✅ 已完成（localStorage） |

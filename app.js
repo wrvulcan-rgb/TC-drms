@@ -7663,57 +7663,132 @@ function renderPersons(){
 }
 function renderWelfare(){
   var d=DATA.persons;
-  var cases=d.cases||[];
-  var html='<div class="card"><div class="card-title">💰 祝福金發放紀錄</div>'
-    +'<div style="font-size:11px;color:var(--text4);margin-bottom:12px">依個案訪視進度核發應急慰問金、重建補助及後續關懷金。</div>'
-    +'<table class="tbl"><thead><tr><th>個案編號</th><th>姓名</th><th>階段</th><th>金額</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
-  cases.forEach(function(c,i){
-    var amt=c.phase==='急救期'?'$3,000':'$10,000';
-    var status=c.welfareStatus||'待申請';
-    var badgeCls=status==='已核發'?'badge-green':status==='審核中'?'badge-amber':'badge-blue';
+  var cases=(d.cases||[]).filter(function(c){return c.phase!=='結案';});
+  var html='<div class="card"><div class="card-title">💰 祝福金五步審核鏈</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:6px">申請 → 審核 → 核准 → 發放 → 簽收，每步留痕（誰、何時），滑鼠移到節點可看經手人。</div>'
+    +'<div style="font-size:10px;color:var(--text4);margin-bottom:12px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:6px;padding:6px 10px">⚖ 核准層級（暫行）：≤$3,000 組長 · ≤$10,000 幹部 · &gt;$10,000 高層。審核與核准原則上由不同人執行。正式授權矩陣待 TODO-WORKSHOP-09 定案。</div>'
+    +'<table class="tbl"><thead><tr><th>個案</th><th>階段</th><th>金額</th><th>審核鏈進度</th><th>操作</th></tr></thead><tbody>';
+  cases.forEach(function(c){
+    var i=d.cases.indexOf(c);
+    var ch=c.welfareChain;
+    var amt=ch?ch.amount:(c.phase==='急救期'?3000:10000);
     html+='<tr>'
-      +'<td class="sh-time">'+c.caseId+'</td>'
-      +'<td style="font-weight:500">'+c.name+'</td>'
+      +'<td class="sh-time">'+c.caseId+' <span style="font-weight:500;color:var(--text)">'+c.name+'</span></td>'
       +'<td><span class="badge '+(c.phase==='急救期'?'badge-red':'badge-blue')+'">'+c.phase+'</span></td>'
-      +'<td>'+amt+'</td>'
-      +'<td><span class="badge '+badgeCls+'">'+status+'</span></td>'
-      +'<td>';
-    if(status==='待申請'){
-      html+='<button class="btn btn-blue btn-xs" onclick="applyWelfare('+i+')">📝 申請</button>';
-    } else if(status==='審核中'){
-      html+='<button class="btn btn-green btn-xs" onclick="approveWelfare('+i+')">✓ 核發</button>';
-    } else {
-      html+='<span style="font-size:9px;color:var(--green)">✓ 完成</span>';
-    }
-    html+='</td></tr>';
+      +'<td style="font-family:monospace">$'+amt.toLocaleString()+'</td>'
+      +'<td>'+welfareStepper(c)+'</td>'
+      +'<td>'+welfareActionBtn(c,i)+'</td>'
+      +'</tr>';
   });
   html+='</tbody></table></div>'
     +'<div class="card" style="margin-top:12px"><div class="card-title">📊 統計</div>'
     +'<div style="display:flex;gap:12px;flex-wrap:wrap">'
-    +'<div class="stat-card green" style="padding:12px"><div class="stat-lbl">已核發</div><div class="stat-val">'+cases.filter(function(c){return c.welfareStatus==='已核發';}).length+'</div></div>'
-    +'<div class="stat-card amber" style="padding:12px"><div class="stat-lbl">審核中</div><div class="stat-val">'+cases.filter(function(c){return c.welfareStatus==='審核中';}).length+'</div></div>'
-    +'<div class="stat-card blue" style="padding:12px"><div class="stat-lbl">待申請</div><div class="stat-val">'+cases.filter(function(c){return !c.welfareStatus||c.welfareStatus==='待申請';}).length+'</div></div>'
+    +'<div class="stat-card green" style="padding:12px"><div class="stat-lbl">已完成發放</div><div class="stat-val">'+cases.filter(function(c){return c.welfareStatus==='已核發'&&!c.welfareChain;}).length+'</div></div>'
+    +'<div class="stat-card amber" style="padding:12px"><div class="stat-lbl">審核鏈進行中</div><div class="stat-val">'+cases.filter(function(c){return !!c.welfareChain;}).length+'</div></div>'
+    +'<div class="stat-card blue" style="padding:12px"><div class="stat-lbl">尚未申請</div><div class="stat-val">'+cases.filter(function(c){return !c.welfareChain&&c.welfareStatus!=='已核發';}).length+'</div></div>'
     +'</div></div>';
   return html;
 }
+// ══ 金援五步驟審核鏈（申請→審核→核准→發放→簽收，逐步留痕）══
+// 每步記錄「誰、何時」，責任分離（審核/核准原則上不同人），核准層級依金額。
+// 授權層級為暫行規則，待 TODO-WORKSHOP-09 授權矩陣定案後取代。
+var WELFARE_STAGES=[
+  {key:'apply',   label:'申請', actorRole:'社工/訪視員'},
+  {key:'review',  label:'審核', actorRole:'個案組幹部'},
+  {key:'approve', label:'核准', actorRole:'授權主管'},
+  {key:'disburse',label:'發放', actorRole:'財務出納'},
+  {key:'receipt', label:'簽收', actorRole:'個案/代理人'},
+];
+function welfareApprovalLevel(amt){
+  if(amt<=3000)  return '組長（≤$3,000）';
+  if(amt<=10000) return '幹部（≤$10,000）';
+  return '高層（>$10,000）';
+}
+function _welfareActor(){
+  var cu=(typeof getCurrentUser==='function')?getCurrentUser():null;
+  if(cu&&cu.uid) return cu.uid+(cu.name?(' '+cu.name):'');
+  var map={admin:'總控',it:'IT 志工',staff:'行政組',logistics:'物資組',vol:'前線志工',leader:'組長/調度'};
+  return map[role]||role||'操作者';
+}
+function _welfareNow(){
+  var n=new Date();
+  return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+('0'+n.getDate()).slice(-2)+' '+n.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+}
 function applyWelfare(i){
   var c=DATA.persons.cases[i]; if(!c) return;
-  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  if(c.welfareChain){ toast('⚠ 本案已有進行中的金援申請'); return; }
+  var amt=c.phase==='急救期'?3000:10000;
+  var ts=_welfareNow(), actor=_welfareActor();
+  c.welfareChain={ amount:amt, stageIdx:1, steps:[{key:'apply',by:actor,ts:ts}] };
   c.welfareStatus='審核中';
-  c.timeline.push({type:'金援申請',summary:'祝福金申請送出，等待審核',recorder:'系統自動',ts:dtStr});
-  toast('📝 已送出申請');
+  c.timeline.push({type:'金援·申請',summary:'祝福金 $'+amt.toLocaleString()+' 申請送出（申請人：'+actor+'），待審核',recorder:actor,ts:ts});
+  logSys('info','【金援】'+c.caseId+' 申請 $'+amt+'（'+actor+'），進入五步審核鏈');
+  toast('📝 申請已送出，進入審核鏈');
   renderPersons(); saveData();
 }
-function approveWelfare(i){
-  var c=DATA.persons.cases[i]; if(!c) return;
-  var now=new Date(), dtStr=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+('0'+now.getDate()).slice(-2)+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  var amt=c.phase==='急救期'?3000:10000;
-  c.welfareStatus='已核發';
-  if(!c.reliefLog) c.reliefLog=[];
-  c.reliefLog.push({type:'祝福金',amount:amt,ts:dtStr,approvedBy:'幹部（模擬）',status:'已核發'});
-  c.timeline.push({type:'金援核發',summary:'祝福金 $'+amt.toLocaleString()+' 核發完成',recorder:'財務組',ts:dtStr});
-  toast('💰 祝福金核發完成，已寫入 reliefLog');
+function advanceWelfare(i){
+  var c=DATA.persons.cases[i]; if(!c||!c.welfareChain) return;
+  var ch=c.welfareChain, stage=WELFARE_STAGES[ch.stageIdx];
+  if(!stage) return;
+  var actor=_welfareActor();
+  // 核准權限：前線志工不得核准
+  if(stage.key==='approve' && role==='vol'){ toast('⚠ 前線志工無金援核准權限'); return; }
+  // 責任分離：審核/核准原則上應由不同人執行
+  var prevActors=ch.steps.map(function(s){return s.by;});
+  if((stage.key==='review'||stage.key==='approve') && prevActors.indexOf(actor)!==-1){
+    if(!confirm('⚠ 責任分離提醒\n\n「'+actor+'」已在本案前一步驟簽核過。\n審核與核准原則上應由不同人執行，以符合善款控管。\n\n仍要以同一人繼續嗎？')) return;
+  }
+  var ts=_welfareNow();
+  ch.steps.push({key:stage.key,by:actor,ts:ts});
+  ch.stageIdx++;
+  var summary='';
+  if(stage.key==='review')        summary='初審通過（審核人：'+actor+'）';
+  else if(stage.key==='approve')  summary='核准通過（核准人：'+actor+'，授權層級：'+welfareApprovalLevel(ch.amount)+'）';
+  else if(stage.key==='disburse') summary='款項撥付 $'+ch.amount.toLocaleString()+'（發放人：'+actor+'）';
+  else if(stage.key==='receipt')  summary='個案簽收確認（簽收人：'+actor+'）';
+  c.timeline.push({type:'金援·'+stage.label,summary:summary,recorder:actor,ts:ts});
+  if(ch.stageIdx>=WELFARE_STAGES.length){
+    // 全鏈完成 → 封存進 reliefLog
+    if(!c.reliefLog) c.reliefLog=[];
+    var approveStep=ch.steps.filter(function(s){return s.key==='approve';})[0];
+    c.reliefLog.push({ type:'祝福金', amount:ch.amount, ts:ts,
+      approvedBy:(approveStep&&approveStep.by)||'—', status:'已核發', chain:ch.steps.slice() });
+    c.welfareStatus='已核發';
+    c.welfareChain=null;
+    logSys('ok','【金援】'+c.caseId+' 五步審核鏈完成，$'+ch.amount+' 已發放並簽收');
+    toast('✅ 金援全流程完成，已封存至 reliefLog');
+  } else {
+    logSys('ok','【金援】'+c.caseId+' '+stage.label+' 完成（'+actor+'）→ 待'+WELFARE_STAGES[ch.stageIdx].label);
+    toast('✓ '+stage.label+' 完成');
+  }
   renderPersons(); saveData();
+}
+function welfareStepper(c){
+  var ch=c.welfareChain;
+  var doneCount=ch?ch.stageIdx:(c.welfareStatus==='已核發'?WELFARE_STAGES.length:0);
+  var h='<div style="display:flex;align-items:center;gap:2px;flex-wrap:wrap">';
+  WELFARE_STAGES.forEach(function(s,idx){
+    var done=idx<doneCount, current=!!ch&&idx===ch.stageIdx;
+    var step=ch&&ch.steps[idx];
+    var color=done?'var(--green)':current?'var(--amber)':'var(--text4)';
+    var bg=done?'var(--green-bg)':current?'var(--amber-bg)':'var(--bg3)';
+    var tip=step?(step.by+' · '+step.ts):s.actorRole;
+    h+='<span title="'+s.label+'：'+tip+'" style="display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:10px;background:'+bg+';border:1px solid '+color+';font-size:9px;color:'+color+';font-weight:600">'
+      +(done?'✓':current?'●':'○')+s.label+'</span>';
+    if(idx<WELFARE_STAGES.length-1) h+='<span style="color:var(--text4);font-size:8px">›</span>';
+  });
+  h+='</div>';
+  return h;
+}
+function welfareActionBtn(c,i){
+  var ch=c.welfareChain;
+  if(!ch) return (c.welfareStatus==='已核發')
+    ? '<span style="font-size:9px;color:var(--green)">✓ 已完成</span>'
+    : '<button class="btn btn-blue btn-xs" onclick="applyWelfare('+i+')">📝 申請</button>';
+  var stage=WELFARE_STAGES[ch.stageIdx];
+  if(!stage) return '<span style="font-size:9px;color:var(--green)">✓ 已完成</span>';
+  var labelMap={review:'✓ 審核',approve:'✓ 核准',disburse:'💵 發放',receipt:'✍ 簽收'};
+  return '<button class="btn btn-green btn-xs" onclick="advanceWelfare('+i+')">'+(labelMap[stage.key]||stage.label)+'</button>';
 }
 function renderPersonsCases(){
   var d=DATA.persons;
@@ -7858,7 +7933,15 @@ function renderPersonsClosure(c){
   }
   if(c.reliefLog&&c.reliefLog.length){
     html+='<div style="margin:10px 0 6px;font-weight:600;font-size:12px;color:var(--text2)">金援發放紀錄</div><table class="tbl"><thead><tr><th>類型</th><th>金額</th><th>時間</th><th>核准人</th><th>狀態</th></tr></thead><tbody>';
-    c.reliefLog.forEach(function(r){html+='<tr><td>'+r.type+'</td><td>$'+r.amount+'</td><td style="font-size:10px;font-family:monospace">'+r.ts+'</td><td style="font-size:10px">'+r.approvedBy+'</td><td><span class="badge badge-green">'+r.status+'</span></td></tr>';});
+    c.reliefLog.forEach(function(r){
+      html+='<tr><td>'+r.type+'</td><td>$'+r.amount+'</td><td style="font-size:10px;font-family:monospace">'+r.ts+'</td><td style="font-size:10px">'+r.approvedBy+'</td><td><span class="badge badge-green">'+r.status+'</span></td></tr>';
+      if(r.chain&&r.chain.length){
+        var stageLbl={apply:'申請',review:'審核',approve:'核准',disburse:'發放',receipt:'簽收'};
+        html+='<tr><td colspan="5" style="padding:2px 12px 8px;background:var(--bg1)"><div style="font-size:9px;color:var(--text4);display:flex;gap:8px;flex-wrap:wrap">';
+        r.chain.forEach(function(s){ html+='<span>✓ <b>'+(stageLbl[s.key]||s.key)+'</b> '+s.by+' <span style="font-family:monospace">'+s.ts+'</span></span>'; });
+        html+='</div></td></tr>';
+      }
+    });
     html+='</tbody></table>';
   }
   html+='</div>';
