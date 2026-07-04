@@ -4431,6 +4431,8 @@ function renderNav(){
     'admin':   ['後台系統','今日行動','現場管理'],
     'staff':   ['今日行動','現場管理','後台系統'],
     'logistics':['今日行動','現場管理','後台系統'],
+    'vol':     ['今日行動','現場管理','後台系統'],
+    'leader':  ['今日行動','現場管理','後台系統'],
   }[role]||['今日行動','現場管理','後台系統'];
   var groupColor={'今日行動':'var(--blue)','現場管理':'var(--green)','後台系統':'var(--text4)'};
   // 依 groupOrder 重排
@@ -5519,6 +5521,8 @@ let ROLES = [
   {id:'it',        name:'IT 志工', icon:'🔧', deletable:true},
   {id:'staff',     name:'行政組', icon:'📋', deletable:true},
   {id:'logistics', name:'物資組', icon:'📦', deletable:true},
+  {id:'vol',       name:'前線志工',icon:'👐', deletable:true},
+  {id:'leader',    name:'組長/調度',icon:'📣', deletable:true},
 ];
 
 // Permission matrix  { roleId: { moduleId: 'P0'|'P1'|'P2'|'P3'|'P4' } }
@@ -5527,6 +5531,14 @@ let ROLES = [
 function defaultPerms(moduleId, roleId, tab) {
   if (roleId === 'admin') return 'P0';
   if (roleId === 'it' && tab !== 'wartime') return 'P0';
+  if (roleId === 'vol') {
+    var volAllowed = ['dashboard','vol_hub','rtsync','drive'];
+    return volAllowed.indexOf(moduleId) !== -1 ? 'P3' : 'P4';
+  }
+  if (roleId === 'leader') {
+    var leaderDenied = ['admin','monitor'];
+    return leaderDenied.indexOf(moduleId) !== -1 ? 'P4' : 'P1';
+  }
   return 'P1';
 }
 let PERMS_PEACE = {};
