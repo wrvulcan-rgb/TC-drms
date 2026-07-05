@@ -271,3 +271,4 @@
 | 金援五步驟審核鏈 | 申請→審核→核准→發放→簽收，每步留痕（誰/何時），核准層級依金額（暫行），責任分離提醒，全鏈封存 reliefLog | `persons` reliefLog | ✅ 已完成 |
 | 交接班自動彙整 | Handover 快照需自動統計本梯：完成任務數/未完成/物資用量/新增個案 | `rtsync` Handover tab | ✅ 已完成 |
 | RTDB 持久化 | 目前 RTDB 為記憶體模擬，重整即清空；需改寫進 localStorage 或等待真實 Firebase | `rtsync` | ✅ 已完成（localStorage） |
+| 統一授權矩陣 `can()` | 收斂 22 處散落權限規則為單一入口；金援/高風險派工/物資派案驗收/戰時切換/權限矩陣編輯全部強制執行；破窗提權可從 UI 觸發完整迴圈 | 全系統 | ✅ 已完成（`AUTH_MATRIX_SPEC.md` 脊椎 B） |

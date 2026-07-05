@@ -547,11 +547,25 @@ function rtAudit(action,detail){
   RTDB.ref('auditLog').push({time:time,actor:(role||'admin'),action:action,detail:detail});
 }
 // 慈濟屬全輔助角色，一般志工不應派入高風險救災現場（搶救/結構倒塌/水域等應由專業救援隊處理）。
+// 授權矩陣 ACT-T3（AUTH_MATRIX_SPEC.md §4.3）：R-VOL/R-LOGI 全拒絕、R-LEAD 需破窗、R-HQ/R-IT/R-OFFICER 放行但走確認+稽核。
 // 暫行規則：僅民眾求助類型「搶救」自動標記 riskProfile='high'；正式分級表待 TODO-WORKSHOP-17 工作坊產出後取代。
 function rtGuardHighRiskAssign(t,vName){
   if(!t||t.riskProfile!=='high') return true;
+  var res=can('ACT-T3',{risk:'high'});
+  if(!res.ok){
+    if(res.breakglass){
+      var reason=prompt('⚡ 高風險派工需破窗提權，請說明現場狀況（例：幹部皆不在場，需緊急派工）：','');
+      if(reason===null) return false;
+      requestBreakGlass('ACT-T3',{risk:'high'},(role==='leader'?'組長/調度':role),reason);
+      toast('⚡ 已送出破窗提權請求，等待總控核准');
+      return false;
+    }
+    toast('⛔ '+(res.reason||'無權派工高風險任務')+'：慈濟屬全輔助角色，一般志工/物資組不得派入危險現場');
+    return false;
+  }
   var ok=confirm('⚠ 高風險任務：'+(t.title||'')+'\n\n慈濟屬全輔助角色，一般志工原則上不應派入危險救災現場（搶救/結構倒塌/水域等應由專業救援隊處理）。\n\n確定要將此任務派給 '+(vName||'志工')+'？此操作將記入稽核日誌。');
-  if(!ok) toast('⛔ 已取消：高風險任務需專業隊伍或幹部覆核');
+  if(!ok){ toast('⛔ 已取消：高風險任務需專業隊伍或幹部覆核'); return false; }
+  if(res.compensate) rtAudit('高風險派工（補償控制）',(role||'')+' 派高風險任務給 '+(vName||'')+'，sodOverlap 標記已記錄');
   return ok;
 }
 
@@ -2109,7 +2123,7 @@ function renderSheetReg(){
         +'<td style="font-weight:500">'+maskPII(v.name,'name')+'</td>'
         +'<td style="font-family:monospace;font-size:10px">'+maskPII(v.idno,'id')+'</td>'
         +'<td style="font-family:monospace;font-size:10px">'+maskPII(v.phone,'phone')+'</td>'
-        +'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text3)')+'">'+v.diet+'</td>'
+        +'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text3)')+'">'+maskPII(v.diet,'diet')+'</td>'
         +'<td style="font-size:10px">'+v.slot+'</td>'
         +'<td style="font-size:10px">'+v.lift.substring(0,4)+'</td>'
         +'<td style="font-size:11px">'+v.gender+'</td>'
@@ -4435,18 +4449,20 @@ var RTDB_SEED={
 (function(){ var existing=null; try{ existing=JSON.parse(localStorage.getItem('drms_rtdb')||'null'); }catch(e){} if(!existing||!existing.sos||!existing.auditLog){ RTDB.reset?null:null; localStorage.setItem('drms_rtdb',JSON.stringify(RTDB_SEED)); } })();
 RTDB.seed(RTDB_SEED);
 
+// 注意：頁面存取權一律經 pageAccessLevel()/PERMS_PEACE|PERMS_WAR 判斷，這裡不再放 roles 白名單
+// （舊版 roles:[...] 屬死資料，沒有任何程式讀取，AUTH_MATRIX_SPEC.md §2.2 S14 已移除）
 const NAV_CFG=[
-  {id:'vol_hub',    icon:'🧑‍🤝‍🧑',label:'報到系統',      tag:'core', group:'今日行動',roles:['admin','staff','logistics']},
-  {id:'rtsync',     icon:'⚡',label:'即時調度中台',    tag:'core', group:'今日行動',roles:['admin','it','staff','logistics']},
-  {id:'needs',      icon:'📥',label:'需求通報池',      tag:'core', group:'今日行動',roles:['admin','it','staff','logistics']},
-  {id:'drive',      icon:'📸',label:'照片回報與分類',  tag:'core', group:'今日行動',roles:['admin','it','staff','logistics']},
-  {id:'resources',  icon:'🗄️',label:'資源台帳',        tag:'limb', group:'現場管理',roles:['admin','logistics','staff']},
-  {id:'persons',    icon:'🫂',label:'個案全程陪伴',    tag:'limb', group:'現場管理',roles:['admin','staff']},
-  {id:'dashboard',  icon:'📊',label:'總控儀表板',      tag:'core', group:'後台系統',roles:['admin','it','staff','logistics']},
-  {id:'monitor',    icon:'🖥️',label:'全域監控',        tag:'core', group:'後台系統',roles:['admin','it']},
-  {id:'line_oa',    icon:'💬',label:'Line OA 模擬',     tag:'core', group:'後台系統',roles:['admin','it']},
-  {id:'admin',      icon:'🔧',label:'系統管理',        tag:'admin',group:'後台系統',roles:['admin']},
-  {id:'arch_doc',   icon:'🗺️',label:'系統架構說明',    tag:'doc',  group:'後台系統',roles:['admin','it']},
+  {id:'vol_hub',    icon:'🧑‍🤝‍🧑',label:'報到系統',      tag:'core', group:'今日行動'},
+  {id:'rtsync',     icon:'⚡',label:'即時調度中台',    tag:'core', group:'今日行動'},
+  {id:'needs',      icon:'📥',label:'需求通報池',      tag:'core', group:'今日行動'},
+  {id:'drive',      icon:'📸',label:'照片回報與分類',  tag:'core', group:'今日行動'},
+  {id:'resources',  icon:'🗄️',label:'資源台帳',        tag:'limb', group:'現場管理'},
+  {id:'persons',    icon:'🫂',label:'個案全程陪伴',    tag:'limb', group:'現場管理'},
+  {id:'dashboard',  icon:'📊',label:'總控儀表板',      tag:'core', group:'後台系統'},
+  {id:'monitor',    icon:'🖥️',label:'全域監控',        tag:'core', group:'後台系統'},
+  {id:'line_oa',    icon:'💬',label:'Line OA 模擬',     tag:'core', group:'後台系統'},
+  {id:'admin',      icon:'🔧',label:'系統管理',        tag:'admin',group:'後台系統'},
+  {id:'arch_doc',   icon:'🗺️',label:'系統架構說明',    tag:'doc',  group:'後台系統'},
 ];
 const GROUPS=[
   {id:'medical',icon:'🏥',name:'醫護組',email:'medical@tzuchi-chiayi.org.tw',linked:true,line:'@tzuchi-medical'},
@@ -4497,8 +4513,7 @@ function renderNav(){
       nav.appendChild(sec);
       lastGroup=item.group;
     }
-    var pval=(PERMS_PEACE[role]&&PERMS_PEACE[role][item.id])||'P1';
-    if(role==='admin') pval='P0';
+    var pval=pageAccessLevel(item.id);
     var ok=(pval!=='P4');
     var el=document.createElement('div');
     el.className='ni'+(activePage===item.id?' act':'')+(ok?'':' locked');
@@ -4555,10 +4570,9 @@ function showPage(id){
   var pg=document.getElementById('page-'+id);
   if(pg) pg.classList.add('act');
   renderNav();
-  // P4 permission guard
-  if(role!=='admin'){
-    var perms=state==='war'?PERMS_WAR:PERMS_PEACE;
-    var pval=(perms[role]&&perms[role][id])||'P1';
+  // P4 permission guard — 與 renderNav 共用 pageAccessLevel()，避免兩處讀不同表判斷不一致（F2）
+  {
+    var pval=pageAccessLevel(id);
     if(pval==='P4'&&pg){
       pg.innerHTML='<div class="no-acc"><div class="ic">🔒</div><h2>權限不足</h2><p>您在此模組的全責規範為 P4（無權限）</p></div>';
     }
@@ -4623,9 +4637,7 @@ function setRole(r){
   role=r;
   if(editMode) toggleEditMode();
   if(activePage==='admin'&&r!=='admin') activePage='dashboard';
-  var pval=(PERMS_PEACE[role]&&PERMS_PEACE[role][activePage])||'P1';
-  if(role==='admin') pval='P0';
-  if(pval==='P4') activePage='dashboard';
+  if(pageAccessLevel(activePage)==='P4') activePage='dashboard';
   showPage(activePage);
   updateFooter();
   renderGmailRows();
@@ -4633,10 +4645,9 @@ function setRole(r){
   applyDevTasksVisibility(); // B8
 }
 function setS(s){
-  if(role!=='admin'&&role!=='it'){
-    toast('⚠ 權限不足，只有總控或 IT 志工可切換應變狀態');
-    return;
-  }
+  // ACT-X1（AUTH_MATRIX_SPEC.md §4.5）：解除戰時比進入更嚴——can() 在 state 尚未改變前檢查，
+  // 故「目前在 war 狀態下呼叫」即代表這是一次解除操作，WAR_DELTA 對 IT 收緊剛好對應此語意。
+  if(!_guardAct('ACT-X1',{})) return;
   state=s;
   document.getElementById('btn-p').className='sbtn'+(s==='peace'?' sp':'');
   document.getElementById('btn-w').className='sbtn'+(s==='war'?' sw':'');
@@ -4740,6 +4751,10 @@ function maskPII(v,kind){
   if(kind==='email'){ var at=v.indexOf('@'); return at<1 ? '***' : (v.charAt(0)+'***'+v.substring(at)); }
   if(kind==='name'){  return v.length<=1 ? v : (v.charAt(0)+'○'.repeat(Math.max(1,v.length-1))); }
   if(kind==='address'){ return v.replace(/\s*\d+\s*號?.*$/,'').trim()+' ***'; }
+  // S3 特種資料（AUTH_MATRIX_SPEC.md §4.4）：飲食過敏／心理狀態屬個資法特種資料，先做二值遮蔽；
+  // need-to-know 例外（香積見過敏欄、訪視見自己個案心理欄）待 R-CARE/R-KITCHEN 成為正式角色後補（§9-5）。
+  if(kind==='diet'){  return (v==='無')?'無':'已標記飲食限制'; }
+  if(kind==='psych'){ return '關懷中（詳情限個案組以上）'; }
   return v;
 }
 function makeFunnelRow(items){
@@ -5292,8 +5307,8 @@ function renderRegistryOuter(d,canSee){
     html+='<tr>'
       +'<td>'+(v.checkin?'<span class="badge badge-green">✓ 已報到</span> <button class="btn btn-ghost btn-xs" style="padding:1px 6px" onclick="cancelOuterCheckin(\''+v.email+'\')" title="取消報到">↺</button>':'<span class="badge badge-amber">待報到</span>')+'</td>'
       +'<td style="font-family:monospace;font-size:10px">'+emailCode+' <button class="btn btn-ghost btn-xs" style="padding:1px 6px" onclick="copyText(\''+v.email+'\')" title="複製代碼">⧉</button></td>'
-      +'<td style="font-weight:500">'+v.name+' <span style="font-size:9px;color:var(--text4)">'+v.gender+v.age+'</span></td>'
-      +'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text4)')+'">'+v.diet+'</td>'
+      +'<td style="font-weight:500">'+maskPII(v.name,'name')+' <span style="font-size:9px;color:var(--text4)">'+v.gender+v.age+'</span></td>'
+      +'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text4)')+'">'+maskPII(v.diet,'diet')+'</td>'
       +'<td style="font-size:10px">'+v.slot+'</td>'
       +'<td style="font-size:10px">'+v.lift.substring(0,4)+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+(v.checkin?v.checkinTime:'—')+'</td>'
@@ -5615,6 +5630,117 @@ function initPerms() {
   });
 }
 initPerms();
+
+// ══════════════════════════════════════════════════════
+//  AUTH MATRIX — can() 統一授權入口
+//  實作 AUTH_MATRIX_SPEC.md（脊椎 B）。矩陣本體為資料，can() 是唯一讀取入口；
+//  fallback 一律 deny（修 F1）。門檻值沿用 spec 暫行值，場次 B 定案後只改這裡的資料。
+// ══════════════════════════════════════════════════════
+var ROLE_MAP={admin:'R-HQ',it:'R-IT',staff:'R-OFFICER',leader:'R-LEAD',logistics:'R-LOGI',vol:'R-VOL'};
+var ROLE_RANK={'R-HQ':5,'R-IT':4,'R-OFFICER':4,'R-LEAD':3,'R-LOGI':2,'R-CARE':2,'R-KITCHEN':1,'R-VOL':1};
+function unifiedRole(r){ return ROLE_MAP[r||role]||null; }
+
+// 動作目錄（§4.2）節錄——用於破窗請求顯示文字與稽核訊息
+var AUTH_ACTIONS={
+  'ACT-T3':'派工高風險任務','ACT-W2':'金援審核','ACT-W3':'金援核准','ACT-W4':'金援發放',
+  'ACT-C2':'指派個案負責人','ACT-C3':'個案階段推進/結案','ACT-S2':'物資派案','ACT-S3':'物資驗收簽收',
+  'ACT-X1':'切換平時/戰時','ACT-X2':'編輯權限矩陣','ACT-X6':'動線金鑰核發'
+};
+
+// 平時基準矩陣（§4.3）。verdict：allow ✔ / compensate ◐（放行+補償控制留痕）/ breakglass ⚡（需破窗）/ deny ✗
+var AUTH_MATRIX={
+  'ACT-T3':{'R-HQ':'allow','R-IT':'compensate','R-OFFICER':'compensate','R-LEAD':'breakglass','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-W2':{'R-HQ':'allow','R-IT':'deny','R-OFFICER':'allow','R-LEAD':'allow','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-W3':{'R-HQ':'allow','R-IT':'breakglass','R-OFFICER':'allow','R-LEAD':'allow','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-W4':{'R-HQ':'allow','R-IT':'deny','R-OFFICER':'allow','R-LEAD':'deny','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-C2':{'R-HQ':'allow','R-IT':'deny','R-OFFICER':'allow','R-LEAD':'allow','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-C3':{'R-HQ':'allow','R-IT':'deny','R-OFFICER':'allow','R-LEAD':'breakglass','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-S2':{'R-HQ':'allow','R-IT':'allow','R-OFFICER':'allow','R-LEAD':'deny','R-LOGI':'allow','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-S3':{'R-HQ':'allow','R-IT':'deny','R-OFFICER':'allow','R-LEAD':'allow','R-LOGI':'compensate','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-X1':{'R-HQ':'allow','R-IT':'allow','R-OFFICER':'breakglass','R-LEAD':'deny','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-X2':{'R-HQ':'allow','R-IT':'compensate','R-OFFICER':'deny','R-LEAD':'deny','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-X6':{'R-HQ':'allow','R-IT':'allow','R-OFFICER':'deny','R-LEAD':'deny','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'}
+};
+
+// 戰時差分（§4.5）— 僅列與平時不同的格子；state==='war' 時疊加於基準矩陣之上
+var WAR_DELTA={
+  'ACT-T3':{'R-OFFICER':'allow'},  // 免二次確認，稽核仍加重
+  'ACT-S2':{'R-LEAD':'allow'},     // 倉管可能不在場
+  'ACT-X1':{'R-IT':'deny'}         // 解除戰時僅 admin（比進入更嚴，見 spec §4.5 末列）
+};
+
+// 金額級距（§4.4）〖三門檻待場次 B 定案，下為現行暫行〗
+var AMOUNT_TIERS=[{max:3000,minRank:ROLE_RANK['R-LEAD']},{max:10000,minRank:ROLE_RANK['R-OFFICER']},{max:Infinity,minRank:ROLE_RANK['R-HQ']}];
+function amountTierMinRank(amount){
+  for(var i=0;i<AMOUNT_TIERS.length;i++){ if(amount<=AMOUNT_TIERS[i].max) return AMOUNT_TIERS[i].minRank; }
+  return ROLE_RANK['R-HQ'];
+}
+
+// 破窗授權（§7）— 泛化 requestPerm/approvePerm 原型，可對任意 actionId+ctx 授予一次性權限
+var BREAK_GLASS_GRANTS=[];
+function bgCtxKey(ctx){ try{ return JSON.stringify(ctx||{}); }catch(e){ return ''; } }
+function hasBreakGlassGrant(actionId,actorRole,ctx){
+  var key=bgCtxKey(ctx);
+  return BREAK_GLASS_GRANTS.some(function(g){ return g.actionId===actionId&&g.actorRole===actorRole&&g.ctxKey===key&&g.expires>Date.now(); });
+}
+
+// 唯一授權入口。回傳 {ok, reason?, compensate?, breakglass?, viaBreakGlass?}
+// ctx: {amount?, risk?, actorRole?}（actorRole 預設為當前 role）
+function can(actionId,ctx){
+  ctx=ctx||{};
+  var uid=unifiedRole(ctx.actorRole);
+  if(!uid) return {ok:false,reason:'未知角色，預設拒絕（default-deny）'};
+  var isWar=(typeof state!=='undefined'&&state==='war');
+  var verdict=(isWar&&WAR_DELTA[actionId]&&WAR_DELTA[actionId][uid])||(AUTH_MATRIX[actionId]&&AUTH_MATRIX[actionId][uid])||'deny';
+  if(/^ACT-W[234]$/.test(actionId)&&ctx.amount!=null){
+    var needRank=amountTierMinRank(ctx.amount);
+    if((ROLE_RANK[uid]||0)<needRank) return {ok:false,reason:'金額 $'+ctx.amount.toLocaleString()+' 超出此角色核准層級'};
+  }
+  if(verdict==='allow') return {ok:true};
+  if(verdict==='compensate') return {ok:true,compensate:true};
+  if(verdict==='breakglass'){
+    if(hasBreakGlassGrant(actionId,uid,ctx)) return {ok:true,viaBreakGlass:true};
+    return {ok:false,reason:'此動作平時需破窗提權核准',breakglass:true};
+  }
+  return {ok:false,reason:'權限不足'};
+}
+
+// 破窗請求：沿用既有 perm-banner UI（見 requestPerm/approvePerm），以 pendingPerm.actionId 分流
+function requestBreakGlass(actionId,ctx,requesterLabel,reason){
+  pendingPerm={roleName:requesterLabel,modName:AUTH_ACTIONS[actionId]||actionId,fromP:'✗ 拒絕',toP:'⚡ 破窗核准',
+    actionId:actionId,actorRole:unifiedRole(ctx&&ctx.actorRole),ctx:ctx||{},reason:reason};
+  var banner=document.getElementById('perm-banner');
+  var body=document.getElementById('perm-banner-body');
+  if(!banner||!body) return;
+  body.innerHTML='<strong>'+requesterLabel+'</strong> 申請破窗提權執行「'+(AUTH_ACTIONS[actionId]||actionId)+'」。'
+    +(reason?'<br><span style="color:var(--amber)">💡 '+reason+'</span>':'');
+  banner.classList.add('show');
+  rtAudit('破窗請求',requesterLabel+' 申請 '+actionId+'（'+(reason||'')+'）');
+  logSys('warn','【破窗請求】'+requesterLabel+' 申請 '+(AUTH_ACTIONS[actionId]||actionId));
+}
+
+// 共用守門：檢查 can()，deny 直接 toast 擋下；breakglass 則跳出原因輸入並送出破窗請求。
+// 回傳 true 才可繼續執行呼叫端的動作。
+function _guardAct(actionId,ctx,promptLabel){
+  var res=can(actionId,ctx);
+  if(res.ok) return true;
+  if(res.breakglass){
+    var reason=prompt('⚡ 「'+(promptLabel||AUTH_ACTIONS[actionId]||actionId)+'」需破窗提權，請說明原因：','');
+    if(reason===null) return false;
+    requestBreakGlass(actionId,ctx,_welfareActor(),reason);
+    toast('⚡ 已送出破窗提權請求，等待總控核准');
+    return false;
+  }
+  toast('⚠ '+(res.reason||'權限不足'));
+  return false;
+}
+
+// 頁面存取等級——renderNav 與 showPage/setRole 共用同一份判斷（修 F2：兩處曾讀不同表）
+function pageAccessLevel(pageId){
+  if(role==='admin') return 'P0';
+  var perms=(typeof state!=='undefined'&&state==='war')?PERMS_WAR:PERMS_PEACE;
+  return (perms[role]&&perms[role][pageId])||'P4';
+}
 
 // API endpoints
 var API_ENDPOINTS = [
@@ -5967,10 +6093,8 @@ function restoreAllModulesForPeace(){
   renderModuleManager();
 }
 function cycleP(el){
-  if(role!=='admin'&&role!=='it'){
-    toast('⚠ 只有總控或 IT 志工可以調整全責規範');
-    return;
-  }
+  var res=can('ACT-X2',{});
+  if(!res.ok){ toast('⚠ '+(res.reason||'只有總控可以調整全責規範')); return; }
   var roleId=el.dataset.role;
   var modId=el.dataset.mod;
   var tab=el.dataset.tab;
@@ -5980,6 +6104,7 @@ function cycleP(el){
   if(!perms[roleId]) perms[roleId]={};
   perms[roleId][modId]=nextVal;
   renderPermMatrix();
+  if(res.compensate) rtAudit('權限矩陣編輯（補償控制）',(role||'')+' 修改 '+roleId+'.'+modId+'（sodOverlap）');
   logSys('ok','【權限變更】'+roleId+' · '+modId+' → '+nextVal);
   toast('✅ 權限已切換至：'+nextVal+' ('+P_LABELS[nextVal]+')');
 }
@@ -6577,6 +6702,31 @@ var TEMP_GRANTS=[];
 function approvePerm(isApprove){
   document.getElementById('perm-banner').classList.remove('show');
   if(!pendingPerm) return;
+  if(pendingPerm.actionId){
+    // 泛化破窗提權（AUTH_MATRIX_SPEC.md §7），取代原本寫死 staff×vol_hub 的 S12 原型
+    if(isApprove){
+      var bgKey='BG-'+Date.now().toString(36).slice(-6).toUpperCase();
+      var bgTTL=30000; // 示範加速；正式環境依 §7 改為平時 30min／戰時 2h
+      var grant={actionId:pendingPerm.actionId,actorRole:pendingPerm.actorRole,ctxKey:bgCtxKey(pendingPerm.ctx),key:bgKey,expires:Date.now()+bgTTL};
+      BREAK_GLASS_GRANTS.push(grant);
+      rtAudit('破窗核准',pendingPerm.roleName+' 破窗核准 '+pendingPerm.actionId+'（金鑰 '+bgKey+'，30 秒後回收—示範加速）');
+      logSys('ok','【破窗核准】'+pendingPerm.roleName+' 獲授權執行 '+(AUTH_ACTIONS[pendingPerm.actionId]||pendingPerm.actionId)+'（金鑰 '+bgKey+'）');
+      toast('✅ 破窗提權已核准，30 秒內可再次執行原操作以套用');
+      setTimeout(function(){
+        var idx=BREAK_GLASS_GRANTS.indexOf(grant);
+        if(idx<0) return;
+        BREAK_GLASS_GRANTS.splice(idx,1);
+        rtAudit('破窗回收',pendingPerm.roleName+' 的破窗金鑰 '+bgKey+' 已到期回收');
+        logSys('warn','【破窗回收】金鑰 '+bgKey+' 已到期');
+      },bgTTL);
+    } else {
+      rtAudit('破窗拒絕',pendingPerm.roleName+' 的破窗請求 '+pendingPerm.actionId+' 已駁回');
+      logSys('info','【總控拒絕】'+pendingPerm.roleName+' 破窗申請已駁回。');
+      toast('⚪ 破窗申請已拒絕');
+    }
+    pendingPerm=null;
+    return;
+  }
   if(isApprove){
     var targetRole='staff';
     var targetMod='vol_hub';
@@ -7749,12 +7899,35 @@ function advanceWelfare(i){
   var ch=c.welfareChain, stage=WELFARE_STAGES[ch.stageIdx];
   if(!stage) return;
   var actor=_welfareActor();
-  // 核准權限：前線志工不得核准
-  if(stage.key==='approve' && role==='vol'){ toast('⚠ 前線志工無金援核准權限'); return; }
-  // 責任分離：審核/核准原則上應由不同人執行
+  // 授權矩陣 ACT-W2/W3/W4（AUTH_MATRIX_SPEC.md §4.3+§4.4）：金額級距現在是硬檢查，不只是顯示文字（修 F4）
+  var actMap={review:'ACT-W2',approve:'ACT-W3',disburse:'ACT-W4'};
+  var actId=actMap[stage.key];
+  if(actId){
+    var res=can(actId,{amount:ch.amount});
+    if(!res.ok){
+      if(res.breakglass){
+        var bgReason=prompt('⚡ 此金額層級的「'+stage.label+'」需破窗提權，請說明原因：','');
+        if(bgReason===null) return;
+        requestBreakGlass(actId,{amount:ch.amount},actor,bgReason);
+        toast('⚡ 已送出破窗提權請求');
+        return;
+      }
+      toast('⚠ '+(res.reason||'權限不足，無法執行「'+stage.label+'」'));
+      return;
+    }
+  }
+  // 硬責任分離：核准人不得是本案申請人，不可用確認繞過（§6 硬 SoD 三條之一）
+  var applicant=ch.steps[0]&&ch.steps[0].by;
+  if(stage.key==='approve' && applicant && actor===applicant){
+    toast('⛔ 核准人不得為本案申請人（責任分離硬規則）');
+    return;
+  }
+  // 軟責任分離：審核/核准原則上應由不同人執行；人力不足時可補償繼續，但留痕（§6）
   var prevActors=ch.steps.map(function(s){return s.by;});
+  var sodOverlap=false;
   if((stage.key==='review'||stage.key==='approve') && prevActors.indexOf(actor)!==-1){
     if(!confirm('⚠ 責任分離提醒\n\n「'+actor+'」已在本案前一步驟簽核過。\n審核與核准原則上應由不同人執行，以符合善款控管。\n\n仍要以同一人繼續嗎？')) return;
+    sodOverlap=true;
   }
   var ts=_welfareNow();
   ch.steps.push({key:stage.key,by:actor,ts:ts});
@@ -7765,6 +7938,7 @@ function advanceWelfare(i){
   else if(stage.key==='disburse') summary='款項撥付 $'+ch.amount.toLocaleString()+'（發放人：'+actor+'）';
   else if(stage.key==='receipt')  summary='個案簽收確認（簽收人：'+actor+'）';
   c.timeline.push({type:'金援·'+stage.label,summary:summary,recorder:actor,ts:ts});
+  if(sodOverlap) rtAudit('責任分離例外',c.caseId+' '+stage.label+' 由 '+actor+' 重複簽核（sodOverlap）');
   if(ch.stageIdx>=WELFARE_STAGES.length){
     // 全鏈完成 → 封存進 reliefLog
     if(!c.reliefLog) c.reliefLog=[];
@@ -7903,7 +8077,7 @@ function advancePersonCase(i){
 // 候選人取內部志工/幹部（innerMembers）；僅幹部以上（admin/staff/leader）可指派；
 // 指派/改派寫入 timeline 並推播通知負責人。
 var CASE_ASSIGN_FOR=null;
-function canAssignCase(){ return role==='admin'||role==='staff'||role==='leader'; }
+function canAssignCase(){ return can('ACT-C2').ok; }
 function toggleCaseAssign(i){
   if(!canAssignCase()){ toast('⚠ 僅幹部以上可指派個案負責人'); return; }
   CASE_ASSIGN_FOR=(CASE_ASSIGN_FOR===i?null:i);
@@ -7935,6 +8109,7 @@ function doAssignCase(i){
 // C5: advance person case PHASE with transition validation
 function advancePersonPhase(i,targetPhase){
   if(i<0||i>=DATA.persons.cases.length){toast('索引超出範圍','error');return;}
+  if(!_guardAct('ACT-C3',{})) return;
   var c=DATA.persons.cases[i];
   var allowed=CASE_TRANSITIONS[c.phase]||[];
   if(targetPhase&&allowed.indexOf(targetPhase)<0){
@@ -7951,6 +8126,7 @@ function advancePersonPhase(i,targetPhase){
 }
 function closePersonCase(i){
   if(i<0||i>=DATA.persons.cases.length){toast('索引超出範圍','error');return;}
+  if(!_guardAct('ACT-C3',{})) return;
   var c=DATA.persons.cases[i];
   if(c.phase==='結案'){toast('此個案已結案','error');return;}
   var now=new Date(), dtStr=fmtTS(now);
@@ -8050,11 +8226,14 @@ function renderPersonsRebuild(){
     +'<table class="tbl"><thead><tr><th>編號</th><th>個案</th><th>重建階段</th><th>進度</th><th>心理狀態</th><th>長期陪伴</th><th>操作</th></tr></thead><tbody>';
   rbCases.forEach(function(c){
     var ci=d.cases.indexOf(c);
+    var psychFull=canViewFullPII();
+    var psychDisp=psychFull?c.psych:maskPII(c.psych,'psych');
+    var psychCls=psychFull?(psyColor[c.psych]||'badge-amber'):'badge-blue';
     html+='<tr>'
       +'<td class="sh-time">'+c.caseId+'</td><td style="font-weight:500">'+c.name+'</td>'
       +'<td><span class="badge '+(phColor[c.rebuildPhase]||'badge-blue')+'">'+c.rebuildPhase+'</span></td>'
       +'<td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;min-width:56px"><div style="height:100%;width:'+c.rebuildPct+'%;background:var(--green)"></div></div><span style="font-size:10px;font-family:monospace">'+c.rebuildPct+'%</span></div></td>'
-      +'<td><span class="badge '+(psyColor[c.psych]||'badge-amber')+'">'+c.psych+'</span></td>'
+      +'<td><span class="badge '+psychCls+'">'+psychDisp+'</span></td>'
       +'<td>'+(c.longCare?'✅':'—')+'</td>'
       +'<td style="display:flex;gap:4px;flex-wrap:wrap">';
     if(c.rebuildPhase!=='重建完成'){
@@ -8150,9 +8329,11 @@ function renderRebuildPsych(){
     +'<table class="tbl"><thead><tr><th>編號</th><th>戶別</th><th>心理狀態</th><th>長期陪伴</th><th>操作</th></tr></thead><tbody>';
   rbCases.forEach(function(c){
     var gi=DATA.persons.cases.indexOf(c);
-    var pc={'穩定':'badge-green','焦慮':'badge-amber','需持續關懷':'badge-red','已轉介追蹤':'badge-blue'}[c.psych]||'badge-amber';
+    var psychFull=canViewFullPII();
+    var pc=psychFull?({'穩定':'badge-green','焦慮':'badge-amber','需持續關懷':'badge-red','已轉介追蹤':'badge-blue'}[c.psych]||'badge-amber'):'badge-blue';
+    var psychDisp=psychFull?(c.psych||'—'):maskPII(c.psych,'psych');
     html+='<tr><td class="sh-time">'+c.caseId+'</td><td style="font-weight:500">'+c.name+'</td>'
-      +'<td><span class="badge '+pc+'">'+c.psych||'—'+'</span></td><td>'+(c.longCare?'✅':'—')+'</td>'
+      +'<td><span class="badge '+pc+'">'+psychDisp+'</span></td><td>'+(c.longCare?'✅':'—')+'</td>'
       +'<td>'+((c.psych==='焦慮'||c.psych==='需持續關懷')?'<button class="btn btn-purple btn-xs" onclick="rebuildRefer('+gi+')">🩺 轉介心理師</button>':'<span style="font-size:9px;color:var(--text4)">✓</span>')+'</td></tr>';
   });
   html+='</tbody></table></div>';
@@ -8547,6 +8728,7 @@ function recalcSupplyStat(){
 function dispatchReq(rid){
   var rq=DATA.warehouse.reqs.find(function(x){return x.id===rid;});
   if(!rq||rq.status!=='待派案') return;
+  if(!_guardAct('ACT-S2',{})) return; // 授權矩陣 ACT-S2：物資派案先前完全無角色檢查（AUTH_MATRIX_SPEC.md F5）
   var freeTruck=DATA.warehouse.trucks.find(function(t){return t.status==='待命';});
   if(!freeTruck){toast('⚠ 無可用車輛，'+rid+' 維持待派案');logSys('warn','派案失敗：無可用車輛');return;}
   rq.status='已派案';
@@ -8598,6 +8780,17 @@ function dispatchReq(rid){
 function verifyDelivery(rid){
   var rq=DATA.warehouse.reqs.find(function(x){return x.id===rid;});
   if(!rq||rq.status!=='待驗收') return;
+  var res=can('ACT-S3',{});
+  if(!res.ok){ toast('⚠ '+(res.reason||'權限不足，無法驗收簽收')); return; }
+  // 硬責任分離：送貨人不得驗收自己配送的單（AUTH_MATRIX_SPEC.md §6 硬 SoD 三條之一）
+  // rq.driver 只存「車輛+姓名」（無 uid 前綴，見 dispatchReq），故取當前使用者姓名比對，不能用完整 actor 標籤
+  var verifier=_welfareActor();
+  var curUser=(typeof getCurrentUser==='function')?getCurrentUser():null;
+  var verifierName=(curUser&&curUser.name)?curUser.name:verifier;
+  if(role==='logistics' && rq.driver && verifierName && rq.driver.indexOf(verifierName)!==-1){
+    toast('⛔ 送貨人不得驗收自己配送的單（責任分離硬規則），請改由現場班長/幹部驗收');
+    return;
+  }
   var expected=rq.qty;
   var actual=prompt('清點實收數量（預期：'+expected+'）：',expected.replace(/[^\d]/g,''));
   if(actual===null) return;
@@ -8605,6 +8798,7 @@ function verifyDelivery(rid){
   rq.status='已送達';
   rq.verifiedQty=actual;
   rq.qtyDiff=diff;
+  rq.verifiedBy=verifier; // F5：先前完全未記錄驗收人身分
   var dt=DATA.tasks.items.find(function(t){return t.id===rid.replace('REQ','TD');});
   if(dt){dt.status='done';dt.pct=100;renderTasks();}
   recalcSupplyStat();
@@ -8613,12 +8807,13 @@ function verifyDelivery(rid){
     var pc=DATA.persons.cases.find(function(c){return c.caseId===rq.caseId||c.sosId===rq.caseId;});
     if(pc){ if(!pc.aidLog) pc.aidLog=[]; pc.aidLog.push({item:rq.item,qty:actual,ts:dtStr,by:rq.driver||'物資組'}); pc.timeline.push({type:'物資到場',summary:rq.item+' 實收'+actual+' 送達 '+rq.site+(diff?'（差異：'+diff+'）':''),recorder:'系統自動',ts:dtStr}); }
   }
+  if(res.compensate) rtAudit('物資驗收（補償控制）',rid+' 由 '+verifier+' 驗收（物資組角色非慣例驗收人，sodOverlap 標記）');
   if(diff!==0){
-    logSys('warn','【物資驗收】'+rid+' 數量差異：預期 '+expected+'，實收 '+actual+'（差 '+diff+'）');
-    rtAudit('物資差異',rid+' '+rq.item+' 差異 '+diff);
+    logSys('warn','【物資驗收】'+rid+' 數量差異：預期 '+expected+'，實收 '+actual+'（差 '+diff+'），驗收人：'+verifier);
+    rtAudit('物資差異',rid+' '+rq.item+' 差異 '+diff+'，驗收人：'+verifier);
     toast('⚠ '+rid+' 已簽收，數量有差異（'+diff+'）');
   } else {
-    logSys('ok','【物資驗收】'+rid+' '+rq.item+' 數量正確，班長簽收完成');
+    logSys('ok','【物資驗收】'+rid+' '+rq.item+' 數量正確，驗收人：'+verifier);
     toast('✅ '+rid+' 驗收完成，數量無誤');
   }
   renderWarehouse();renderNav();renderAlerts();saveData();
@@ -8657,7 +8852,7 @@ function renderOrgZones(){
   el.innerHTML=html;
 }
 function dispatchDynamicRoutePermission(routeId,volunteerGroupId,permLevel){
-  if(role!=='admin'&&role!=='it'){toast('⚠ 僅總控或 IT 可執行中樞神經指揮');return;}
+  if(!can('ACT-X6',{}).ok){toast('⚠ 僅總控或 IT 可執行中樞神經指揮');return;}
   var key='ROUTE-KEY-'+Date.now().toString(36).toUpperCase();
   logSys('ok','【中樞神經】動線 '+routeId+' 已隔離個資，並核發 '+permLevel+' 權限予 '+volunteerGroupId+'（金鑰 '+key+'）');
   toast('🔑 動線 '+routeId+' 臨時金鑰已核發，Line OA 已推播 '+volunteerGroupId);
@@ -8816,7 +9011,7 @@ function renderWarView(pageId){
     });
     html+='</div>';
   } else {
-    var pend=(DATA.tasks||[]).filter(function(t){return t.status==='pending';}).length;
+    var pend=(DATA.tasks&&DATA.tasks.items||[]).filter(function(t){return t.status==='pending';}).length;
     html+='<div style="display:flex;flex-direction:column;gap:10px">';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     html+='<button class="btn btn-blue" style="min-height:56px;flex-direction:column;gap:4px;justify-content:center" onclick="showPage(\'rtsync\')"><span style="font-size:20px">📋</span>任務池</button>';
