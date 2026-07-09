@@ -6062,7 +6062,8 @@ function wtConfirmAndLaunch(){
   }
   disabledModules.clear();
   for(var j=0;j<toHide.length;j++) disabledModules.add(toHide[j]);
-  saveDisabledModules();
+  // 戰時隱藏僅 session 範圍：不寫入平時共用的 drms_disabled_modules，
+  // 避免切回平時或重整後仍把 line_oa 等模組誤藏（曾誤判為「資料遺失」的根因）
   // 更新預設記憶（寫回對應等級；全手動不覆寫預設）
   if(_wtPendingLevel&&_wtPendingLevel!=='manual'&&def.levels&&def.levels[_wtPendingLevel]){
     def.levels[_wtPendingLevel].modules=enabled;
@@ -8891,9 +8892,9 @@ loadData();
   });
 })();
 loadWarModuleDefaults();
-// 每次載入預設清空 disabledModules（平時模式全開；戰時啟動後才由 wtPickLevel 設定）
+// 平時載入一律全開：戰時隱藏僅 session 生效，不從 storage 還原、也不回寫覆蓋
+// （移除舊的 saveDisabledModules() 空值回寫，避免破壞使用者的平時模組設定）
 disabledModules.clear();
-saveDisabledModules();
 initConfig();
 renderAll();
 renderModuleManager();
