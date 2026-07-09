@@ -621,8 +621,13 @@
       </div>
     </div>
     <div class="tab-panel" id="t-line">
+      <div class="card" style="margin-bottom:14px;border:1px solid var(--blue-border)">
+        <div class="card-title">🔗 GAS 串接模式（模擬 ⇄ 真實後端）</div>
+        <div style="font-size:11px;color:var(--text4);margin-bottom:10px">未啟用時所有 Line OA 操作為純本地模擬。啟用並填入 gas/ 部署的 /exec 網址與橋接金鑰後，模擬器每顆按鈕會同步 POST 至 GAS 後端（寫入 Google Sheets / Firebase RTDB，並可推播真實 LINE）。串接失敗不影響本地模擬（offline-first）。部署步驟見 <code>gas/SETUP.md</code>。</div>
+        <div id="loa-bridge-panel"></div>
+      </div>
       <div class="g2">
-        <div class="card"><div class="card-title">Line OA 頻道設定</div><div id="line-group-cards"></div></div>
+        <div class="card"><div class="card-title">Line OA 頻道設定</div><div style="font-size:10px;color:var(--text4);margin-bottom:8px">各組頻道卡為模擬展示；真實串接請用上方 GAS 串接模式</div><div id="line-group-cards"></div></div>
         <div class="card"><div class="card-title">廣播推播</div><div class="inp-lbl" style="margin-top:0">目標</div><select class="inp" id="bc-target"><option>📢 全部組別</option><option>🏥 醫護組</option><option>🚛 後勤組</option></select><div class="inp-lbl">訊息</div><textarea class="inp" id="bc-msg" style="min-height:80px" placeholder="推播內容..."></textarea><button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center" onclick="sendBroadcast()">📤 送出推播</button></div>
       </div>
     </div>

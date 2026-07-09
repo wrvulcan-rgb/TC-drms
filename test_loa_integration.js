@@ -442,7 +442,8 @@ section('[T16] 訪視角色 — 訪視/慰問金/心理轉介全寫入 persons�
 
   sandbox.loaVisitAid();
   assert(c.welfareStatus==='審核中', '慰問金申請複用 applyWelfare：狀態審核中');
-  assert(c.timeline.some(e=>e.type==='金援申請'), 'timeline 收到金援申請');
+  // 512ccf6 金援五步驟審核鏈後 timeline type 統一為「金援·申請」（舊斷言「金援申請」已過期）
+  assert(c.timeline.some(e=>e.type==='金援·申請'), 'timeline 收到金援·申請');
 
   resetSpies();
   sandbox.loaVisitDone();
@@ -512,6 +513,86 @@ section('[T18] 幹部結案確認 — LOA 端觸發 closePersonCase 完整閉環
   msgs=sandbox.LOA_CHAT.staff||[];
   assert(String((msgs[msgs.length-1]||{}).text||'').includes('找不到'), '不存在個案回覆找不到');
   sandbox.LOA_ROLE='vol';
+}
+
+section('[T19] LOA 橋接層 — 預設關閉：動作不外連、本地模擬照常');
+{
+  resetSpies();
+  ['loaBridgeSend','loaBridgeCfg','loaBridgeEnabled','loaBridgeTest','loaBridgePull','loaBridgeRenderPanel','loaDriverDepart']
+    .forEach(fn=>assert(typeof sandbox[fn]==='function', fn+'() 存在'));
+
+  const fetchSpy=makeSpy();
+  const _origFetch=sandbox.fetch;
+  sandbox.fetch=function(){ fetchSpy.apply(null,arguments); return Promise.resolve({ok:true,json:()=>Promise.resolve({ok:true,replies:[]})}); };
+
+  delete sandbox.CONFIG.loaBridge; // 回到出廠狀態
+  sandbox.LOA_ROLE='vol';
+  var safeBefore=sandbox.SAFETY.safe;
+  sandbox.loaVolSafe();
+  assert(!fetchSpy.called(), '橋接未啟用時不發出任何網路請求');
+  assert(sandbox.SAFETY.safe>=safeBefore, '本地模擬照常運作（SAFETY 更新）');
+  assert(sandbox.loaBridgeEnabled()===false, 'loaBridgeEnabled() 回報未啟用');
+  sandbox.fetch=_origFetch;
+}
+
+section('[T20] LOA 橋接層 — 啟用後動作同步 POST 至 GAS（payload 格式正確）');
+{
+  resetSpies();
+  const fetchSpy=makeSpy();
+  const _origFetch=sandbox.fetch;
+  sandbox.fetch=function(){ fetchSpy.apply(null,arguments); return Promise.resolve({ok:true,json:()=>Promise.resolve({ok:true,action:'x',replies:['✅']})}); };
+
+  sandbox.CONFIG.loaBridge={enabled:true,url:'https://example.com/exec',key:'test-key',fbUrl:'',mode:'sim'};
+  assert(sandbox.loaBridgeEnabled()===true, '設定後 loaBridgeEnabled() 回報啟用');
+
+  // 志工安全回報 → action=safe
+  sandbox.LOA_ROLE='vol';
+  sandbox.loaVolSafe();
+  assert(fetchSpy.called(), '啟用後動作觸發 fetch');
+  var url=fetchSpy.lastArg(0), opt=fetchSpy.lastArg(1);
+  assert(url==='https://example.com/exec', 'POST 到設定的 /exec 網址');
+  assert(opt&&opt.method==='POST'&&String(opt.headers['Content-Type']).indexOf('text/plain')===0, 'text/plain simple request（GAS 免 CORS 預檢）');
+  var body=JSON.parse(opt.body);
+  assert(body.source==='drms-bridge'&&body.key==='test-key'&&body.action==='safe', 'payload 含 source/key/action=safe');
+
+  // 香積開伙 → action=meal_count 帶份數
+  fetchSpy.reset();
+  sandbox.LOA_ROLE='kitchen';
+  sandbox.loaKitchenSetCount(80);
+  body=JSON.parse(fetchSpy.lastArg(1).body);
+  assert(body.action==='meal_count'&&body.params.count===80, 'meal_count 帶 count=80');
+
+  // 司機出發回報 → action=depart 帶單號（LOA_ROLES_SPEC 補的一顆）
+  fetchSpy.reset();
+  sandbox.LOA_ROLE='driver';
+  DATA.warehouse.reqs.push({id:'REQ-T20',item:'礦泉水',qty:'×10',site:'測試站',status:'已派案',prio:'P2',due:'',driver:'T-01'});
+  sandbox.loaDriverDepart();
+  var dReq=DATA.warehouse.reqs.find(r=>r.id==='REQ-T20');
+  assert(dReq.status==='配送中', '出發回報後需求單轉配送中');
+  body=JSON.parse(fetchSpy.lastArg(1).body);
+  assert(body.action==='depart'&&body.params.req==='REQ-T20', 'depart 帶需求單號');
+
+  delete sandbox.CONFIG.loaBridge;
+  sandbox.LOA_ROLE='vol';
+  sandbox.fetch=_origFetch;
+}
+
+section('[T21] LOA 橋接層 — 串接失敗不阻斷本地模擬（offline-first）');
+{
+  resetSpies();
+  const _origFetch=sandbox.fetch;
+  sandbox.fetch=function(){ return Promise.reject(new Error('network down')); };
+  sandbox.CONFIG.loaBridge={enabled:true,url:'https://example.com/exec',key:'k',fbUrl:'',mode:'sim'};
+
+  sandbox.LOA_ROLE='vol';
+  var chatBefore=(sandbox.LOA_CHAT.vol||[]).length;
+  var threw=false;
+  try{ sandbox.loaVolSafe(); }catch(e){ threw=true; }
+  assert(!threw, '網路失敗不拋例外');
+  assert((sandbox.LOA_CHAT.vol||[]).length>chatBefore, '本地聊天氣泡照常送出（模擬不受影響）');
+
+  delete sandbox.CONFIG.loaBridge;
+  sandbox.fetch=_origFetch;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -229,7 +229,7 @@
 |----------|----------|------|
 | 個資明文存 localStorage/Sheets | `backend`、`casePanel` | 設計者提出加密方案 → 幹部確認預算與時程 → 執行 |
 | role 前端可竄改 | `sysadmin`、`lineoa` | 移至後端驗證，設計者執行，不需工作坊 |
-| LINE Webhook 後端 0% | `lineoa` | 技術里程碑，排進開發時程 |
+| LINE Webhook 後端已補齊（22 ACTION＋fail-closed 驗證＋橋接模式，2026-07-09） | `lineoa` | 剩部署與帳號設定（LINE Channel / GAS 部署 / 金鑰），見 gas/SETUP.md |
 
 → 建議：設計者整理一頁「資安現況與行動計劃」，請主責幹部在場次 B 當天順帶確認即可。
 
@@ -256,7 +256,7 @@
 | 項目 | 說明 | 前置條件 | 狀態 |
 |------|------|----------|------|
 | Firebase RTDB 接口 | `RTDB.ref().push/update` 已標好呼叫點，換真實 SDK 即可上線 | Firebase 專案建立 + 規則設定 | `[API]` 待串接 |
-| LINE Webhook 後端 | `LOA_CHAT` 模擬已完整，後端只需接收推播並回寫 reportLog | LINE OA 帳號 + GCP/Node 後端 | `[API]` 待串接 |
+| LINE Webhook 後端 | gas/ 已補齊 22 ACTION（班長/香積/訪視/司機/幹部全角色）＋統一路由＋DRMS 橋接模式；前端每顆按鈕已接 `loaBridgeSend()`，後台「Line OA 串接」分頁填 /exec＋金鑰即啟用 | LINE OA 帳號 + GAS 部署（gas/SETUP.md） | `[API]` 程式就緒，待部署設定 |
 | GAS 志工報名 | `DATA.registry.gasUrl` 預留接口，模擬成功回傳已就緒 | GAS 部署 + /exec URL 填入 admin | `[API]` 待串接 |
 | Google Drive 照片 | 前端分類邏輯完成，Drive API 串接點已標記 | Drive API 金鑰 + 資料夾結構 | `[API]` 待串接 |
 

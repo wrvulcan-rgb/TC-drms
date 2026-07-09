@@ -11,13 +11,15 @@
 | # | 串接點 | 現有 GAS ACTION | 寫入目標 |
 |---|--------|----------------|----------|
 | ① | 報到 | `CHECKIN` | registry + Sheets + RTDB checkins |
-| ② | 接單/派工 | —（缺） | RTDB tasks + DATA.tasks.items |
-| ③ | 執行回報 | `TASK_DONE`、`handleImage`（照片） | tasks.status + persons.timeline |
+| ② | 接單/派工 | `SQUAD_ACCEPT`（含婉拒）、`RISK_APPROVE` ✅ 2026-07-09 補齊 | RTDB tasks + assignments 狀態機 |
+| ③ | 執行回報 | `TASK_DONE`、`SQUAD_REPORT/BLOCKED`、`DEPART`、`MEAL_COUNT/DONE`、`VISIT_START/DONE`、`handleImage`（照片） | tasks.status + persons.timeline |
 | ④ | 叫料 | `SUPPLY_START/ITEM/QTY` | warehouse.reqs + RTDB supply_reqs |
 | ⑤ | 到貨簽收 | `SUPPLY_RECV` | reqs.status='已送達' |
-| ⑥ | 安全點名/SOS | `SAFE`、`SOS` | SAFETY + RTDB sos |
-| ⑦ | 交接 | —（缺，Phase 1-D） | RTDB handover 快照 |
-| ⑧ | 結案 | —（缺） | persons.phase='結案' → 回寫 relief_req |
+| ⑥ | 安全點名/SOS | `SAFE`、`SOS`、`SQUAD_ROLLCALL`（班級粒度） | SAFETY + RTDB sos/rollcalls |
+| ⑦ | 交接 | `HANDOVER` ✅ 2026-07-09 補齊 | RTDB handover_log 快照 |
+| ⑧ | 結案 | `CASE_CLOSE`、`AID_REQUEST`、`PSYCH_REFER` ✅ 2026-07-09 補齊 | cases.phase='結案' / relief_queue / psych_refers |
+
+> **2026-07-09 串接強化**：上表原標「缺」的 ACTION 已全數在 `gas/` 實作（共 22 個），LINE postback 與 DRMS 網頁橋接共用同一張 `routeAction` 路由表；前端模擬器每顆按鈕已接 `loaBridgeSend()`，後台「Line OA 串接」分頁填入 /exec＋金鑰即為真實串接。細節見 `LOA_INTEGRATION_REVIEW.md`。
 
 ---
 
@@ -51,7 +53,7 @@
 ### 2. 班長（缺，P0 優先）
 
 ARCH_V2 以 Squad 為執行主體、明寫「班長APP 目前透過 LINE OA 代替」，但 LOA 無班長角色＝整個 Squad 模型沒有行動端入口。
-**狀態：✅ 模擬端 5 顆已實作（單班 SQ-01；高風險任務接單自動攔截轉幹部覆核）；GAS `squad_*` ACTION 待串接；DATA.squads 正式 schema 待 Phase 0-A。**
+**狀態：✅ 模擬端 5 顆已實作（單班 SQ-01；高風險任務接單自動攔截轉幹部覆核）；✅ GAS `squad_*`＋`handover` ACTION 已實作（2026-07-09，含接單→accepted/declined 狀態機）；DATA.squads 正式 schema 待 Phase 0-A。**
 
 | 按鈕 | 串接點 | ACTION（需新增） | 寫入 |
 |------|--------|-----------------|------|
@@ -66,12 +68,12 @@ ARCH_V2 以 Squad 為執行主體、明寫「班長APP 目前透過 LINE OA 代�
 | 按鈕 | 串接點 | ACTION | 狀態 |
 |------|--------|--------|------|
 | 🚛 查看派送單 + ✅ 已到貨 | ⑤ | `SUPPLY_RECV` | ✅ 現有 |
-| **🚚 出發回報** | ③ | `depart`（需新增） | ⬜ 缺——幹部/班長端才看得到 ETA |
+| **🚚 出發回報** | ③ | `DEPART` | ✅ 2026-07-09 補齊（模擬端按鈕＋GAS 皆已實作，需求單轉「配送中」帶出發時間） |
 
 ### 4. 香積組
 
 熱食是每場必開、量最大的重複性資訊流；開伙數直接驅動倉儲預估。
-**狀態：✅ 模擬端 3 顆已實作（掛既有 DATA.kitchen；開伙數回寫 DATA.field 便當供需；叫料品項已加白米/蔬菜並同步 gas/config.gs）；GAS `meal_*` ACTION 待串接。**
+**狀態：✅ 模擬端 3 顆已實作（掛既有 DATA.kitchen；開伙數回寫 DATA.field 便當供需；叫料品項已加白米/蔬菜並同步 gas/config.gs）；✅ GAS `meal_*` ACTION 已實作（2026-07-09，另支援「開伙 120」文字快捷輸入）。**
 
 | 按鈕 | 串接點 | ACTION | 備註 |
 |------|--------|--------|------|
@@ -82,7 +84,7 @@ ARCH_V2 以 Squad 為執行主體、明寫「班長APP 目前透過 LINE OA 代�
 ### 5. 訪視/安心家訪組
 
 原型 C「個案全程陪伴」的行動端入口；台南強震曾一次開 150+ 條家訪動線。直接寫 `persons.timeline`。
-**狀態：✅ 模擬端 4 顆已實作（複用 applyWelfare／referPersonPsych 既有流程，全數寫入 persons.timeline＋careStats）；GAS `visit_*` ACTION 待串接。**
+**狀態：✅ 模擬端 4 顆已實作（複用 applyWelfare／referPersonPsych 既有流程，全數寫入 persons.timeline＋careStats）；✅ GAS `visit_*`＋`aid_request`＋`psych_refer` ACTION 已實作（2026-07-09）。**
 
 | 按鈕 | 串接點 | ACTION（需新增） | 寫入 |
 |------|--------|-----------------|------|
@@ -98,8 +100,8 @@ ARCH_V2 以 Squad 為執行主體、明寫「班長APP 目前透過 LINE OA 代�
 | 📢 發送廣播 | — | push | ✅ 現有 |
 | 📡 發起點名 | ⑥ | rollcall 推播 | ✅ 現有 |
 | 🎯 查看任務 | ② | — | ✅ 現有 |
-| **✅ 高風險派工覆核** | ② | `risk_approve` | ✅ 已實作（班長請求→幹部收覆核卡→核准/駁回都通知班長＋留稽核） |
-| **📋 結案確認** | ⑧ | `case_close` | ✅ 已實作（統一走 closePersonCase：timeline 封存＋relief_req 回寫） |
+| **✅ 高風險派工覆核** | ② | `risk_approve` | ✅ 已實作（班長請求→幹部收覆核卡→核准/駁回都通知班長＋留稽核）；✅ GAS 已實作＋覆核 Flex 卡 `buildRiskReviewFlex` |
+| **📋 結案確認** | ⑧ | `case_close` | ✅ 已實作（統一走 closePersonCase：timeline 封存＋relief_req 回寫）；✅ GAS 已實作 |
 
 ### 任務類型觸發卡（不開角色）
 

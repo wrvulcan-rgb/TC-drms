@@ -91,7 +91,7 @@ var ARCH_DOC={
     {id:'reg',name:'志工報名與報到',layer:'L2',status:'live',note:'今日報到+明日報名雙軌並行。報到後加入 Line OA 收任務'},
     {id:'sheet_reg',name:'報名資料總表',layer:'L2',status:'partial',note:'Google Sheets 對接，慈誠委員+社區志工。GAS 後端已建，需設定 /exec 網址'},
     {id:'vms',name:'志工管理與報告',layer:'L2',status:'live',note:'人員資料、任務指派'},
-    {id:'line_oa',name:'Line OA 模擬',layer:'L2',status:'partial',note:'雙手機模擬器已內嵌(base64)。真實 LINE Webhook 後端未接，目前為模擬展示'},
+    {id:'line_oa',name:'Line OA 模擬',layer:'L2',status:'partial',note:'雙手機模擬器已內嵌。gas/ 後端 22 個 ACTION 已實作＋橋接模式（後台填 /exec＋金鑰即真實串接），預設為模擬展示'},
     {id:'drive',name:'照片回報與分類',layer:'L2',status:'partial',note:'Line OA 回傳→Google Drive→自動分類。前端流程完成，後端串接待設定'},
     {id:'sorting',name:'物資整理站',layer:'L3',status:'live',note:'收件→拆箱分類→報廢/覆核→重包裝→入庫'},
     {id:'warehouse',name:'物資倉儲管理',layer:'L3',status:'live',note:'三級分類造冊、大車物流調度、對內庫存管理'},
@@ -102,7 +102,7 @@ var ARCH_DOC={
   ],
   // ── 對外通路/串接（紅綠燈）──
   channels:[
-    {name:'Line OA 推播',status:'partial',detail:'模擬器已內嵌可展示；真實 LINE Messaging API Webhook 未接後端'},
+    {name:'Line OA 推播',status:'partial',detail:'模擬器已內嵌可展示；gas/ 後端 22 ACTION＋網頁橋接模式已實作，部署 GAS 並填金鑰後即為真實串接'},
     {name:'Google Sheets（報名）',status:'partial',detail:'GAS 後端已寫（Master_Profiles + Event_Logs + Form_Config + Question_Bank），需部署並填 /exec 網址'},
     {name:'Google Drive（照片）',status:'partial',detail:'前端分類邏輯完成，Drive API 串接待設定'},
     {name:'Firebase RTDB（多人共編）',status:'planned',detail:'程式已預留 RTDB 介面可無痛切換，尚未啟用，需架基金會伺服器'},
@@ -138,10 +138,10 @@ var ARCH_DOC={
      bg:'目前僅同瀏覽器分頁同步(BroadcastChannel)',
      why:'實際救災需多站點多幹部同時操作',
      how:'架基金會伺服器；切 Firebase/WebSocket 即時同步(RTDB 介面已預留)；加帳號與並發鎖'},
-    {pri:'P2',title:'真實 Line OA 勘災模組',status:'planned',
-     bg:'目前 Line OA 為模擬器，未接真實 Webhook',
+    {pri:'P2',title:'真實 Line OA 勘災模組',status:'partial',
+     bg:'gas/ 後端 22 ACTION＋網頁橋接模式已實作，模擬器每顆按鈕都有對應後端；照片僅記 metadata 佇列',
      why:'現場三次點擊勘災(定位→選分類→限額拍照)需真實後端接收',
-     how:'卡後端：需 LINE Messaging API + 後端佇列 + 圖片壓縮。與多人共編同屬「需架伺服器」前提'},
+     how:'剩部署與帳號設定：LINE Channel + GAS 部署 + BRIDGE_KEY/WEBHOOK_TOKEN；照片 Drive 上傳需補 OAuth scope'},
     {pri:'P3',title:'Google My Maps 任務地圖',status:'planned',
      bg:'打掃範圍/住宿點目前無視覺化地圖',
      why:'讓需要的人一眼看到現場任務分布',
@@ -431,6 +431,7 @@ function loaSendBroadcast(){
   if(!m){toast('⚠ 請輸入推播內容');return;}
   loaLog('Broadcast → '+t+'：'+m.substring(0,25)+(m.length>25?'…':''));
   logSys('ok','【LOA 推播】'+t+'：'+m.substring(0,40));
+  loaBridgeSend('broadcast',{target:t,msg:m});
   loaOASayAll('📢 [系統廣播]\n'+m);
   toast('📤 推播已發送至 '+t);
   if(msg) msg.value='';
@@ -438,6 +439,7 @@ function loaSendBroadcast(){
 function loaPushCheckinQR(){
   loaLog('對內+對外報到 QR 已推播 → 142 位志工 Line');
   logSys('ok','【LOA】報到 QR 推播完成');
+  loaBridgeSend('broadcast',{target:'全部志工',msg:'📋 請至報到站掃描 QR Code 完成報到'});
   loaOASayAll('📋 請至報到站掃描 QR Code 完成報到，謝謝師兄姐配合。');
   toast('📲 報到 QR 已推播');
 }
@@ -456,6 +458,7 @@ function loaPushTask(i){
   loaRefreshPhones();
   loaLog('任務 '+tk.id+' Flex 卡已推播 → '+tk.assign+' Line');
   logSys('ok','【LOA 任務推播】'+tk.id+' → '+tk.assign);
+  loaBridgeSend('push_task',{id:tk.id,title:tk.title,assign:(tk.assign&&typeof tk.assign==='object'?tk.assign.name:tk.assign)||'',endTime:tk.endTime||''});
   toast('📲 '+tk.id+' 推播完成');
 }
 function loaDispatch(i){
@@ -2506,6 +2509,145 @@ function monitorRenderMapList(){
     }).catch(function(){});
 }
 
+// ══ LOA 橋接層：模擬 ⇄ 真實 GAS 串接 ══
+// 設計原則（FABLE_HANDOFF 脊椎A・offline-first）：
+//   1. 未啟用（預設）＝ 純本地模擬，行為與過去完全相同
+//   2. 啟用後每個 LOA 動作額外 POST 至 gas/ 後端（同一組 handlers 寫 Sheets/Firebase/LINE）
+//   3. 串接失敗只記 log，絕不阻斷本地模擬（斷網照常演練）
+// 傳輸格式：Content-Type text/plain（GAS Web App 無法處理 CORS preflight，
+// 純文字 body 屬 simple request 免預檢），body 為 JSON 字串。
+var LOA_BRIDGE_STATE={sent:0,failed:0,lastOk:'',lastErr:''};
+function loaBridgeCfg(){
+  if(!CONFIG.loaBridge) CONFIG.loaBridge={enabled:false,url:'',key:'',fbUrl:'',mode:'sim'};
+  return CONFIG.loaBridge;
+}
+function loaBridgeSave(){ try{ localStorage.setItem('drms_config', JSON.stringify(CONFIG)); }catch(e){} }
+function loaBridgeEnabled(){ var c=loaBridgeCfg(); return !!(c.enabled&&c.url); }
+function loaBridgeSend(action, params){
+  if(!loaBridgeEnabled()) return Promise.resolve({simulated:true});
+  var c=loaBridgeCfg();
+  var payload={source:'drms-bridge',key:c.key||'',action:action,params:params||{},mode:c.mode||'sim',uid:'drms-web',ts:new Date().toISOString()};
+  return fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(res&&res.ok){
+        LOA_BRIDGE_STATE.sent++; LOA_BRIDGE_STATE.lastOk=new Date().toLocaleTimeString('zh-TW');
+        loaLog('🔗 GAS 串接 OK：'+action+(res.replies&&res.replies.length?'（後端回覆 '+res.replies.length+' 則）':''));
+        logSys('ok','【LOA 串接】'+action+' → GAS 已寫入');
+      } else {
+        LOA_BRIDGE_STATE.failed++; LOA_BRIDGE_STATE.lastErr=(res&&res.error)||'未知錯誤';
+        loaLog('⚠ GAS 拒絕：'+action+'（'+LOA_BRIDGE_STATE.lastErr+'）');
+        logSys('warn','【LOA 串接】'+action+' 遭拒：'+LOA_BRIDGE_STATE.lastErr);
+      }
+      loaBridgeChipRefresh();
+      return res;
+    })
+    .catch(function(err){
+      LOA_BRIDGE_STATE.failed++; LOA_BRIDGE_STATE.lastErr=err.message;
+      loaLog('⚠ GAS 串接失敗：'+action+'（'+err.message+'）— 本地模擬照常');
+      logSys('warn','【LOA 串接】'+action+' 失敗：'+err.message);
+      loaBridgeChipRefresh();
+      return {ok:false,error:err.message};
+    });
+}
+// ── 模式徽章（Line OA 各頁顯示目前是模擬或串接）──
+function loaBridgeChipHtml(){
+  if(loaBridgeEnabled()){
+    var st=LOA_BRIDGE_STATE;
+    return '<span class="loa-bridge-chip" style="font-size:9px;padding:2px 8px;border-radius:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);font-weight:700;white-space:nowrap" title="每個動作同步 POST 至 GAS 後端（成功 '+st.sent+' / 失敗 '+st.failed+'）">🔗 串接模式</span>';
+  }
+  return '<span class="loa-bridge-chip" style="font-size:9px;padding:2px 8px;border-radius:6px;background:var(--bg3);color:var(--text4);border:1px solid var(--border);font-weight:700;white-space:nowrap" title="所有動作僅寫本地資料，未連 GAS 後端">🧪 模擬模式</span>';
+}
+function loaBridgeChipRefresh(){
+  var chips=document.querySelectorAll('.loa-bridge-chip');
+  if(!chips.length) return;
+  var tmp=document.createElement('div'); tmp.innerHTML=loaBridgeChipHtml();
+  var fresh=tmp.firstChild;
+  chips.forEach(function(ch){
+    ch.style.cssText=fresh.style.cssText;
+    ch.innerHTML=fresh.innerHTML;
+    ch.title=fresh.title;
+  });
+}
+// ── 健康檢查（後台「測試連線」按鈕）──
+function loaBridgeTest(){
+  var c=loaBridgeCfg();
+  if(!c.url){ toast('⚠ 請先填入 GAS /exec 網址'); return; }
+  var st=document.getElementById('loa-bridge-status');
+  if(st) st.innerHTML='<span style="color:var(--text4)">⏳ 測試中…</span>';
+  fetch(c.url+(c.url.indexOf('?')>0?'&':'?')+'action=health',{redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .then(function(h){
+      if(!h||!h.ok) throw new Error('回應格式不符');
+      var rows=[
+        ['LINE Token', h.line&&h.line.hasToken],
+        ['Webhook Token', h.line&&h.line.hasWebhookToken],
+        ['橋接金鑰', h.bridge&&h.bridge.enabled],
+        ['Sheets', h.sheets&&h.sheets.configured],
+        ['Firebase', h.firebase&&h.firebase.configured],
+      ].map(function(r){ return r[0]+'：'+(r[1]?'<span style="color:var(--green)">✓ 已設定</span>':'<span style="color:var(--amber)">未設定</span>'); }).join('　');
+      if(st) st.innerHTML='<span style="color:var(--green);font-weight:600">✅ GAS 連線正常</span>（'+(h.actions?h.actions.length:'?')+' 個 ACTION）<br>'+rows;
+      logSys('ok','【LOA 串接】健康檢查通過：'+(h.actions?h.actions.length:'?')+' 個 ACTION 可用');
+      toast('✅ GAS 連線正常');
+    })
+    .catch(function(err){
+      if(st) st.innerHTML='<span style="color:var(--red);font-weight:600">✗ 連線失敗：'+escHtml(err.message)+'</span>';
+      logSys('warn','【LOA 串接】健康檢查失敗：'+err.message);
+      toast('⚠ GAS 連線失敗');
+    });
+}
+// ── 反向串接：從真實 Firebase RTDB 拉回中台（GAS 寫入 → 網頁看得到）──
+var LOA_BRIDGE_PULL_NODES=['sos','checkins','supply_reqs','tasks','safety','assignments','rollcalls','alerts','handover_log','kitchen','visits','relief_queue','psych_refers','broadcasts','reportLog'];
+function loaBridgePull(){
+  var c=loaBridgeCfg();
+  if(!c.fbUrl){ toast('⚠ 請先填入 Firebase RTDB 網址'); return; }
+  var base=c.fbUrl.replace(/\/$/,'');
+  var st=document.getElementById('loa-bridge-status');
+  if(st) st.innerHTML='<span style="color:var(--text4)">⏳ 拉取 Firebase 現況…</span>';
+  fetch(base+'/.json',{redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .then(function(db){
+      if(!db){ if(st) st.innerHTML='Firebase 目前是空的（GAS 尚未寫入任何資料）'; return; }
+      var merged=0;
+      LOA_BRIDGE_PULL_NODES.forEach(function(node){
+        if(db[node]===undefined||db[node]===null) return;
+        try{ RTDB.ref(node).set(db[node]); merged++; }catch(e){}
+      });
+      if(st) st.innerHTML='<span style="color:var(--green);font-weight:600">⬇ 已拉取 '+merged+' 個節點</span>（sos/tasks/checkins…）→ 即時調度中台已同步';
+      logSys('ok','【LOA 串接】Firebase 現況拉取完成：'+merged+' 個節點併入本地 RTDB');
+      toast('⬇ Firebase 現況已併入中台');
+      if(typeof renderRTSync==='function') renderRTSync();
+    })
+    .catch(function(err){
+      if(st) st.innerHTML='<span style="color:var(--red)">✗ 拉取失敗：'+escHtml(err.message)+'</span>';
+      toast('⚠ Firebase 拉取失敗');
+    });
+}
+// ── 後台 t-line 分頁的串接設定面板 ──
+function loaBridgeRenderPanel(){
+  var el=document.getElementById('loa-bridge-panel'); if(!el) return;
+  var c=loaBridgeCfg();
+  el.innerHTML=''
+    +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px">'
+    +'<input type="checkbox" id="loa-bridge-en" '+(c.enabled?'checked':'')+' onchange="loaBridgeCfg().enabled=this.checked;loaBridgeSave();loaBridgeChipRefresh();loaBridgeRenderPanel()" style="accent-color:var(--green)">'
+    +'<span style="font-size:12px;font-weight:600">啟用串接模式</span>'
+    +loaBridgeChipHtml()
+    +'</label>'
+    +'<div class="inp-lbl" style="margin-top:0">GAS Webhook /exec 網址（gas/ 目錄部署後取得）</div>'
+    +'<input class="inp" style="font-family:monospace;font-size:11px" placeholder="https://script.google.com/macros/s/部署ID/exec" value="'+escHtml(c.url||'')+'" oninput="loaBridgeCfg().url=this.value.trim();loaBridgeSave();loaBridgeChipRefresh()">'
+    +'<div class="inp-lbl">橋接金鑰（＝GAS Script Properties 的 BRIDGE_KEY）</div>'
+    +'<input class="inp" type="password" style="font-family:monospace;font-size:11px" placeholder="與後端相同的一組字串" value="'+escHtml(c.key||'')+'" oninput="loaBridgeCfg().key=this.value.trim();loaBridgeSave()">'
+    +'<div class="inp-lbl">Firebase RTDB 網址（選填，反向拉回中台用）</div>'
+    +'<input class="inp" style="font-family:monospace;font-size:11px" placeholder="https://xxx-default-rtdb.firebaseio.com" value="'+escHtml(c.fbUrl||'')+'" oninput="loaBridgeCfg().fbUrl=this.value.trim();loaBridgeSave()">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">'
+    +'<button class="btn btn-blue" style="justify-content:center;font-size:12px" onclick="loaBridgeTest()">🩺 測試連線</button>'
+    +'<button class="btn btn-green" style="justify-content:center;font-size:12px" onclick="loaBridgePull()">⬇ 拉取 Firebase 現況</button>'
+    +'</div>'
+    +'<div id="loa-bridge-status" style="font-size:10px;line-height:1.8;margin-top:8px;color:var(--text3)">'
+    +(loaBridgeEnabled()?'串接中：成功 '+LOA_BRIDGE_STATE.sent+' / 失敗 '+LOA_BRIDGE_STATE.failed+(LOA_BRIDGE_STATE.lastOk?'　最後成功 '+LOA_BRIDGE_STATE.lastOk:''):'未啟用 — 所有 Line OA 操作為純本地模擬')
+    +'</div>';
+}
+
 // ══ Line OA 手機互動模擬（page-line_oa）══
 // 完全 inline，不用 iframe，按鈕直接呼叫主系統函數
 var LOA_ROLE = 'vol';
@@ -2528,9 +2670,9 @@ function renderLineOA(targetId){
 
   if(LOA_ROLE==='flow'){
     el.style.cssText='';
-    el.innerHTML='<div class="card"><div class="card-title">🔗 資料流說明</div>'
-      +'<pre style="font-size:11px;line-height:1.8;color:var(--text2);white-space:pre-wrap">志工 Line 操作（報到/叫料/安全/SOS）\n    ↓  HTTP POST\nLine Messaging API\n    ↓  轉發 Webhook\nGAS doPost()  （gas/ 目錄內的 GAS 腳本）\n    ↓  驗簽 → 解析 → 分派\nhandlers.gs\n    ↓  寫入\nFirebase RTDB  →  本系統即時更新\nGoogle Sheets  →  備份紀錄\n    ↓  推播\n志工 Line  ← Flex Message 回覆</pre>'
-      +'<div style="margin-top:10px;font-size:11px;color:var(--text4)">GAS 腳本已寫好放在 <code>gas/</code> 目錄，尚未部署。目前此頁為純模擬展示。</div>'
+    el.innerHTML='<div class="card"><div class="card-title">🔗 資料流說明 '+loaBridgeChipHtml()+'</div>'
+      +'<pre style="font-size:11px;line-height:1.8;color:var(--text2);white-space:pre-wrap">【正式流程】志工 Line 操作（報到/叫料/安全/SOS/接單/開伙/訪視…）\n    ↓  HTTP POST\nLine Messaging API\n    ↓  轉發 Webhook（URL 帶 ?token= 驗證，fail-closed）\nGAS doPost()  （gas/ 目錄，22 個 ACTION）\n    ↓  routeAction 統一路由\nhandlers.gs\n    ↓  寫入\nFirebase RTDB  →  本系統即時更新（後台可一鍵拉回）\nGoogle Sheets  →  備份紀錄\n    ↓  推播\n志工 Line  ← Flex Message 回覆\n\n【串接模式】本網頁模擬器動作\n    ↓  POST {source:\'drms-bridge\', key, action, params}\n同一個 GAS doPost() → 同一組 handlers → 同樣寫入 Sheets/Firebase\n（後台「Line OA 串接」分頁啟用；未啟用＝純本地模擬）</pre>'
+      +'<div style="margin-top:10px;font-size:11px;color:var(--text4)">GAS 腳本在 <code>gas/</code> 目錄（部署步驟見 gas/SETUP.md）。兩條路徑共用同一張動作路由表，模擬器每顆按鈕都有對應後端 ACTION。</div>'
       +'</div>';
     return;
   }
@@ -2541,6 +2683,7 @@ function renderLineOA(targetId){
     // ── 頂列：緊湊控制列 ──
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm)">'
     +'<span style="font-size:11px;font-weight:700;color:var(--text3);white-space:nowrap">操作面板</span>'
+    +loaBridgeChipHtml()
     +'<div id="loa-action-area" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>'
     +'<button onclick="document.getElementById(\'loa-status-panel\').style.display=document.getElementById(\'loa-status-panel\').style.display===\'none\'?\'block\':\'none\'" style="font-size:11px;padding:4px 8px;background:transparent;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;color:var(--text3);white-space:nowrap">📡 狀態</button>'
     +'</div>'
@@ -2760,6 +2903,7 @@ function loaVolCheckin(){
     // C1: store current user in sessionStorage
     setCurrentUser({uid:me.uid||('VO-'+me.idno),name:me.name,role:'社區志工',site:'',checkinTs:me.checkinTime});
     logSys('ok','【Line OA 模擬】'+me.name+' 報到完成');
+    loaBridgeSend('checkin',{type:'sim',name:me.name});
     if(typeof renderVolHub==='function') renderVolHub();
     loaUserSay('報到');
     loaOASay('✅ '+me.name+' 報到完成！\n時間：'+me.checkinTime+'\n請至任務分配區等候。');
@@ -2802,6 +2946,7 @@ function loaSupplyPickQty(qty){
   if(LOA_SUPPLY_STEP.caseId) reqObj.caseId=LOA_SUPPLY_STEP.caseId;
   DATA.warehouse.reqs.push(reqObj);
   logSys('ok','【Line OA 模擬】叫料 '+id+'：'+item+' '+qty);
+  loaBridgeSend('supply_qty',{item:item,qty:qty,site:reqSite,id:id});
   loaUserSay(qty);
   loaOASay('✅ 叫料需求已送出！\n單號：'+id+'\n'+item+' '+qty+'\n幹部確認後安排配送。');
   if(typeof renderWarehouse==='function') renderWarehouse();
@@ -2812,6 +2957,7 @@ function loaVolSafe(){
   SAFETY.safe = Math.min(SAFETY.safe+1, SAFETY.sent);
   SAFETY.unreported = SAFETY.unreported.filter(function(n,i){return i>0;});
   logSys('ok','【Line OA 模擬】志工回報安全');
+  loaBridgeSend('safe',{});
   loaUserSay('我安全 ✅');
   loaOASay('✅ 已記錄您的安全狀態，感謝回報！');
   if(typeof renderRTSync==='function'&&typeof RT_TAB!=='undefined'&&RT_TAB==='emergency') renderRTSync();
@@ -2821,6 +2967,7 @@ function loaVolSafe(){
 function loaVolSOS(){
   triggerSOS('Line OA 模擬志工','緊急求救（Line OA 模擬）');
   SAFETY.sos++;
+  loaBridgeSend('sos',{detail:'緊急求救（DRMS 模擬端）'});
   loaUserSay('SOS 🆘');
   loaOASay('🆘 求救訊號已送達指揮中心！\n請保持手機開機，幹部即刻聯絡您。');
   loaRenderStatus(); saveData();
@@ -2830,6 +2977,7 @@ function loaVolSOS(){
 function loaStaffBroadcast(){
   var msg='📢 請全體志工注意：目前進入緊急協調模式，請依分組聽候指示。';
   logSys('ok','【Line OA 模擬】幹部廣播：'+msg);
+  loaBridgeSend('broadcast',{target:'全部志工',msg:msg});
   loaUserSay('發送廣播');
   loaOASay('✅ 廣播已送出（模擬 142 人）\n內容：'+msg);
 }
@@ -2837,6 +2985,7 @@ function loaStaffRollcall(){
   SAFETY.sent=DATA.registry.innerMembers.length+DATA.registry.volunteers.length;
   SAFETY.unreported=DATA.registry.volunteers.slice(0,5).map(function(v){return v.name;});
   logSys('ok','【Line OA 模擬】幹部發起安全點名');
+  loaBridgeSend('rollcall_fire',{});
   loaUserSay('發起點名');
   loaOASay('📡 安全點名已發送給 '+SAFETY.sent+' 位志工\n請等待回報結果。', {flex:'rollcall'});
   if(typeof renderRTSync==='function'&&typeof RT_TAB!=='undefined'&&RT_TAB==='emergency') renderRTSync();
@@ -2852,6 +3001,7 @@ function loaStaffTaskDone(id){
   if(idx<0){ loaOASay('⚠ 找不到任務 '+id); return; }
   // 統一走 completeTask：回寫 persons.timeline + 交接快照，避免 LOA 端完工漏寫個案歷程
   completeTask(idx);
+  loaBridgeSend('task_done',{id:id});
   loaOASay('✅ 任務 '+id+' 完工已記錄，感謝師兄/姐！');
   if(typeof renderRTSync==='function') renderRTSync();
 }
@@ -2867,6 +3017,7 @@ function loaStaffRiskApprove(k){
   RTDB.ref('tasks/'+k).update({status:'進行中',lockedBy:'SQ-01'});
   rtAudit('任務派發',k+' '+t.title+' → 班組 SQ-01（高風險已覆核）');
   logSys('warn','【LOA 覆核】高風險任務 '+k+' 幹部核准 → SQ-01');
+  loaBridgeSend('risk_approve',{id:k,decision:'approve'});
   loaHook('leader','✅ 幹部已核准高風險任務\n「'+t.title+'」\n請確實配戴防護裝備、隨時回報。');
   loaOASay('✅ 已核准 '+k+'「'+t.title+'」派遣班組 SQ-01，已通知班長。');
   if(typeof renderRTSync==='function') renderRTSync();
@@ -2878,6 +3029,7 @@ function loaStaffRiskReject(k){
   if(t.status!=='待派工'){ loaOASay('任務 '+k+' 已處理（'+t.status+'）。'); return; }
   rtAudit('覆核駁回',k+' '+t.title+' 幹部駁回班組承接，待專業隊伍');
   logSys('warn','【LOA 覆核】高風險任務 '+k+' 幹部駁回班組承接');
+  loaBridgeSend('risk_approve',{id:k,decision:'reject'});
   loaHook('leader','⛔ 幹部駁回高風險任務承接\n「'+t.title+'」\n請等待專業救援隊伍處理，勿自行進場。');
   loaOASay('⛔ 已駁回 '+k+'，任務保留給專業隊伍，已通知班長。');
 }
@@ -2893,6 +3045,7 @@ function loaStaffCaseCloseConfirm(caseId){
   if(cases[idx].phase==='結案'){ loaOASay('個案 '+caseId+' 已結案。'); return; }
   // 統一走 closePersonCase：timeline 封存 + relief_req 回寫，同儀表板行為
   closePersonCase(idx);
+  loaBridgeSend('case_close',{caseId:caseId});
   loaOASay('✅ '+caseId+' '+cases[idx].name+' 已結案，歷程封存、求助單同步更新。');
 }
 
@@ -2921,6 +3074,7 @@ function loaLeaderAccept(){
   RTDB.ref('tasks/'+k).update({status:'進行中',lockedBy:'SQ-01'});
   rtAudit('班長接單',k+' '+t.title+' → 班組 SQ-01');
   logSys('ok','【Line OA 模擬】班長接單 '+k);
+  loaBridgeSend('squad_accept',{id:k,decision:'accept',squad:'SQ-01'});
   loaOASay('🎯 已接單：「'+t.title+'」（'+(t.priority||'P2')+'）\n系統已通知班員集合。');
   if(typeof renderRTSync==='function') renderRTSync();
   saveData();
@@ -2929,6 +3083,7 @@ function loaLeaderRollcall(){
   loaUserSay('班員點名');
   loaHook('vol','📡 班長發起班組點名，請立即回報安全狀態。',{flex:'rollcall'});
   rtAudit('班組點名','班長 SQ-01 發起班內安全點名');
+  loaBridgeSend('squad_rollcall',{squad:'SQ-01'});
   loaOASay('📡 班組點名已推播給班員，等待回報。');
 }
 function loaLeaderReport(){
@@ -2938,6 +3093,7 @@ function loaLeaderReport(){
   if(!k){ loaOASay('目前班組沒有進行中的任務。'); return; }
   RTDB.ref('reportLog').push({time:new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),msg:'🪖 班長回報「'+tasks[k].title+'」進行中'});
   loaHook('staff','📈 班組 SQ-01 進度回報\n「'+tasks[k].title+'」執行中');
+  loaBridgeSend('squad_report',{id:k,note:tasks[k].title+' 進行中'});
   loaOASay('📈 進度已回報指揮中心。');
 }
 function loaLeaderBlocked(){
@@ -2947,6 +3103,7 @@ function loaLeaderBlocked(){
   if(!k){ loaOASay('目前班組沒有進行中的任務。'); return; }
   RTDB.ref('tasks/'+k).update({status:'受阻'});
   rtAudit('現場受阻',k+' '+tasks[k].title+' 班長回報受阻');
+  loaBridgeSend('squad_blocked',{id:k,reason:tasks[k].title});
   loaHook('staff','⚠ 班組 SQ-01 回報現場受阻\n「'+tasks[k].title+'」需指揮中心協調');
   loaOASay('⚠ 受阻狀態已上報，請於原地等候指揮中心指示。');
   if(typeof renderRTSync==='function') renderRTSync();
@@ -2971,6 +3128,7 @@ function loaLeaderHandover(){
     +'請下梯班長於系統確認簽收。';
   loaOASay(msg);
   rtAudit('交接快照','班長 SQ-01 產生收班交接快照');
+  loaBridgeSend('handover',{squad:'SQ-01',note:dtStr+' 交接快照（任務/物資/個案/人力統計）'});
 }
 
 // ── 香積操作（LOA_ROLES_SPEC 優先序3；掛既有 DATA.kitchen；GAS meal_* ACTION 待串接）──
@@ -2989,6 +3147,7 @@ function loaKitchenSetCount(n){
   if(sup){ sup.need=n; sup.status=sup.stock>=n?'green':(sup.stock>=n*0.5?'amber':'red'); }
   loaHook('staff','🍱 香積站開伙登記\n'+(site?site.name:'香積站')+'：'+n+' 份\n倉儲供需預估已更新');
   logSys('ok','【Line OA 模擬】香積開伙登記 '+n+' 份');
+  loaBridgeSend('meal_count',{count:n,site:site?site.name:'香積站'});
   loaOASay('✅ 已登記今日開伙 '+n+' 份\n倉儲供需預估已同步更新。');
   loaRenderStatus(); saveData();
 }
@@ -3003,6 +3162,7 @@ function loaKitchenServed(){
   rtAudit('香積出餐',(site?site.name:'香積站')+' 出餐 '+qty+' 份完成');
   loaHook('staff','✅ 香積出餐完成\n'+(site?site.name:'香積站')+'：'+qty+' 份');
   logSys('ok','【Line OA 模擬】香積出餐完成 '+qty+' 份');
+  loaBridgeSend('meal_done',{count:qty,site:site?site.name:'香積站'});
   loaOASay('✅ 出餐完成已回報（'+qty+' 份），感恩師兄師姐！');
   saveData();
 }
@@ -3024,6 +3184,7 @@ function loaVisitStart(){
   c.visitStatus='訪視中';
   c.timeline.push({type:'訪視開始',summary:'訪視志工抵達，開始關懷訪視',recorder:'訪視志工（LOA）',ts:dtStr});
   logSys('ok','【Line OA 模擬】開始訪視 '+c.caseId);
+  loaBridgeSend('visit_start',{caseId:c.caseId});
   loaOASay('🏠 已登記開始訪視：\n'+c.caseId+' '+c.name+'\n地址：'+(c.address||'—')+'\n完成後請按「✍ 完成訪視」。');
   saveData();
 }
@@ -3038,6 +3199,7 @@ function loaVisitDone(){
   if(DATA.persons.careStats) DATA.persons.careStats.visit++;
   loaHook('staff','🏠 訪視完成回報\n'+c.caseId+' '+c.name+'\n關懷紀錄已寫入個案歷程');
   logSys('ok','【Line OA 模擬】訪視完成 '+c.caseId);
+  loaBridgeSend('visit_done',{caseId:c.caseId});
   loaOASay('✅ 訪視紀錄已建檔（'+c.caseId+' '+c.name+'），感恩！');
   saveData();
 }
@@ -3051,6 +3213,7 @@ function loaVisitAid(){
   if(i<0){ loaOASay('目前沒有可申請慰問金的個案（皆已申請或結案）。'); return; }
   var c=cases[i];
   applyWelfare(i); // 複用既有流程：welfareStatus='審核中' + timeline 金援申請
+  loaBridgeSend('aid_request',{caseId:c.caseId});
   loaHook('staff','💰 慰問金申請\n'+c.caseId+' '+c.name+'（'+c.phase+'）\n請至個案頁審核');
   loaOASay('💰 慰問金申請已送出：\n'+c.caseId+' '+c.name+'\n狀態：審核中，幹部審核後核發。');
 }
@@ -3061,6 +3224,7 @@ function loaVisitPsych(){
   if(i<0){ loaOASay('目前沒有進行中的訪視個案。'); return; }
   var c=DATA.persons.cases[i];
   referPersonPsych(i); // 複用既有流程：psych 標記 + longCare + timeline 心理追蹤
+  loaBridgeSend('psych_refer',{caseId:c.caseId});
   loaHook('staff','🧠 心理轉介\n'+c.caseId+' '+c.name+' 已轉介專業心理師，納入長期陪伴');
   loaOASay('🧠 已轉介心理師：'+c.caseId+' '+c.name+'\n個案已納入長期陪伴名單。');
 }
@@ -3073,10 +3237,27 @@ function loaDriverViewReqs(){
 function loaDriverConfirm(reqId){
   var req=(DATA.warehouse.reqs||[]).find(function(r){return r.id===reqId;});
   if(req){ req.status='待驗收'; logSys('info','【Line OA 模擬】'+reqId+' 司機確認到場，待班長驗收'); saveData(); }
+  loaBridgeSend('supply_recv',{req:reqId});
   loaOASay('📦 到場確認（'+reqId+'）已記錄，請通知現場班長清點簽收。');
   if(typeof loaHook==='function') loaHook('leader','📦 物資到場\n'+reqId+' '+(req?req.item:'')+'\n請前往清點驗收');
   if(typeof renderWarehouse==='function') renderWarehouse();
   loaRenderStatus();
+}
+// ── 司機：出發回報（LOA_ROLES_SPEC §3 補的一顆；GAS ACTION.DEPART）──
+function loaDriverDepart(){
+  var req=(DATA.warehouse.reqs||[]).find(function(r){return r.status==='已派案';});
+  loaUserSay('出發回報');
+  if(!req){ loaOASay('目前沒有已派案待出發的配送單。'); return; }
+  req.status='配送中';
+  req.departAt=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  logSys('ok','【Line OA 模擬】'+req.id+' 司機出發回報');
+  rtAudit('司機出發',req.id+' '+req.item+' → '+req.site);
+  loaBridgeSend('depart',{req:req.id});
+  loaHook('staff','🚚 司機出發回報\n'+req.id+' '+req.item+' → '+req.site+'\n出發：'+req.departAt);
+  loaHook('leader','🚚 物資已出發\n'+req.id+' '+req.item+'，請準備收貨驗收');
+  loaOASay('🚚 出發回報已記錄（'+req.id+'）\n抵達後請按「✅ 到場確認」。');
+  if(typeof renderWarehouse==='function') renderWarehouse();
+  saveData();
 }
 
 // ── 聊天紀錄 helpers ──
@@ -3138,6 +3319,7 @@ var LOA_PHONE_BTNS={
   ],
   driver:[
     {label:'🚛 查派送單',fn:'loaDriverViewReqs()', cls:'btn-blue'},
+    {label:'🚚 出發回報',fn:'loaDriverDepart()',  cls:'btn-amber'},
   ]
 };
 function makeLoaPhoneShell(role, chatId, W){
@@ -3226,7 +3408,7 @@ function renderRTLoa(){
     // 左：控台
     +'<div>'
     +'<div class="card" style="margin-bottom:10px">'
-    +'<div class="card-title" style="margin-bottom:10px">Line OA 中控台</div>'
+    +'<div class="card-title" style="margin-bottom:10px">Line OA 中控台 '+loaBridgeChipHtml()+'</div>'
     +'<div id="rt-loa-body" style="font-size:12px"></div>'
     +'</div>'
     +'<div class="card">'
@@ -3279,6 +3461,7 @@ function sendBroadcast(){
   var m=msg?(msg.value.trim()):'';
   if(!m){toast('⚠ 請輸入推播內容');return;}
   logSys('ok','【Line 推播】→ '+t+'：'+m.substring(0,30)+(m.length>30?'…':''));
+  loaBridgeSend('broadcast',{target:t,msg:m});
   toast('📤 推播已發送：'+t+'（142位志工）');
   if(msg) msg.value='';
 }
@@ -3486,7 +3669,7 @@ DATA.devTasks = [
   {id:'dt3',  pri:'md', mod:'arch7',     title:'心智圖：點擊節點後沒有 detail panel 出現（#node-detail selector 不存在，需確認實際 id）', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt4',  pri:'md', mod:'arch7',     title:'心智圖：codegen 區塊（#codegen）不存在，確認代碼產生功能是否已實作或補上 id', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt5',  pri:'md', mod:'vol_hub', title:'志工人力中心-名冊總表 / 照片回報：GAS /exec 網址未設定，需在「系統管理→系統元件」填入 Google Apps Script 部署 URL 才能啟用同步', assignee:'', done:false, created:'2026-06-22'},
-  {id:'dt6',  pri:'md', mod:'admin',     title:'admin 後台：Line OA 設定卡片疑似未渲染（renderLineCards() 未被正確呼叫或資料結構缺失）', assignee:'', done:false, created:'2026-06-22'},
+  {id:'dt6',  pri:'md', mod:'admin',     title:'[已修復 2026-07-09] admin 後台 Line OA 卡片未渲染：根因是非 admin 檢視後 #admin-gate 被鎖屏覆寫且無還原，切回 admin 時容器已毀；已加 ADMIN_GATE_HTML 快取還原＋切 t-line 分頁補渲染', assignee:'', done:true, created:'2026-06-22'},
   {id:'dt7',  pri:'lo', mod:'dashboard', title:'情境選擇後無 badge 視覺回饋（.scenario-badge class 不存在），點了地震等按鈕後畫面沒有明顯當前狀態標示', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt8',  pri:'lo', mod:'intake',    title:'intake.html：「產生提交碼」按鈕綁定確認，確保 importCode() 成功後的 flash("匯入成功 ✓") 有正確觸發', assignee:'', done:false, created:'2026-06-22'},
   {id:'dt9',  pri:'lo', mod:'vol_hub',   title:'志工人力中心-管理指派子頁：目前為靜態框架，詳細搜尋/篩選/任務指派功能待補', assignee:'', done:false, created:'2026-06-22'},
@@ -4626,11 +4809,29 @@ function showPage(id){
   const ebw=document.getElementById('edit-btn-wrap');
   if(ebw) ebw.style.display=(id==='dashboard'&&role==='admin')?'block':'none';
 }
+var ADMIN_GATE_HTML=''; // dt6：開機時快取 admin 面板原始 HTML，供鎖屏後還原
 function checkAdminGate(){
   const gate=document.getElementById('admin-gate');
   if(!gate) return;
   if(role!=='admin'){
-    gate.innerHTML='<div class="no-acc"><div class="ic">🔒</div><h2>此頁面僅限總控</h2><p>請切換角色後重試</p></div>';
+    if(!gate.querySelector('.no-acc')) gate.innerHTML='<div class="no-acc"><div class="ic">🔒</div><h2>此頁面僅限總控</h2><p>請切換角色後重試</p></div>';
+  } else if(gate.querySelector('.no-acc')&&ADMIN_GATE_HTML){
+    // dt6 根因：非 admin 檢視後 gate 被鎖屏整段覆寫（Line OA / Gmail 等卡片容器全毀），
+    // 切回 admin 時 renderLineCards 等函式找不到容器只能靜默 return → 卡片「未渲染」。
+    // 修法：還原原始面板 HTML，再重建所有動態內容。
+    gate.innerHTML=ADMIN_GATE_HTML;
+    if(typeof renderPermMatrix==='function'){ renderPermMatrix(); }
+    if(typeof renderModuleManager==='function'){ renderModuleManager(); }
+    if(typeof renderAPIRows==='function'){ renderAPIRows(); }
+    renderGmailRows();
+    renderLineCards();
+    if(typeof loaBridgeRenderPanel==='function'){ loaBridgeRenderPanel(); }
+    if(typeof renderVersionPanel==='function'){ renderVersionPanel(); }
+    if(typeof renderOrgZones==='function'){ renderOrgZones(); }
+    if(typeof renderDevTasks==='function'){ renderDevTasks(); }
+    if(typeof initConfig==='function'){ initConfig(); }
+    var gu=document.getElementById('cfg-gas-url');       if(gu) gu.value=DATA.registry.gasUrl||'';
+    var giu=document.getElementById('cfg-inner-gas-url');if(giu) giu.value=DATA.registry.innerGasUrl||'';
   }
 }
 function setRole(r){
@@ -5447,6 +5648,8 @@ function switchTab(tid){
   if(tid==='t-sys') renderVersionPanel();
   if(tid==='t-perm') renderPermMatrix();
   if(tid==='t-mod'){ renderModuleManager(); renderAPIRows(); }
+  if(tid==='t-line'){ renderLineCards(); loaBridgeRenderPanel(); } // dt6：切到 Line 分頁必補渲染
+  if(tid==='t-gmail'){ renderGmailRows(); }
 }
 // ── 開發待辦清單（localStorage 持久化）──
 var TODO_DEFAULTS=[
@@ -8896,6 +9099,8 @@ loadWarModuleDefaults();
 // （移除舊的 saveDisabledModules() 空值回寫，避免破壞使用者的平時模組設定）
 disabledModules.clear();
 initConfig();
+// dt6：趁 gate 尚未被任何鎖屏覆寫，快取 admin 面板原始 HTML
+(function(){ var g=document.getElementById('admin-gate'); if(g) ADMIN_GATE_HTML=g.innerHTML; })();
 renderAll();
 renderModuleManager();
 renderDevTasks();
@@ -8903,6 +9108,7 @@ showPage('dashboard');
 setScenario('quake');
 renderGmailRows();
 renderLineCards();
+loaBridgeRenderPanel();
 applyDevTasksVisibility(); // B8
 updateFooter();
 logSys('ok','DRMS v4 系統初始化完成。所有模組正常運行。');

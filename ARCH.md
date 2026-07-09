@@ -149,7 +149,7 @@ TC-drms/
 |---|---|---|
 | P1 | 全系統 | 個資明文存 localStorage（idno/phone 未加密） |
 | P1 | admin | role 前端可竄改，需移後端驗證 |
-| P1 | line_oa | 真實 Webhook 0%，目前純模擬 |
+| P1 | line_oa | 後端 22 ACTION＋橋接模式已實作（2026-07-09），剩 GAS 部署與 LINE Channel 設定 |
 | P2 | persons | case_mgt/care_rec/rebuild 舊頁面 HTML 仍存在，待清除 |
 | P2 | vol_hub | GAS /exec 網址未設定 |
 | P3 | dashboard | SOS 按鈕缺「→ 調度中台緊急 tab」快捷 |
