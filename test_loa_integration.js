@@ -733,6 +733,16 @@ section('[T25] 物財核銷 — 多類別（不止現金）走同一五步核銷
   assert(html.indexOf('儲值卡')>=0 && html.indexOf('票券')>=0, '顯示物財類別總覽');
 }
 
+section('[T26] USGS 地震 fetch 去重快取（效能）');
+{
+  assert(typeof sandbox._usgsQuakeFetch==='function', '_usgsQuakeFetch() 存在');
+  // 並發兩次呼叫應共用同一 inflight promise（去重，不重複打 endpoint）
+  var p1=sandbox._usgsQuakeFetch();
+  var p2=sandbox._usgsQuakeFetch();
+  assert(p1===p2, '並發呼叫共用同一 inflight promise（去重）');
+  assert(typeof p1.then==='function', '回傳 promise');
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════════════════
