@@ -266,6 +266,32 @@ section('[G13] doGet health — 只回布林設定狀態，不洩漏金鑰');
   assert(!raw.includes('bk-secret-value') && !raw.includes('tok-secret'), '回應不含任何金鑰明文');
 }
 
+section('[G14] Firebase 路徑注入防護（資安 F8）— _safePath 中和穿越與非法字元');
+{
+  const { gas, calls } = makeGasContext({ ALLOW_UNSIGNED:'true', FIREBASE_URL:'https://fake-rtdb.test' });
+  assert(typeof gas._safePath==='function', '_safePath() 存在');
+  assert(gas._safePath('tasks/T-9/status')==='tasks/T-9/status', '正常結構化路徑不受影響');
+  assert(gas._safePath('cases/../../sos/phase')==='cases/sos/phase', '路徑穿越 .. 被移除');
+  assert(gas._safePath('a/./b')==='a/b', '單點段被移除');
+  assert(gas._safePath('checkins/CI.001')==='checkins/CI001', 'Firebase 非法字元 . 被移除');
+  assert(gas._safePath('x/y#z[0]')==='x/yz0', '非法字元 # [ ] 被移除');
+  // 端到端：惡意 caseId 不會穿越到 root 層 sos 節點
+  calls.urlfetch.length=0;
+  gas.doPost(lineEvent(PB('action=case_close&caseId=' + encodeURIComponent('../../sos'))));
+  var urls=calls.urlfetch.map(function(c){return c.url;});
+  assert(!urls.some(function(u){return u.indexOf('fake-rtdb.test/sos/')>=0;}), '惡意 caseId 無法穿越到 root 層 sos 節點');
+  assert(urls.some(function(u){return u.indexOf('fake-rtdb.test/cases/sos/')>=0;}), '消毒後仍落在 cases/sos 之下（結構化路徑保留、穿越被中和）');
+}
+
+section('[G15] 血緣：接單 assignment 帶 incident_id（支援端到端溯源/KPI）');
+{
+  const { gas, calls } = makeGasContext({ ALLOW_UNSIGNED:'true', FIREBASE_URL:'https://fake-rtdb.test' });
+  gas.doPost(lineEvent(PB('action=squad_accept&id=T-77&decision=accept&incident_id=SOS-2042')));
+  var w=calls.urlfetch.find(function(c){return c.url.indexOf('/assignments/T-77.json')>=0;});
+  assert(!!w, 'assignment 寫入');
+  assert(w && JSON.parse(w.options.payload).incident_id==='SOS-2042', 'assignment 帶 incident_id 血緣鍵');
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 console.log('\n' + '─'.repeat(60));
 if (FAILURES === 0) {

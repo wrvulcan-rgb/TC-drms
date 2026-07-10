@@ -595,6 +595,101 @@ section('[T21] LOA 橋接層 — 串接失敗不阻斷本地模擬（offline-fir
   sandbox.fetch=_origFetch;
 }
 
+section('[T22] 資訊流骨幹 — incidentId 血緣鑄造 + 溯源匯集');
+{
+  resetSpies();
+  ['_incidentIdOf','_parseAnyTs','lineageCollectIncidents','computeKpiSummary','renderRTTrace','lineageReconcileFromRTDB']
+    .forEach(fn=>assert(typeof sandbox[fn]==='function', fn+'() 存在'));
+
+  // 時間戳解析：三種格式都要能轉 epoch
+  assert(typeof sandbox._parseAnyTs('09:30')==='number', "_parseAnyTs 解析 'HH:MM'");
+  assert(typeof sandbox._parseAnyTs('2026-07-09 09:30')==='number', "_parseAnyTs 解析 'YYYY-MM-DD HH:MM'");
+  assert(sandbox._parseAnyTs('')===null && sandbox._parseAnyTs(null)===null, '空值回 null');
+
+  // 派一筆求助 → task/case 都帶同一個 incidentId
+  seedRTDB({tasks:{},volunteers:{},auditLog:{},sos:{active:false}});
+  DATA.relief_req.requests=[{id:'SOS-7777',time:'09:00',type:'物資',name:'測試血緣',phone:'',location:'竹崎鄉',people:2,desc:'缺水',status:'待處理',dup:false}];
+  var before=DATA.persons.cases.length;
+  sandbox.reliefToDispatch(0);
+  var t=DATA.tasks.items.find(function(x){return x.sosId==='SOS-7777';});
+  var c=DATA.persons.cases.find(function(x){return x.sosId==='SOS-7777';});
+  assert(t && t.incidentId==='SOS-7777', '派生任務帶 incidentId=SOS-7777');
+  assert(c && c.incidentId==='SOS-7777', '派生個案帶 incidentId=SOS-7777');
+  assert(typeof t.createdTs==='number', '任務帶 epoch createdTs（KPI 原料）');
+  assert(sandbox._incidentIdOf(t)==='SOS-7777', '_incidentIdOf 取出血緣鍵');
+
+  // 匯集：同一 incidentId 底下串起 req + task + case 事件
+  var map=sandbox.lineageCollectIncidents();
+  assert(map['SOS-7777'], '匯集出 SOS-7777 事件');
+  assert(map['SOS-7777'].events.length>=2, '至少含 通報+派工 兩個階段事件');
+  assert(map['SOS-7777'].tasks.length>=1 && map['SOS-7777'].cases.length>=1, 'task 與 case 都掛在同一事件下');
+}
+
+section('[T23] 四項 KPI 由時間戳導出 + 溯源視圖不崩');
+{
+  resetSpies();
+  seedRTDB({tasks:{},volunteers:{},auditLog:{},sos:{active:false}});
+  DATA.relief_req.requests=[{id:'SOS-8801',time:'08:00',type:'搶救',name:'甲',phone:'',location:'梅山',people:1,desc:'受困',status:'待處理',dup:false}];
+  DATA.persons.cases=DATA.persons.cases.filter(function(c){return c.sosId!=='SOS-8801';});
+  sandbox.reliefToDispatch(0);
+  var k=sandbox.computeKpiSummary();
+  assert(typeof k.incidents==='number' && k.incidents>=1, 'KPI：事件數 ≥ 1');
+  assert('mobilizeMin' in k && 'responseRate' in k && 'arrivalRate' in k && 'closeMin' in k, '四項 KPI 欄位齊備');
+  // 結案 → 結案時長可計
+  var c=DATA.persons.cases.find(function(x){return x.sosId==='SOS-8801';});
+  c.phase='結案'; c.closedAt='2026-07-09 09:30';
+  DATA.relief_req.requests[0].time='2026-07-09 08:00';
+  var k2=sandbox.computeKpiSummary();
+  assert(k2.closeN>=1 && k2.closeMin!==null, '結案後可導出結案時長 KPI');
+
+  var html=sandbox.renderRTTrace();
+  assert(typeof html==='string' && html.indexOf('事件溯源')>=0, 'renderRTTrace 回傳溯源視圖 HTML');
+  assert(html.indexOf('SOS-8801')>=0, '溯源視圖列出事件 SOS-8801');
+  // XSS 防護：惡意個案名不得原樣出現在輸出
+  DATA.persons.cases[0].name='<img src=x onerror=alert(1)>';
+  var html2=sandbox.renderRTTrace();
+  assert(html2.indexOf('<img src=x onerror')<0, '溯源視圖跳脫個案名（無 XSS）');
+}
+
+section('[T24] 總部資料搜集區 + AI 判讀與分析');
+{
+  resetSpies();
+  ['loaComputeSignals','loaAIAnalyze','renderLOACollect','loaRunAIAnalysis','loaPushAIBrief']
+    .forEach(fn=>assert(typeof sandbox[fn]==='function', fn+'() 存在'));
+
+  // 訊號彙整：真實讀 DATA/SAFETY，非造假
+  sandbox.SAFETY.sent=10; sandbox.SAFETY.safe=4; sandbox.SAFETY.sos=2; sandbox.SAFETY.unreported=['甲','乙','丙','丁'];
+  var sig=sandbox.loaComputeSignals();
+  assert(sig.safety.sent===10 && sig.safety.sos===2, 'loaComputeSignals 讀到真實點名訊號');
+  assert(typeof sig.checkin.total==='number' && typeof sig.supply.pending==='number', '含報到/叫料訊號');
+
+  // AI 判讀：SOS>0 應產生 critical、回應率<70% 應產生 warn
+  var a=sandbox.loaAIAnalyze();
+  assert(a.crit>=1, 'SOS 訊號 → 產生 critical 研判');
+  assert(a.findings.some(f=>f.level==='warn'), '回應率偏低 → 產生 warn 研判');
+  assert(typeof a.confidence==='number' && a.confidence>=55 && a.confidence<=96, '信心度在合理範圍');
+  assert(a.findings.some(f=>f.action), '至少一項研判帶可執行行動');
+
+  // 正常情境 → ok
+  sandbox.SAFETY.sent=10; sandbox.SAFETY.safe=10; sandbox.SAFETY.sos=0; sandbox.SAFETY.unreported=[];
+  var a2=sandbox.loaAIAnalyze();
+  assert(a2.crit===0, '無 SOS 時無 critical');
+
+  // 渲染 + 分階段判讀（setTimeout 被 stub 為同步 → 直接到最終階段）
+  _domEls['loa-ai-out']=makeDomEl('loa-ai-out');
+  var html=sandbox.renderLOACollect();
+  assert(typeof html==='string' && html.indexOf('總部 LINE OA 資料搜集區')>=0, 'renderLOACollect 回傳搜集區');
+  assert(html.indexOf('AI 判讀與分析')>=0, '含 AI 判讀面板');
+  sandbox.loaRunAIAnalysis('loa-ai-out');
+  assert(_domEls['loa-ai-out'].innerHTML.indexOf('研判')>=0, 'AI 判讀輸出研判結果');
+
+  // XSS：惡意物資名不得原樣出現在 AI 輸出
+  sandbox.DATA.field.supplies.push({item:'<img src=x onerror=alert(1)>',status:'red',stock:0,need:9});
+  sandbox.loaRunAIAnalysis('loa-ai-out');
+  assert(_domEls['loa-ai-out'].innerHTML.indexOf('<img src=x onerror')<0, 'AI 輸出跳脫惡意物資名（無 XSS）');
+  sandbox.DATA.field.supplies.pop();
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════════════════

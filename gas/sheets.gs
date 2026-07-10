@@ -44,10 +44,22 @@ function appendRow(sheetName, values) {
 // ────────────────────────────────
 //  Firebase RTDB 寫入（REST API）
 // ────────────────────────────────
+// 資安 F8：path 由 caseId/taskId/reqId/code 等外部可控參數組成。逐段消毒：
+//   - 移除 Firebase 非法字元（. # $ [ ]）與控制字元
+//   - 丟棄 '..'/'.'/空段，杜絕路徑穿越（如 caseId='../../sos'）
+// 保留 '/' 作為結構分隔，故 'tasks/T-9/status' 這類正常路徑不受影響。
+function _safePath(path) {
+  return String(path).split('/').map(function(seg) {
+    return seg.replace(/[.#$\[\]\x00-\x1f]/g, '');
+  }).filter(function(seg) {
+    return seg !== '' && seg !== '..' && seg !== '.';
+  }).join('/');
+}
+
 function rtdbWrite(path, value) {
   if (!CFG.FIREBASE_URL) return; // 未設定就跳過，不影響主流程
 
-  var url = CFG.FIREBASE_URL.replace(/\/$/, '') + '/' + path + '.json';
+  var url = CFG.FIREBASE_URL.replace(/\/$/, '') + '/' + _safePath(path) + '.json';
   if (CFG.FIREBASE_SECRET) url += '?auth=' + CFG.FIREBASE_SECRET;
 
   try {
@@ -65,7 +77,7 @@ function rtdbWrite(path, value) {
 function rtdbPush(path, value) {
   if (!CFG.FIREBASE_URL) return;
 
-  var url = CFG.FIREBASE_URL.replace(/\/$/, '') + '/' + path + '.json';
+  var url = CFG.FIREBASE_URL.replace(/\/$/, '') + '/' + _safePath(path) + '.json';
   if (CFG.FIREBASE_SECRET) url += '?auth=' + CFG.FIREBASE_SECRET;
 
   try {

@@ -131,7 +131,7 @@ function routeAction(action, ctx) {
 
     // ── 班長 squad_* ──
     case ACTION.SQUAD_ACCEPT:
-      handleSquadAccept(token, userId, p.id || '', p.decision || 'accept', p.squad || '');
+      handleSquadAccept(token, userId, p.id || '', p.decision || 'accept', p.squad || '', p.incident_id || '');
       return true;
     case ACTION.SQUAD_ROLLCALL:
       handleSquadRollcall(token, userId, p.squad || '');
@@ -340,13 +340,13 @@ function handleSupplyReceived(token, userId, reqId) {
 // ════════════════════════════════
 
 // ── 班長：接單狀態機（INFO_CHAIN_ADOPTION P1：pending → accepted/declined）──
-function handleSquadAccept(token, userId, taskId, decision, squad) {
+function handleSquadAccept(token, userId, taskId, decision, squad, incidentId) {
   if (!taskId) { replyText(token, '任務 ID 錯誤'); return; }
   var ts = new Date().toLocaleString('zh-TW');
   var sq = squad || 'SQ-01';
   var accepted = decision !== 'decline';
   rtdbWrite('assignments/' + taskId, {
-    task_id: taskId, user_id: userId, squad: sq,
+    task_id: taskId, user_id: userId, squad: sq, incident_id: incidentId || '',
     status: accepted ? 'accepted' : 'declined', responded_ts: ts
   });
   if (accepted) {
