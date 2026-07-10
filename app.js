@@ -2224,10 +2224,28 @@ function initMonitorMap(){
   monitorMapQuake();
 }
 
+// USGS 地震 feed：三個呼叫點共用單一快取（60 秒 TTL）＋去重＋retry，
+// 避免開監控頁時對同一 endpoint 連打三次、且無退避空吞錯（效能 audit #11）。
+var _usgsQuakeCache={ts:0,data:null,inflight:null};
+function _usgsQuakeFetch(){
+  var URL='https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson';
+  var now=Date.now(), FRESH=60000;
+  if(_usgsQuakeCache.data&&(now-_usgsQuakeCache.ts)<FRESH) return Promise.resolve(_usgsQuakeCache.data);
+  if(_usgsQuakeCache.inflight) return _usgsQuakeCache.inflight;
+  function attempt(n){
+    return fetch(URL).then(function(r){return r.json();})
+      .then(function(d){ _usgsQuakeCache={ts:Date.now(),data:d,inflight:null}; return d; })
+      .catch(function(e){
+        if(n<2) return new Promise(function(res){ setTimeout(function(){ res(attempt(n+1)); }, 800*(n+1)); });
+        _usgsQuakeCache.inflight=null; throw e;
+      });
+  }
+  _usgsQuakeCache.inflight=attempt(0);
+  return _usgsQuakeCache.inflight;
+}
 function monitorMapQuake(){
   if(!_monitorMap) return;
-  fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson')
-    .then(function(r){return r.json();})
+  _usgsQuakeFetch()
     .then(function(data){
       (data.features||[]).forEach(function(q){
         var mag=q.properties.mag||0;
@@ -2428,8 +2446,7 @@ function renderMonitor(){
 function monitorFetchQuake(){
   var el=document.getElementById('r-quake-body');
   if(!el) return;
-  fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson')
-    .then(function(r){return r.json();})
+  _usgsQuakeFetch()
     .then(function(data){
       var quakes=(data.features||[]).slice(0,4);
       if(!quakes.length){el.innerHTML='<div style="color:#475569;font-size:11px;padding:4px 0">近48小時無 M2.5+ 地震</div>';return;}
@@ -2511,8 +2528,7 @@ function monitorRenderMapList(){
     +'</div>';
   }).join('');
   // 追加即時地震（從 USGS fetch）
-  fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson')
-    .then(function(r){return r.json();})
+  _usgsQuakeFetch()
     .then(function(data){
       var quakes=(data.features||[]).filter(function(q){
         var ll=q.geometry.coordinates; return ll[1]>=21&&ll[1]<=26&&ll[0]>=119&&ll[0]<=123;
@@ -2879,16 +2895,24 @@ function loaChatBubbleOA(m){
     });
   }
 
+  var oaTime=m.ts?'<span style="font-size:8px;color:#5a6b52;align-self:flex-end;margin-bottom:2px;white-space:nowrap">'+escHtml(m.ts)+'</span>':'';
   return '<div style="display:flex;gap:6px;align-items:flex-start">'
     +'<div style="width:28px;height:28px;background:#06C755;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px">🏥</div>'
-    +'<div style="max-width:200px;background:'+bg+';border-radius:0 10px 10px 10px;padding:8px 10px;color:'+color+';box-shadow:0 1px 2px rgba(0,0,0,.1)">'
+    +'<div style="max-width:180px;background:'+bg+';border-radius:0 10px 10px 10px;padding:8px 10px;color:'+color+';box-shadow:0 1px 2px rgba(0,0,0,.1)">'
       +inner
-    +'</div></div>';
+    +'</div>'+oaTime
+    +'</div>';
 }
 
 function loaChatBubbleUser(m){
-  return '<div style="display:flex;justify-content:flex-end">'
-    +'<div style="max-width:200px;background:#06C755;border-radius:10px 0 10px 10px;padding:8px 10px;color:#fff;font-size:11px;line-height:1.6">'+escHtml(m.text)+'</div>'
+  // LINE 風格：氣泡左側顯示「已讀 + 時間」（送出訊息的既讀回條）
+  var meta='<div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;margin-bottom:2px">'
+    +'<span style="font-size:8px;color:#06B34E;line-height:1.2">已讀</span>'
+    +(m.ts?'<span style="font-size:8px;color:#8a8f99;white-space:nowrap">'+escHtml(m.ts)+'</span>':'')
+    +'</div>';
+  return '<div style="display:flex;justify-content:flex-end;gap:4px;align-items:flex-end">'
+    +meta
+    +'<div style="max-width:180px;background:#06C755;border-radius:10px 0 10px 10px;padding:8px 10px;color:#fff;font-size:11px;line-height:1.6">'+escHtml(m.text)+'</div>'
     +'</div>';
 }
 
@@ -2897,43 +2921,46 @@ function loaRenderActions(){
   var el=loaContainer().querySelector('#loa-action-area'); if(!el) return;
   var btns = {
     vol: [
-      {label:'✅ 報到',   fn:'loaVolCheckin()'},
-      {label:'✓ 任務完成',fn:'loaVolMyTasks()'},
-      {label:'📦 叫料',   fn:'loaVolSupply()'},
-      {label:'📡 安全回報',fn:'loaVolSafe()'},
-      {label:'🆘 SOS 求救',fn:'loaVolSOS()', red:true},
+      {label:'報到',    ic:'checkin',  fn:'loaVolCheckin()'},
+      {label:'任務完成', ic:'taskdone', fn:'loaVolMyTasks()'},
+      {label:'叫料',    ic:'supply',   fn:'loaVolSupply()'},
+      {label:'安全回報', ic:'safety',   fn:'loaVolSafe()'},
+      {label:'SOS 求救', ic:'sos',      fn:'loaVolSOS()', red:true},
     ],
     leader: [
-      {label:'🎯 接單',    fn:'loaLeaderAccept()'},
-      {label:'👥 班員點名', fn:'loaLeaderRollcall()'},
-      {label:'📈 進度回報', fn:'loaLeaderReport()'},
-      {label:'⚠ 現場受阻', fn:'loaLeaderBlocked()', red:true},
-      {label:'🤝 交接快照', fn:'loaLeaderHandover()'},
+      {label:'接單',    ic:'accept',   fn:'loaLeaderAccept()'},
+      {label:'班員點名', ic:'rollcall', fn:'loaLeaderRollcall()'},
+      {label:'進度回報', ic:'progress', fn:'loaLeaderReport()'},
+      {label:'現場受阻', ic:'blocked',  fn:'loaLeaderBlocked()', red:true},
+      {label:'交接快照', ic:'handover', fn:'loaLeaderHandover()'},
     ],
     kitchen: [
-      {label:'🍱 開伙登記', fn:'loaKitchenCount()'},
-      {label:'📦 食材叫料', fn:'loaVolSupply()'},
-      {label:'✅ 出餐完成', fn:'loaKitchenServed()'},
+      {label:'開伙登記', ic:'meal',     fn:'loaKitchenCount()'},
+      {label:'食材叫料', ic:'supply',   fn:'loaVolSupply()'},
+      {label:'出餐完成', ic:'taskdone', fn:'loaKitchenServed()'},
     ],
     visitor: [
-      {label:'🏠 開始訪視', fn:'loaVisitStart()'},
-      {label:'✍ 完成訪視', fn:'loaVisitDone()'},
-      {label:'💰 物財補助申請',fn:'loaVisitAid()'},
-      {label:'🧠 轉介心理', fn:'loaVisitPsych()'},
+      {label:'開始訪視', ic:'visit',    fn:'loaVisitStart()'},
+      {label:'完成訪視', ic:'visitdone',fn:'loaVisitDone()'},
+      {label:'物財補助', ic:'aid',      fn:'loaVisitAid()'},
+      {label:'轉介心理', ic:'psych',    fn:'loaVisitPsych()'},
     ],
     staff: [
-      {label:'📢 發送廣播', fn:'loaStaffBroadcast()'},
-      {label:'📡 發起點名', fn:'loaStaffRollcall()'},
-      {label:'🎯 查看任務', fn:'loaStaffViewTasks()'},
-      {label:'✅ 高風險覆核',fn:'loaStaffRiskReview()'},
-      {label:'📋 結案確認', fn:'loaStaffCaseClose()'},
+      {label:'發送廣播', ic:'broadcast',fn:'loaStaffBroadcast()'},
+      {label:'發起點名', ic:'rollcall', fn:'loaStaffRollcall()'},
+      {label:'查看任務', ic:'viewtask', fn:'loaStaffViewTasks()'},
+      {label:'高風險覆核',ic:'review',   fn:'loaStaffRiskReview()'},
+      {label:'結案確認', ic:'close',    fn:'loaStaffCaseClose()'},
     ],
     driver: [
-      {label:'🚛 查看派送單', fn:'loaDriverViewReqs()'},
+      {label:'查看派送單', ic:'truck',  fn:'loaDriverViewReqs()'},
+      {label:'出發回報',  ic:'depart',  fn:'loaDriverDepart()'},
     ]
   };
   el.innerHTML = (btns[LOA_ROLE]||[]).map(function(b){
-    return '<button onclick="'+b.fn+'" class="btn '+(b.red?'btn-red':'btn-green')+'" style="font-size:11px;padding:4px 10px;justify-content:center">'+b.label+'</button>';
+    var col=b.red?'#ffffff':'currentColor';
+    return '<button onclick="'+b.fn+'" class="btn '+(b.red?'btn-red':'btn-ghost')+'" style="font-size:11px;padding:4px 10px;gap:5px;justify-content:center;align-items:center">'
+      +loaIcon(b.ic,col,14)+'<span>'+b.label+'</span></button>';
   }).join('');
 }
 
@@ -3324,20 +3351,21 @@ function loaDriverDepart(){
 }
 
 // ── 聊天紀錄 helpers ──
+function _loaNow(){ return new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false}); }
 function loaUserSay(text){
-  LOA_CHAT[LOA_ROLE].push({from:'user', text:text});
+  LOA_CHAT[LOA_ROLE].push({from:'user', text:text, ts:_loaNow()});
   loaRenderChat();
   loaRefreshPhones();
 }
 function loaOASay(text, extra){
-  var msg = Object.assign({from:'oa', text:text}, extra||{});
+  var msg = Object.assign({from:'oa', text:text, ts:_loaNow()}, extra||{});
   LOA_CHAT[LOA_ROLE].push(msg);
   loaRenderChat();
   loaRefreshPhones();
 }
 // 廣播到所有手機
 function loaOASayAll(text, extra){
-  var msg = Object.assign({from:'oa', text:text}, extra||{});
+  var msg = Object.assign({from:'oa', text:text, ts:_loaNow()}, extra||{});
   ['vol','leader','kitchen','visitor','staff','driver'].forEach(function(r){
     if(!LOA_CHAT[r]||!LOA_CHAT[r].length) loaInitChat(r);
     LOA_CHAT[r].push(Object.assign({},msg));
@@ -3429,7 +3457,8 @@ function makeLoaPhoneShell(role, chatId, W){
   var cells='';
   for(var bi=0;bi<total;bi++){
     var b=btns[bi];
-    if(!b){ cells+='<div style="background:#fff"></div>'; continue; }
+    // 補齊格：用選單底色（非白），讓空位融進選單背景而非看起來像壞掉的按鈕
+    if(!b){ cells+='<div style="background:#f3f4f6"></div>'; continue; }
     var sp=b.label.indexOf(' ');
     var txt=sp>0?b.label.slice(sp+1):b.label;
     var isRed=b.cls.indexOf('red')>=0, isGreen=b.cls.indexOf('green')>=0;
@@ -5169,6 +5198,11 @@ function renderNav(){
 function showPage(id){
   if(disabledModules.has(id)&&id!=='dashboard'){ id='dashboard'; }
   activePage=id;
+  // 效能：報名 API 輪詢只在會顯示報名數的頁面（dashboard/vol_hub）運作，其餘頁面停掉，
+  // 不再背景空打外部 API（效能 audit #7：stopRegPolling 過去從未被呼叫）。
+  if(typeof startRegPolling==='function'){
+    if(id==='dashboard'||id==='vol_hub'){ startRegPolling(); } else { stopRegPolling(); }
+  }
   // B3: War view intercept for non-admin/sysadmin roles
   if(state==='war'&&role!=='admin'&&role!=='sysadmin'&&role!=='it'&&id==='dashboard'){
     document.querySelectorAll('.page').forEach(function(p){p.classList.remove('act');});
@@ -9604,6 +9638,11 @@ applyDevTasksVisibility(); // B8
 updateFooter();
 logSys('ok','DRMS v4 系統初始化完成。所有模組正常運行。');
 startRegPolling();
+// 分頁隱藏時暫停報名輪詢，回到前景再依當前頁決定是否恢復（省背景外部請求）
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){ stopRegPolling(); }
+  else if(activePage==='dashboard'||activePage==='vol_hub'){ startRegPolling(); }
+});
 bindSOSListener();
 setInterval(rtCheckFatigue,60000);
 logSys('info','平時模式：總控 P0，IT 志工 P0，其他角色 P1。');
