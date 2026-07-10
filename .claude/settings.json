@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /home/user/TC-drms && git diff --quiet && git diff --cached --quiet || (git add -A && git commit -m 'auto-sync' && git push origin main)"
+            "command": "cd /home/user/TC-drms && [ \"$(git branch --show-current)\" = \"main\" ] && { git diff --quiet && git diff --cached --quiet || (git add -A && git commit -m \"auto-sync $(date -u +%FT%TZ)\" && git push origin main); } || true"
           }
         ]
       }
