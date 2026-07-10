@@ -3349,42 +3349,72 @@ function loaOASayAll(text, extra){
 // ── Line OA 雙手機 shell ──
 var LOA_PHONE_BTNS={
   vol:[
-    {label:'✅ 報到',   fn:'loaVolCheckin()',  cls:'btn-green'},
-    {label:'✓ 任務完成',fn:'loaVolMyTasks()',  cls:'btn-green'},
-    {label:'📦 叫料',   fn:'loaVolSupply()',   cls:'btn-blue'},
-    {label:'📡 安全回報',fn:'loaVolSafe()',    cls:'btn-ghost'},
-    {label:'🆘 SOS 求救',fn:'loaVolSOS()',    cls:'btn-red'},
+    {label:'✅ 報到',   ic:'checkin',  fn:'loaVolCheckin()',  cls:'btn-green'},
+    {label:'✓ 任務完成',ic:'taskdone', fn:'loaVolMyTasks()',  cls:'btn-green'},
+    {label:'📦 叫料',   ic:'supply',   fn:'loaVolSupply()',   cls:'btn-blue'},
+    {label:'📡 安全回報',ic:'safety',   fn:'loaVolSafe()',    cls:'btn-ghost'},
+    {label:'🆘 SOS 求救',ic:'sos',      fn:'loaVolSOS()',    cls:'btn-red'},
   ],
   leader:[
-    {label:'🎯 接單',    fn:'loaLeaderAccept()',   cls:'btn-blue'},
-    {label:'👥 班員點名', fn:'loaLeaderRollcall()', cls:'btn-amber'},
-    {label:'📈 進度回報', fn:'loaLeaderReport()',   cls:'btn-green'},
-    {label:'⚠ 受阻',    fn:'loaLeaderBlocked()',  cls:'btn-red'},
-    {label:'🤝 交接',    fn:'loaLeaderHandover()', cls:'btn-ghost'},
+    {label:'🎯 接單',    ic:'accept',   fn:'loaLeaderAccept()',   cls:'btn-blue'},
+    {label:'👥 班員點名', ic:'rollcall', fn:'loaLeaderRollcall()', cls:'btn-amber'},
+    {label:'📈 進度回報', ic:'progress', fn:'loaLeaderReport()',   cls:'btn-green'},
+    {label:'⚠ 受阻',    ic:'blocked',  fn:'loaLeaderBlocked()',  cls:'btn-red'},
+    {label:'🤝 交接',    ic:'handover', fn:'loaLeaderHandover()', cls:'btn-ghost'},
   ],
   kitchen:[
-    {label:'🍱 開伙登記', fn:'loaKitchenCount()',  cls:'btn-amber'},
-    {label:'📦 食材叫料', fn:'loaVolSupply()',     cls:'btn-blue'},
-    {label:'✅ 出餐完成', fn:'loaKitchenServed()', cls:'btn-green'},
+    {label:'🍱 開伙登記', ic:'meal',     fn:'loaKitchenCount()',  cls:'btn-amber'},
+    {label:'📦 食材叫料', ic:'supply',   fn:'loaVolSupply()',     cls:'btn-blue'},
+    {label:'✅ 出餐完成', ic:'taskdone', fn:'loaKitchenServed()', cls:'btn-green'},
   ],
   visitor:[
-    {label:'🏠 開始訪視', fn:'loaVisitStart()',  cls:'btn-blue'},
-    {label:'✍ 完成訪視', fn:'loaVisitDone()',   cls:'btn-green'},
-    {label:'💰 物財補助', fn:'loaVisitAid()',    cls:'btn-amber'},
-    {label:'🧠 轉介心理', fn:'loaVisitPsych()',  cls:'btn-ghost'},
+    {label:'🏠 開始訪視', ic:'visit',    fn:'loaVisitStart()',  cls:'btn-blue'},
+    {label:'✍ 完成訪視', ic:'visitdone',fn:'loaVisitDone()',   cls:'btn-green'},
+    {label:'💰 物財補助', ic:'aid',      fn:'loaVisitAid()',    cls:'btn-amber'},
+    {label:'🧠 轉介心理', ic:'psych',    fn:'loaVisitPsych()',  cls:'btn-ghost'},
   ],
   staff:[
-    {label:'📢 廣播',   fn:'loaStaffBroadcast()',  cls:'btn-blue'},
-    {label:'📡 點名',   fn:'loaStaffRollcall()',   cls:'btn-amber'},
-    {label:'🎯 查任務', fn:'loaStaffViewTasks()',  cls:'btn-ghost'},
-    {label:'✅ 覆核',   fn:'loaStaffRiskReview()', cls:'btn-green'},
-    {label:'📋 結案',   fn:'loaStaffCaseClose()',  cls:'btn-ghost'},
+    {label:'📢 廣播',   ic:'broadcast',fn:'loaStaffBroadcast()',  cls:'btn-blue'},
+    {label:'📡 點名',   ic:'rollcall', fn:'loaStaffRollcall()',   cls:'btn-amber'},
+    {label:'🎯 查任務', ic:'viewtask', fn:'loaStaffViewTasks()',  cls:'btn-ghost'},
+    {label:'✅ 覆核',   ic:'review',   fn:'loaStaffRiskReview()', cls:'btn-green'},
+    {label:'📋 結案',   ic:'close',    fn:'loaStaffCaseClose()',  cls:'btn-ghost'},
   ],
   driver:[
-    {label:'🚛 查派送單',fn:'loaDriverViewReqs()', cls:'btn-blue'},
-    {label:'🚚 出發回報',fn:'loaDriverDepart()',  cls:'btn-amber'},
+    {label:'🚛 查派送單',ic:'truck',   fn:'loaDriverViewReqs()', cls:'btn-blue'},
+    {label:'🚚 出發回報',ic:'depart',  fn:'loaDriverDepart()',  cls:'btn-amber'},
   ]
 };
+// ── LINE OA Rich Menu 線條 icon（Lucide 風格：單一線寬、繼承格色，取代雜亂 emoji）──
+var LOA_ICONS={
+  checkin:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/>',
+  taskdone:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',
+  supply:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>',
+  safety:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
+  sos:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  accept:'<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/>',
+  rollcall:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  progress:'<path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/>',
+  blocked:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  handover:'<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  meal:'<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><path d="M6 1v3"/><path d="M10 1v3"/><path d="M14 1v3"/>',
+  visit:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  visitdone:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+  aid:'<path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+  psych:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/>',
+  truck:'<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+  depart:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>',
+  broadcast:'<circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M7.76 16.24a6 6 0 0 1 0-8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/>',
+  viewtask:'<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>',
+  review:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
+  close:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  _default:'<circle cx="12" cy="12" r="9"/>'
+};
+function loaIcon(name,color,size){
+  size=size||22; color=color||'#3a4a63';
+  var p=LOA_ICONS[name]||LOA_ICONS._default;
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="display:block">'+p+'</svg>';
+}
 function makeLoaPhoneShell(role, chatId, W){
   W=W||200;
   var labels={vol:'🧑 志工端',leader:'🪖 班長端',kitchen:'🍱 香積端',visitor:'🏠 訪視端',staff:'📋 幹部端',driver:'🚛 物流端'};
@@ -3401,15 +3431,15 @@ function makeLoaPhoneShell(role, chatId, W){
     var b=btns[bi];
     if(!b){ cells+='<div style="background:#fff"></div>'; continue; }
     var sp=b.label.indexOf(' ');
-    var icon=sp>0?b.label.slice(0,sp):b.label;
-    var txt=sp>0?b.label.slice(sp+1):'';
+    var txt=sp>0?b.label.slice(sp+1):b.label;
     var isRed=b.cls.indexOf('red')>=0, isGreen=b.cls.indexOf('green')>=0;
-    var accent=isRed?'#E8483D':isGreen?'#06B34E':'#3a4a63';
+    var accent=isRed?'#E8483D':isGreen?'#06B34E':'#42526E';
     var cellBg=isRed?'#FFF4F3':'#ffffff';
+    var icoSize=W>=260?22:19;
     cells+='<div onclick="LOA_ROLE=\''+role+'\';'+b.fn+'" '
-      +'style="background:'+cellBg+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 2px;min-height:'+(W>=260?54:46)+'px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .1s" '
+      +'style="background:'+cellBg+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 2px;min-height:'+(W>=260?56:48)+'px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .1s" '
       +'onmousedown="this.style.background=\'#eceff3\'" onmouseup="this.style.background=\''+cellBg+'\'" onmouseout="this.style.background=\''+cellBg+'\'">'
-      +'<div style="font-size:'+(W>=260?21:18)+'px;line-height:1">'+icon+'</div>'
+      +loaIcon(b.ic,accent,icoSize)
       +'<div style="font-size:'+(W>=260?9:8)+'px;color:'+accent+';font-weight:600;line-height:1.1;text-align:center;letter-spacing:.02em">'+txt+'</div>'
       +'</div>';
   }
