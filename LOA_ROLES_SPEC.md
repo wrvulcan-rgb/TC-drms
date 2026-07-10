@@ -90,7 +90,7 @@ ARCH_V2 以 Squad 為執行主體、明寫「班長APP 目前透過 LINE OA 代�
 |------|--------|-----------------|------|
 | 🏠 開始訪視 | ③ | `visit_start` | persons.timeline + visitStatus |
 | ✍ 完成訪視＋關懷紀錄 | ③ | `visit_done` | persons.timeline + careStats |
-| 💰 慰問金申請 | ⑧ | `aid_request` | persons.reliefLog（進五步驟審核鏈） |
+| 💰 物財補助申請 | ⑧ | `aid_request`（帶 reliefType） | persons.reliefLog（進五步核銷鏈；不止現金——現金/匯款/支票/儲值卡/禮券/兌換券/禮品/物資皆走同一鏈） |
 | 🧠 轉介心理 | ⑧ | `psych_refer` | persons.psych + longCare |
 
 ### 6. 幹部（現有，補 2 顆）
@@ -128,5 +128,5 @@ ARCH_V2 以 Squad 為執行主體、明寫「班長APP 目前透過 LINE OA 代�
 
 - 各組按鈕文案與順序（WORKSHOP_C 實測，老年志工可用性優先）
 - 班長點名粒度（班 vs 動線）
-- 慰問金五步驟審核鏈的角色對應（WORKSHOP_B 授權矩陣）
+- 物財核銷五步鏈的角色對應（WORKSHOP_B 授權矩陣）；各物財類別（現金/儲值卡/禮券/禮品/物資）的核銷佐證要求
 - 香積開伙數與倉儲預估的換算邏輯

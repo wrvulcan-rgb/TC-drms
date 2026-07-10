@@ -441,9 +441,9 @@ section('[T16] 訪視角色 — 訪視/慰問金/心理轉介全寫入 persons�
   assert(DATA.persons.careStats.visit===1, 'careStats.visit 累計');
 
   sandbox.loaVisitAid();
-  assert(c.welfareStatus==='審核中', '慰問金申請複用 applyWelfare：狀態審核中');
-  // 512ccf6 金援五步驟審核鏈後 timeline type 統一為「金援·申請」（舊斷言「金援申請」已過期）
-  assert(c.timeline.some(e=>e.type==='金援·申請'), 'timeline 收到金援·申請');
+  assert(c.welfareStatus==='審核中', '物財補助申請複用 applyWelfare：狀態審核中');
+  // 物財類重構後 timeline type 為「物財·申請」（涵蓋現金/儲值卡/禮券/禮品/物資皆走同一核銷鏈）
+  assert(c.timeline.some(e=>e.type==='物財·申請'), 'timeline 收到物財·申請');
 
   resetSpies();
   sandbox.loaVisitDone();
@@ -688,6 +688,49 @@ section('[T24] 總部資料搜集區 + AI 判讀與分析');
   sandbox.loaRunAIAnalysis('loa-ai-out');
   assert(_domEls['loa-ai-out'].innerHTML.indexOf('<img src=x onerror')<0, 'AI 輸出跳脫惡意物資名（無 XSS）');
   sandbox.DATA.field.supplies.pop();
+}
+
+section('[T25] 物財核銷 — 多類別（不止現金）走同一五步核銷鏈');
+{
+  resetSpies();
+  ['RELIEF_TYPES','reliefTypeOf','applyWelfare','advanceWelfare','renderWelfare']
+    .forEach(fn=>assert(typeof sandbox[fn]!=='undefined', fn+' 存在'));
+  assert(Array.isArray(sandbox.RELIEF_TYPES) && sandbox.RELIEF_TYPES.length>=9, '物財類別 ≥ 9 種');
+  var keys=sandbox.RELIEF_TYPES.map(function(t){return t.key;});
+  ['cash','transfer','check','easycard','cashcard','voucher','farmcoupon','gift','supply']
+    .forEach(k=>assert(keys.indexOf(k)>=0, '含類別：'+k));
+
+  // 悠遊卡（儲值卡）也能申請並跑核銷
+  DATA.persons.cases=[{caseId:'WF-1',name:'物財測試',address:'x',phase:'安置期',visitStatus:'已完成',sosId:null,aidLog:[],reliefLog:[],timeline:[]}];
+  sandbox.applyWelfare(0,'easycard',2000,2);
+  var c=DATA.persons.cases[0];
+  assert(c.welfareChain && c.welfareChain.reliefType==='easycard', '悠遊卡申請 → reliefType=easycard');
+  assert(c.welfareChain.value===2000 && c.welfareChain.qty===2, '記錄估值與數量');
+  assert(c.timeline.some(e=>e.type==='物財·申請' && e.summary.indexOf('悠遊卡')>=0), 'timeline 記錄悠遊卡類別');
+
+  // 走完剩餘四步核銷（審核/核准/發放/簽收核銷）——責任分離：每步不同人
+  setConfirm(()=>true);
+  var actors=['U-REVIEW','U-APPROVE','U-DISBURSE','U-RECEIPT'];
+  for(var step=0; step<4 && c.welfareChain; step++){
+    sandbox.setCurrentUser({uid:actors[step],name:actors[step],role:'staff'});
+    sandbox.advanceWelfare(0);
+  }
+  sandbox.setCurrentUser&&sandbox.setCurrentUser(null);
+  assert(!c.welfareChain, '五步核銷鏈跑完（責任分離：每步不同人），chain 清空');
+  assert(c.reliefLog.length===1 && c.reliefLog[0].reliefType==='easycard', '封存進 reliefLog 帶類別');
+  assert(c.reliefLog[0].status==='已核銷', '狀態標記已核銷');
+  assert(c.reliefLog[0].unit==='元' && c.reliefLog[0].qty===2, '保留單位與數量供核銷入帳');
+
+  // 禮品（非現金）也能跑
+  DATA.persons.cases=[{caseId:'WF-2',name:'禮品測試',address:'x',phase:'重建期',visitStatus:'已完成',sosId:null,aidLog:[],reliefLog:[],timeline:[]}];
+  sandbox.applyWelfare(0,'gift',1500,3);
+  assert(DATA.persons.cases[0].welfareChain.itemLabel==='祝福禮品', '祝福禮品可申請核銷');
+
+  // 渲染物財核銷分頁不崩、含類別總覽
+  _domEls['pers-content']=makeDomEl('pers-content');
+  var html=sandbox.renderWelfare();
+  assert(html.indexOf('物財核銷')>=0, 'renderWelfare 標題為物財核銷');
+  assert(html.indexOf('儲值卡')>=0 && html.indexOf('票券')>=0, '顯示物財類別總覽');
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

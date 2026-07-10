@@ -167,7 +167,7 @@ function routeAction(action, ctx) {
       handleVisitDone(token, userId, p.caseId || '', p.note || '');
       return true;
     case ACTION.AID_REQUEST:
-      handleAidRequest(token, userId, p.caseId || '');
+      handleAidRequest(token, userId, p.caseId || '', p.reliefType || 'cash');
       return true;
     case ACTION.PSYCH_REFER:
       handlePsychRefer(token, userId, p.caseId || '');
@@ -449,12 +449,13 @@ function handleVisitDone(token, userId, caseId, note) {
 }
 
 // ── 訪視：慰問金申請（進五步驟審核鏈第 1 步）──
-function handleAidRequest(token, userId, caseId) {
+// 物財補助申請：不止現金，reliefType 可為 cash/transfer/check/easycard/cashcard/voucher/farmcoupon/gift/supply
+function handleAidRequest(token, userId, caseId, reliefType) {
   if (!caseId) { replyText(token, '個案編號錯誤'); return; }
   var ts = new Date().toLocaleString('zh-TW');
-  rtdbPush('relief_queue', { caseId: caseId, by: userId, time: ts, status: '申請' });
-  writeLog('慰問金申請', userId, caseId, ts);
-  replyText(token, '💰 慰問金申請已送出（' + caseId + '）\n狀態：審核中，幹部審核後核發。');
+  rtdbPush('relief_queue', { caseId: caseId, reliefType: reliefType || 'cash', by: userId, time: ts, status: '申請' });
+  writeLog('物財補助申請', userId, caseId + '/' + (reliefType || 'cash'), ts);
+  replyText(token, '💰 物財補助申請已送出（' + caseId + '）\n狀態：審核中，進入五步核銷鏈。');
 }
 
 // ── 訪視：轉介心理 ──

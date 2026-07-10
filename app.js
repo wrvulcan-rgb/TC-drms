@@ -2756,7 +2756,7 @@ function loaInitChat(role){
       {from:'oa', text:'🍱 香積師姐/師兄您好！\n\n下方選單：開伙登記 / 食材叫料 / 出餐完成。\n開伙份數會同步到倉儲供需預估。'},
     ],
     visitor: [
-      {from:'oa', text:'🏠 訪視師姐/師兄您好！\n\n下方選單：開始訪視 / 完成訪視 / 慰問金申請 / 轉介心理。\n所有紀錄自動寫入個案歷程。'},
+      {from:'oa', text:'🏠 訪視師姐/師兄您好！\n\n下方選單：開始訪視 / 完成訪視 / 物財補助 / 轉介心理。\n物財補助（現金/儲值卡/禮券/禮品/物資）皆走五步核銷鏈，紀錄自動寫入個案歷程。'},
     ],
     staff: [
       {from:'oa', text:'📋 幹部您好，目前任務狀態：', card:'tasks'},
@@ -2900,7 +2900,7 @@ function loaRenderActions(){
     visitor: [
       {label:'🏠 開始訪視', fn:'loaVisitStart()'},
       {label:'✍ 完成訪視', fn:'loaVisitDone()'},
-      {label:'💰 慰問金申請',fn:'loaVisitAid()'},
+      {label:'💰 物財補助申請',fn:'loaVisitAid()'},
       {label:'🧠 轉介心理', fn:'loaVisitPsych()'},
     ],
     staff: [
@@ -3248,18 +3248,19 @@ function loaVisitDone(){
   saveData();
 }
 function loaVisitAid(){
-  loaUserSay('慰問金申請');
+  loaUserSay('物財補助申請');
   var cases=(DATA.persons&&DATA.persons.cases)||[];
   var i=-1;
   for(var j=0;j<cases.length;j++){
     if(cases[j].phase!=='結案'&&(!cases[j].welfareStatus||cases[j].welfareStatus==='待申請')){ i=j; break; }
   }
-  if(i<0){ loaOASay('目前沒有可申請慰問金的個案（皆已申請或結案）。'); return; }
+  if(i<0){ loaOASay('目前沒有可申請物財補助的個案（皆已申請或結案）。'); return; }
   var c=cases[i];
-  applyWelfare(i); // 複用既有流程：welfareStatus='審核中' + timeline 金援申請
-  loaBridgeSend('aid_request',{caseId:c.caseId});
-  loaHook('staff','💰 慰問金申請\n'+c.caseId+' '+c.name+'（'+c.phase+'）\n請至個案頁審核');
-  loaOASay('💰 慰問金申請已送出：\n'+c.caseId+' '+c.name+'\n狀態：審核中，幹部審核後核發。');
+  // 前線訪視預設現金補助；類別與估值可由總部在物財核銷分頁調整。其餘類別（悠遊卡/禮券/禮品/物資）走同一核銷鏈
+  applyWelfare(i,'cash');
+  loaBridgeSend('aid_request',{caseId:c.caseId,reliefType:'cash'});
+  loaHook('staff','💰 物財補助申請\n'+c.caseId+' '+c.name+'（'+c.phase+'）\n類別：現金（總部可改儲值卡/禮券/禮品/物資）\n請至物財核銷分頁審核');
+  loaOASay('💰 物財補助申請已送出：\n'+c.caseId+' '+c.name+'\n狀態：審核中，進入五步核銷鏈。');
 }
 function loaVisitPsych(){
   loaUserSay('轉介心理');
@@ -3351,7 +3352,7 @@ var LOA_PHONE_BTNS={
   visitor:[
     {label:'🏠 開始訪視', fn:'loaVisitStart()',  cls:'btn-blue'},
     {label:'✍ 完成訪視', fn:'loaVisitDone()',   cls:'btn-green'},
-    {label:'💰 慰問金',  fn:'loaVisitAid()',    cls:'btn-amber'},
+    {label:'💰 物財補助', fn:'loaVisitAid()',    cls:'btn-amber'},
     {label:'🧠 轉介心理', fn:'loaVisitPsych()',  cls:'btn-ghost'},
   ],
   staff:[
@@ -6204,7 +6205,7 @@ function unifiedRole(r){ return ROLE_MAP[r||role]||null; }
 
 // 動作目錄（§4.2）節錄——用於破窗請求顯示文字與稽核訊息
 var AUTH_ACTIONS={
-  'ACT-T3':'派工高風險任務','ACT-W2':'金援審核','ACT-W3':'金援核准','ACT-W4':'金援發放',
+  'ACT-T3':'派工高風險任務','ACT-W2':'物財審核','ACT-W3':'物財核准','ACT-W4':'物財發放',
   'ACT-C2':'指派個案負責人','ACT-C3':'個案階段推進/結案','ACT-S2':'物資派案','ACT-S3':'物資驗收簽收',
   'ACT-X1':'切換平時/戰時','ACT-X2':'編輯權限矩陣','ACT-X6':'動線金鑰核發'
 };
@@ -8394,7 +8395,7 @@ function renderPersons(){
     {id:'care',   btnId:'prtab-care',   label:'💚 關懷紀錄',  fn:"setPersonsTab('care')"},
     {id:'rebuild',btnId:'prtab-rebuild',label:'🏗️ 重建追蹤',  fn:"setPersonsTab('rebuild')"},
     {id:'shelter',btnId:'prtab-shelter',label:'🏕️ 安置收容',  fn:"setPersonsTab('shelter')"},
-    {id:'welfare',btnId:'prtab-welfare',label:'💰 祝福金',    fn:"setPersonsTab('welfare')"},
+    {id:'welfare',btnId:'prtab-welfare',label:'📋 物財核銷',  fn:"setPersonsTab('welfare')"},
   ], PERSONS_TAB);
   if(PERSONS_TAB==='care')    el.innerHTML=bar+renderPersonsCare();
   else if(PERSONS_TAB==='rebuild'){ el.innerHTML=bar+renderPersonsRebuild(); }
@@ -8402,43 +8403,85 @@ function renderPersons(){
   else if(PERSONS_TAB==='welfare'){ el.innerHTML=bar+renderWelfare(); }
   else el.innerHTML=bar+renderPersonsCases();
 }
+function welfareTypeSelect(i){
+  var opts='',lastCat='';
+  RELIEF_TYPES.forEach(function(t){
+    if(t.cat!==lastCat){ if(lastCat)opts+='</optgroup>'; opts+='<optgroup label="'+t.cat+'">'; lastCat=t.cat; }
+    opts+='<option value="'+t.key+'">'+t.label+'（'+t.unit+'）</option>';
+  });
+  opts+='</optgroup>';
+  return '<select id="wf-type-'+i+'" class="inp" style="font-size:10px;padding:3px 4px;min-width:96px">'+opts+'</select>';
+}
 function renderWelfare(){
   var d=DATA.persons;
   var cases=(d.cases||[]).filter(function(c){return c.phase!=='結案';});
-  var html='<div class="card"><div class="card-title">💰 祝福金五步審核鏈</div>'
-    +'<div style="font-size:11px;color:var(--text4);margin-bottom:6px">申請 → 審核 → 核准 → 發放 → 簽收，每步留痕（誰、何時），滑鼠移到節點可看經手人。</div>'
-    +'<div style="font-size:10px;color:var(--text4);margin-bottom:12px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:6px;padding:6px 10px">⚖ 核准層級（暫行）：≤$3,000 組長 · ≤$10,000 幹部 · &gt;$10,000 高層。審核與核准原則上由不同人執行。正式授權矩陣待 TODO-WORKSHOP-09 定案。</div>'
-    +'<table class="tbl"><thead><tr><th>個案</th><th>階段</th><th>金額</th><th>審核鏈進度</th><th>操作</th></tr></thead><tbody>';
+  // 物財類別總覽 chips
+  var cats={};
+  RELIEF_TYPES.forEach(function(t){ (cats[t.cat]=cats[t.cat]||[]).push(t.label); });
+  var catChips=Object.keys(cats).map(function(k){
+    return '<span style="font-size:10px;padding:3px 8px;border-radius:999px;background:var(--bg3);border:1px solid var(--border);color:var(--text3)"><b style="color:var(--text2)">'+k+'</b>：'+cats[k].join('、')+'</span>';
+  }).join(' ');
+  var html='<div class="card"><div class="card-title">📋 物財核銷流程 · 五步審核鏈</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px">不止現金——現金/匯款/支票/儲值卡/禮券/兌換券/禮品/物資，凡需核銷的救助物財皆走同一條鏈：申請 → 審核 → 核准 → 發放 → 簽收核銷，每步留痕（誰、何時）。</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+catChips+'</div>'
+    +'<div style="font-size:10px;color:var(--text4);margin-bottom:12px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:6px;padding:6px 10px">⚖ 核准層級依<b>核銷估值</b>（現金等值，暫行）：≤$3,000 組長 · ≤$10,000 幹部 · &gt;$10,000 高層。審核與核准原則上由不同人執行。非現金類（禮券/禮品/物資）以估值入帳，簽收核銷需附佐證。正式授權矩陣待 TODO-WORKSHOP-09 定案。</div>'
+    +'<table class="tbl"><thead><tr><th>個案</th><th>階段</th><th>物財類別</th><th>核銷估值</th><th>核銷鏈進度</th><th>操作</th></tr></thead><tbody>';
   cases.forEach(function(c){
     var i=d.cases.indexOf(c);
     var ch=c.welfareChain;
     var amt=ch?ch.amount:(c.phase==='急救期'?3000:10000);
+    var typeCell = ch
+      ? '<span class="badge badge-blue" style="font-size:10px">'+esc(ch.itemLabel||'現金')+'</span> <span style="font-size:9px;color:var(--text4)">'+esc(ch.cat||'')+'</span>'
+      : (c.welfareStatus==='已核發' ? '<span style="font-size:10px;color:var(--text4)">—</span>' : welfareTypeSelect(i));
+    var valCell = ch
+      ? '<span style="font-family:monospace">$'+amt.toLocaleString()+'</span>'+(ch.qty>1?' <span style="font-size:9px;color:var(--text4)">×'+ch.qty+ch.unit+'</span>':'')
+      : (c.welfareStatus==='已核發' ? '—' : '<input id="wf-val-'+i+'" class="inp" type="number" value="'+amt+'" style="width:78px;font-size:10px;padding:3px 4px" title="核銷估值（現金等值）">');
     html+='<tr>'
-      +'<td class="sh-time">'+c.caseId+' <span style="font-weight:500;color:var(--text)">'+c.name+'</span></td>'
-      +'<td><span class="badge '+(c.phase==='急救期'?'badge-red':'badge-blue')+'">'+c.phase+'</span></td>'
-      +'<td style="font-family:monospace">$'+amt.toLocaleString()+'</td>'
+      +'<td class="sh-time">'+esc(c.caseId)+' <span style="font-weight:500;color:var(--text)">'+esc(c.name)+'</span></td>'
+      +'<td><span class="badge '+(c.phase==='急救期'?'badge-red':'badge-blue')+'">'+esc(c.phase)+'</span></td>'
+      +'<td>'+typeCell+'</td>'
+      +'<td>'+valCell+'</td>'
       +'<td>'+welfareStepper(c)+'</td>'
       +'<td>'+welfareActionBtn(c,i)+'</td>'
       +'</tr>';
   });
   html+='</tbody></table></div>'
-    +'<div class="card" style="margin-top:12px"><div class="card-title">📊 統計</div>'
+    +'<div class="card" style="margin-top:12px"><div class="card-title">📊 核銷統計</div>'
     +'<div style="display:flex;gap:12px;flex-wrap:wrap">'
-    +'<div class="stat-card green" style="padding:12px"><div class="stat-lbl">已完成發放</div><div class="stat-val">'+cases.filter(function(c){return c.welfareStatus==='已核發'&&!c.welfareChain;}).length+'</div></div>'
-    +'<div class="stat-card amber" style="padding:12px"><div class="stat-lbl">審核鏈進行中</div><div class="stat-val">'+cases.filter(function(c){return !!c.welfareChain;}).length+'</div></div>'
+    +'<div class="stat-card green" style="padding:12px"><div class="stat-lbl">已完成核銷</div><div class="stat-val">'+cases.filter(function(c){return c.welfareStatus==='已核發'&&!c.welfareChain;}).length+'</div></div>'
+    +'<div class="stat-card amber" style="padding:12px"><div class="stat-lbl">核銷鏈進行中</div><div class="stat-val">'+cases.filter(function(c){return !!c.welfareChain;}).length+'</div></div>'
     +'<div class="stat-card blue" style="padding:12px"><div class="stat-lbl">尚未申請</div><div class="stat-val">'+cases.filter(function(c){return !c.welfareChain&&c.welfareStatus!=='已核發';}).length+'</div></div>'
     +'</div></div>';
   return html;
 }
-// ══ 金援五步驟審核鏈（申請→審核→核准→發放→簽收，逐步留痕）══
-// 每步記錄「誰、何時」，責任分離（審核/核准原則上不同人），核准層級依金額。
+// ══ 物財類別（不止現金，凡需核銷的救助物財皆納入）══
+// 現金/匯款/支票/儲值卡/禮券/兌換券/禮品/物資 都跑同一條五步核銷鏈；
+// value=核銷估值（現金等值，供授權層級與入帳），unit/qty 描述性，evidence=核銷佐證。
+var RELIEF_TYPES=[
+  {key:'cash',      cat:'現金類',  label:'現金',       unit:'元', cash:true,  evidence:'領據親簽'},
+  {key:'transfer',  cat:'現金類',  label:'匯款',       unit:'元', cash:true,  evidence:'匯款回條'},
+  {key:'check',     cat:'現金類',  label:'支票',       unit:'元', cash:true,  evidence:'票號＋兌領紀錄'},
+  {key:'easycard',  cat:'儲值卡類',label:'悠遊卡',     unit:'元', cash:true,  evidence:'卡號末四碼＋儲值額'},
+  {key:'cashcard',  cat:'儲值卡類',label:'現金卡',     unit:'元', cash:true,  evidence:'卡號末四碼'},
+  {key:'voucher',   cat:'票券類',  label:'禮券',       unit:'元', cash:false, evidence:'券號＋面額'},
+  {key:'farmcoupon',cat:'票券類',  label:'農會兌換券', unit:'元', cash:false, evidence:'券號＋兌換品項'},
+  {key:'gift',      cat:'實物類',  label:'祝福禮品',   unit:'份', cash:false, evidence:'簽收單＋估值'},
+  {key:'supply',    cat:'實物類',  label:'救助物資',   unit:'件', cash:false, evidence:'領用簽收單'},
+];
+function reliefTypeOf(key){
+  for(var i=0;i<RELIEF_TYPES.length;i++){ if(RELIEF_TYPES[i].key===key) return RELIEF_TYPES[i]; }
+  return RELIEF_TYPES[0];
+}
+
+// ══ 物財核銷流程 · 五步審核鏈（申請→審核→核准→發放→簽收核銷，逐步留痕）══
+// 每步記錄「誰、何時」，責任分離（審核/核准原則上不同人），核准層級依核銷估值。
 // 授權層級為暫行規則，待 TODO-WORKSHOP-09 授權矩陣定案後取代。
 var WELFARE_STAGES=[
-  {key:'apply',   label:'申請', actorRole:'社工/訪視員'},
-  {key:'review',  label:'審核', actorRole:'個案組幹部'},
-  {key:'approve', label:'核准', actorRole:'授權主管'},
-  {key:'disburse',label:'發放', actorRole:'財務出納'},
-  {key:'receipt', label:'簽收', actorRole:'個案/代理人'},
+  {key:'apply',   label:'申請',    actorRole:'社工/訪視員'},
+  {key:'review',  label:'審核',    actorRole:'個案組幹部'},
+  {key:'approve', label:'核准',    actorRole:'授權主管'},
+  {key:'disburse',label:'發放',    actorRole:'財務/物資出納'},
+  {key:'receipt', label:'簽收核銷',actorRole:'個案/代理人'},
 ];
 function welfareApprovalLevel(amt){
   if(amt<=3000)  return '組長（≤$3,000）';
@@ -8452,16 +8495,24 @@ function _welfareActor(){
   return map[role]||role||'操作者';
 }
 function _welfareNow(){ return fmtTS(); }
-function applyWelfare(i){
+function applyWelfare(i, typeKey, value, qty){
   var c=DATA.persons.cases[i]; if(!c) return;
-  if(c.welfareChain){ toast('⚠ 本案已有進行中的金援申請'); return; }
-  var amt=c.phase==='急救期'?3000:10000;
+  if(c.welfareChain){ toast('⚠ 本案已有進行中的物財核銷'); return; }
+  // 物財分頁操作時從 UI 讀類別/估值；LINE OA 等無 DOM 情境則用參數/預設（向後相容）
+  var selEl=document.getElementById('wf-type-'+i), valEl=document.getElementById('wf-val-'+i);
+  typeKey=typeKey||(selEl?selEl.value:'cash');
+  var t=reliefTypeOf(typeKey);
+  var defVal=c.phase==='急救期'?3000:10000;
+  value=(value!=null)?value:((valEl&&valEl.value)?parseInt(valEl.value,10):defVal);
+  if(!value||value<0) value=defVal;
+  qty=qty||1;
   var ts=_welfareNow(), actor=_welfareActor();
-  c.welfareChain={ amount:amt, stageIdx:1, steps:[{key:'apply',by:actor,ts:ts}] };
+  c.welfareChain={ reliefType:t.key, itemLabel:t.label, cat:t.cat, unit:t.unit, qty:qty,
+    value:value, amount:value, stageIdx:1, steps:[{key:'apply',by:actor,ts:ts}] };
   c.welfareStatus='審核中';
-  c.timeline.push({type:'金援·申請',summary:'祝福金 $'+amt.toLocaleString()+' 申請送出（申請人：'+actor+'），待審核',recorder:actor,ts:ts});
-  logSys('info','【金援】'+c.caseId+' 申請 $'+amt+'（'+actor+'），進入五步審核鏈');
-  toast('📝 申請已送出，進入審核鏈');
+  c.timeline.push({type:'物財·申請',summary:'物財補助【'+t.label+'】核銷估值 $'+value.toLocaleString()+'（申請人：'+actor+'），待審核',recorder:actor,ts:ts});
+  logSys('info','【物財核銷】'+c.caseId+' 申請 '+t.label+' 估值$'+value+'（'+actor+'），進入五步核銷鏈');
+  toast('📝 物財申請已送出，進入核銷鏈');
   renderPersons(); saveData();
 }
 function advanceWelfare(i){
@@ -8500,27 +8551,29 @@ function advanceWelfare(i){
     sodOverlap=true;
   }
   var ts=_welfareNow();
+  var t=reliefTypeOf(ch.reliefType||'cash');
   ch.steps.push({key:stage.key,by:actor,ts:ts});
   ch.stageIdx++;
   var summary='';
   if(stage.key==='review')        summary='初審通過（審核人：'+actor+'）';
   else if(stage.key==='approve')  summary='核准通過（核准人：'+actor+'，授權層級：'+welfareApprovalLevel(ch.amount)+'）';
-  else if(stage.key==='disburse') summary='款項撥付 $'+ch.amount.toLocaleString()+'（發放人：'+actor+'）';
-  else if(stage.key==='receipt')  summary='個案簽收確認（簽收人：'+actor+'）';
-  c.timeline.push({type:'金援·'+stage.label,summary:summary,recorder:actor,ts:ts});
+  else if(stage.key==='disburse') summary='發放【'+t.label+'】估值 $'+ch.amount.toLocaleString()+'（發放人：'+actor+'）';
+  else if(stage.key==='receipt')  summary='個案簽收＋核銷確認（簽收人：'+actor+'，佐證：'+t.evidence+'）';
+  c.timeline.push({type:'物財·'+stage.label,summary:summary,recorder:actor,ts:ts});
   if(sodOverlap) rtAudit('責任分離例外',c.caseId+' '+stage.label+' 由 '+actor+' 重複簽核（sodOverlap）');
   if(ch.stageIdx>=WELFARE_STAGES.length){
-    // 全鏈完成 → 封存進 reliefLog
+    // 全鏈完成 → 封存進 reliefLog（核銷完成）
     if(!c.reliefLog) c.reliefLog=[];
     var approveStep=ch.steps.filter(function(s){return s.key==='approve';})[0];
-    c.reliefLog.push({ type:'祝福金', amount:ch.amount, ts:ts,
-      approvedBy:(approveStep&&approveStep.by)||'—', status:'已核發', chain:ch.steps.slice() });
+    c.reliefLog.push({ type:t.label, reliefType:t.key, unit:t.unit, qty:ch.qty||1,
+      amount:ch.amount, ts:ts, approvedBy:(approveStep&&approveStep.by)||'—',
+      status:'已核銷', chain:ch.steps.slice() });
     c.welfareStatus='已核發';
     c.welfareChain=null;
-    logSys('ok','【金援】'+c.caseId+' 五步審核鏈完成，$'+ch.amount+' 已發放並簽收');
-    toast('✅ 金援全流程完成，已封存至 reliefLog');
+    logSys('ok','【物財核銷】'+c.caseId+' 五步核銷鏈完成，'+t.label+' 估值$'+ch.amount+' 已發放簽收核銷');
+    toast('✅ 物財核銷全流程完成，已封存紀錄');
   } else {
-    logSys('ok','【金援】'+c.caseId+' '+stage.label+' 完成（'+actor+'）→ 待'+WELFARE_STAGES[ch.stageIdx].label);
+    logSys('ok','【物財核銷】'+c.caseId+' '+stage.label+' 完成（'+actor+'）→ 待'+WELFARE_STAGES[ch.stageIdx].label);
     toast('✓ '+stage.label+' 完成');
   }
   renderPersons(); saveData();
@@ -8721,7 +8774,7 @@ function renderPersonsClosure(c){
     +'<div class="stat-card blue" style="padding:10px"><div class="stat-lbl">最終階段</div><div><span class="badge '+(phColor[c.phase]||'badge-blue')+'">'+c.phase+'</span></div></div>'
     +'<div class="stat-card green" style="padding:10px"><div class="stat-lbl">關懷事件</div><div class="stat-val">'+(c.timeline?c.timeline.length:0)+'</div></div>'
     +'<div class="stat-card amber" style="padding:10px"><div class="stat-lbl">物資記錄</div><div class="stat-val">'+(c.aidLog?c.aidLog.length:0)+'</div></div>'
-    +'<div class="stat-card purple" style="padding:10px"><div class="stat-lbl">金援紀錄</div><div class="stat-val">'+(c.reliefLog?c.reliefLog.length:0)+'</div></div>'
+    +'<div class="stat-card purple" style="padding:10px"><div class="stat-lbl">物財核銷</div><div class="stat-val">'+(c.reliefLog?c.reliefLog.length:0)+'</div></div>'
     +'</div>';
   if(c.timeline&&c.timeline.length){
     html+='<div style="margin-bottom:8px;font-weight:600;font-size:12px;color:var(--text2)">完整時間軸</div>'
@@ -8740,11 +8793,12 @@ function renderPersonsClosure(c){
     html+='</tbody></table>';
   }
   if(c.reliefLog&&c.reliefLog.length){
-    html+='<div style="margin:10px 0 6px;font-weight:600;font-size:12px;color:var(--text2)">金援發放紀錄</div><table class="tbl"><thead><tr><th>類型</th><th>金額</th><th>時間</th><th>核准人</th><th>狀態</th></tr></thead><tbody>';
+    html+='<div style="margin:10px 0 6px;font-weight:600;font-size:12px;color:var(--text2)">物財核銷紀錄</div><table class="tbl"><thead><tr><th>類別</th><th>核銷估值</th><th>時間</th><th>核准人</th><th>狀態</th></tr></thead><tbody>';
     c.reliefLog.forEach(function(r){
-      html+='<tr><td>'+r.type+'</td><td>$'+r.amount+'</td><td style="font-size:10px;font-family:monospace">'+r.ts+'</td><td style="font-size:10px">'+r.approvedBy+'</td><td><span class="badge badge-green">'+r.status+'</span></td></tr>';
+      var qtyStr=(r.qty&&r.qty>1)?(' <span style="font-size:9px;color:var(--text4)">×'+r.qty+(r.unit||'')+'</span>'):'';
+      html+='<tr><td>'+esc(r.type)+'</td><td style="font-family:monospace">$'+(r.amount||0).toLocaleString()+qtyStr+'</td><td style="font-size:10px;font-family:monospace">'+esc(r.ts)+'</td><td style="font-size:10px">'+esc(r.approvedBy)+'</td><td><span class="badge badge-green">'+esc(r.status)+'</span></td></tr>';
       if(r.chain&&r.chain.length){
-        var stageLbl={apply:'申請',review:'審核',approve:'核准',disburse:'發放',receipt:'簽收'};
+        var stageLbl={apply:'申請',review:'審核',approve:'核准',disburse:'發放',receipt:'簽收核銷'};
         html+='<tr><td colspan="5" style="padding:2px 12px 8px;background:var(--bg1)"><div style="font-size:9px;color:var(--text4);display:flex;gap:8px;flex-wrap:wrap">';
         r.chain.forEach(function(s){ html+='<span>✓ <b>'+(stageLbl[s.key]||s.key)+'</b> '+s.by+' <span style="font-family:monospace">'+s.ts+'</span></span>'; });
         html+='</div></td></tr>';
