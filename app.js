@@ -2709,10 +2709,25 @@ function renderLineOA(targetId){
 
   if(LOA_ROLE==='flow'){
     el.style.cssText='';
-    el.innerHTML='<div class="card"><div class="card-title">🔗 資料流說明 '+loaBridgeChipHtml()+'</div>'
-      +'<pre style="font-size:11px;line-height:1.8;color:var(--text2);white-space:pre-wrap">【正式流程】志工 Line 操作（報到/叫料/安全/SOS/接單/開伙/訪視…）\n    ↓  HTTP POST\nLine Messaging API\n    ↓  轉發 Webhook（URL 帶 ?token= 驗證，fail-closed）\nGAS doPost()  （gas/ 目錄，22 個 ACTION）\n    ↓  routeAction 統一路由\nhandlers.gs\n    ↓  寫入\nFirebase RTDB  →  本系統即時更新（後台可一鍵拉回）\nGoogle Sheets  →  備份紀錄\n    ↓  推播\n志工 Line  ← Flex Message 回覆\n\n【串接模式】本網頁模擬器動作\n    ↓  POST {source:\'drms-bridge\', key, action, params}\n同一個 GAS doPost() → 同一組 handlers → 同樣寫入 Sheets/Firebase\n（後台「Line OA 串接」分頁啟用；未啟用＝純本地模擬）</pre>'
-      +'<div style="margin-top:10px;font-size:11px;color:var(--text4)">GAS 腳本在 <code>gas/</code> 目錄（部署步驟見 gas/SETUP.md）。兩條路徑共用同一張動作路由表，模擬器每顆按鈕都有對應後端 ACTION。</div>'
+    // 資安分層架構：LINE OA 只做即時資料串接（薄傳輸層，不存個資）；Google Sheets 才是資訊層（系統紀錄／個資治理）。
+    var lay='<div class="card" style="border:1px solid var(--green-border)"><div class="card-title">🛡 資安分層架構（回應 LINE OA 資安疑慮）</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-bottom:12px">核心原則：<b>LINE OA 只做即時資料串接，不當資料庫</b>。個資與正式紀錄一律留在 Google Sheets（資訊層），受 Google 帳號權限治理。萬一 LINE 端遭入侵，外洩面僅止於當下訊號，碰不到個資庫。</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+      +'<div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm);padding:12px">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:6px">① 即時串接層 · LINE OA</div>'
+      +'<div style="font-size:10px;color:var(--text3);line-height:1.7">職責：即時傳遞<b>訊號</b>（報到/安全/叫料/派工…）<br>只帶：個案編號、志工編號、事件類型、時間<br><b style="color:var(--red)">不帶</b>：身分證、完整個資、名冊明細<br>特性：可拋棄、可重建，不是真相來源</div>'
+      +'</div>'
+      +'<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r-sm);padding:12px">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px">② 資訊層 · Google Sheets</div>'
+      +'<div style="font-size:10px;color:var(--text3);line-height:1.7">職責：<b>系統紀錄／個資治理</b>（唯一真相）<br>存放：名冊、個資、核銷帳、歷程<br>保護：Google 帳號權限＋共用控管＋存取軌跡<br>特性：個資只在此落地，分級授權存取</div>'
+      +'</div></div>'
+      +'<div style="margin-top:10px;font-size:10px;color:var(--text4);line-height:1.7">🔀 中間的 Firebase RTDB 是<b>暫態快取</b>（給中台即時同步用），非儲存層——用完即可清，不是個資家。<br>➜ 好處：LINE OA 的信任邊界縮到最小，資安責任落在成熟的 Google 權限，而非 LINE bot token。</div>'
       +'</div>';
+    var flow='<div class="card" style="margin-top:10px"><div class="card-title">🔗 資料流（訊號如何走）'+loaBridgeChipHtml()+'</div>'
+      +'<pre style="font-size:11px;line-height:1.8;color:var(--text2);white-space:pre-wrap">志工 LINE 操作（報到/叫料/安全/派工…）\n    ↓  只送「訊號」，不送個資\nLINE Messaging API → GAS Webhook（?token= 驗證，fail-closed）\n    ↓  routeAction 統一路由（22 ACTION）\n    ├─→ Firebase RTDB   ＝暫態快取（中台即時更新，可清）\n    └─→ Google Sheets   ＝資訊層（個資／紀錄落地，權限治理）\n    ↓  需要個資時，後端「持 Sheets 權限」自行查，不回傳給 LINE\n志工 LINE  ← 只回操作結果（不含他人個資）</pre>'
+      +'<div style="margin-top:8px;font-size:10px;color:var(--text4)">此頁為<b>設計說明</b>；目前 LINE OA 為模擬展示，尚未實際串接後端（gas/ 已備妥，部署見 gas/SETUP.md）。</div>'
+      +'</div>';
+    el.innerHTML=lay+flow;
     return;
   }
 
@@ -2788,10 +2803,13 @@ function loaChatBubbleOA(m){
   if(m.card==='tasks'){
     var tasks=(DATA.tasks&&DATA.tasks.items||[]).slice(0,3);
     inner += tasks.map(function(t){
+      // assign 可能是物件 {name} 或字串；統一取顯示名，避免出現 [object Object]。全部 esc() 防 XSS。
+      var assignName=(t.assign&&typeof t.assign==='object')?(t.assign.name||''):(t.assign||'');
+      var meta=[assignName,t.endTime].filter(Boolean).map(escHtml).join(' · ');
       return '<div style="margin-top:6px;background:#f5f5f5;border-radius:8px;padding:6px 8px;font-size:10px">'
-        +'<b>'+t.id+'</b> '+t.title
-        +'<br><span style="color:#888">'+t.assign+' · '+t.endTime+'</span>'
-        +(t.status!=='done'?'<br><button onclick="loaStaffTaskDone(\''+t.id+'\')" style="margin-top:4px;background:#06C755;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer">✅ 完工回報</button>':'<br><span style="color:#06C755;font-size:10px">✓ 已完成</span>')
+        +'<b>'+escHtml(t.id)+'</b> '+escHtml(t.title)
+        +(meta?'<br><span style="color:#888">'+meta+'</span>':'')
+        +(t.status!=='done'?'<br><button onclick="loaStaffTaskDone(\''+escHtml(t.id)+'\')" style="margin-top:4px;background:#06C755;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer">✅ 完工回報</button>':'<br><span style="color:#06C755;font-size:10px">✓ 已完成</span>')
         +'</div>';
     }).join('');
   }
@@ -2799,9 +2817,9 @@ function loaChatBubbleOA(m){
     var reqs=(DATA.warehouse&&DATA.warehouse.reqs||[]).filter(function(r){return r.status==='待派案'||r.status==='已派案';}).slice(0,3);
     inner += reqs.map(function(r){
       return '<div style="margin-top:6px;background:#f5f5f5;border-radius:8px;padding:6px 8px;font-size:10px">'
-        +'<b style="color:'+(r.prio==='P1'?'#ef4444':'#f59e0b')+'">'+r.prio+'</b> '+r.item+' '+r.qty
-        +'<br><span style="color:#888">→ '+r.site+' · '+r.due+'</span>'
-        +(r.status!=='已送達'?'<br><button onclick="loaDriverConfirm(\''+r.id+'\')" style="margin-top:4px;background:#3b82f6;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer">✅ 已到貨</button>':'')
+        +'<b style="color:'+(r.prio==='P1'?'#ef4444':'#f59e0b')+'">'+escHtml(r.prio||'')+'</b> '+escHtml(r.item||'')+' '+escHtml(r.qty||'')
+        +'<br><span style="color:#888">→ '+escHtml(r.site||'')+' · '+escHtml(r.due||'')+'</span>'
+        +(r.status!=='已送達'?'<br><button onclick="loaDriverConfirm(\''+escHtml(r.id)+'\')" style="margin-top:4px;background:#3b82f6;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer">✅ 已到貨</button>':'')
         +'</div>';
     }).join('');
   }
@@ -3374,16 +3392,33 @@ function makeLoaPhoneShell(role, chatId, W){
   if(!LOA_CHAT[role]||!LOA_CHAT[role].length) loaInitChat(role);
   var msgs=LOA_CHAT[role]||[];
   var chatHtml=msgs.map(function(m){return m.from==='oa'?loaChatBubbleOA(m):loaChatBubbleUser(m);}).join('');
-  // LIFF 底部按鈕（嵌在手機殼內）
-  var liffBtns=(LOA_PHONE_BTNS[role]||[]).map(function(b){
-    var isRed=b.cls.indexOf('red')>=0;
-    return '<div onclick="LOA_ROLE=\''+role+'\';'+b.fn+'" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 2px;border-radius:6px;'+(isRed?'background:rgba(239,68,68,.12)':'')+'">'
-      +'<div style="font-size:14px">'+b.label.split(' ')[0]+'</div>'
-      +'<div style="font-size:8px;color:'+(isRed?'#ef4444':'#555')+';line-height:1.2;text-align:center">'+b.label.replace(/^.\s/,'')+'</div>'
+  // ── LINE 官方 Rich Menu 風格：底部固定選單網格（cell 間以細灰線分隔，貼近真實 LINE OA）──
+  var btns=LOA_PHONE_BTNS[role]||[];
+  var cols=(btns.length===4)?2:Math.min(btns.length||1,3);
+  var rows=Math.ceil((btns.length||1)/cols), total=rows*cols;
+  var cells='';
+  for(var bi=0;bi<total;bi++){
+    var b=btns[bi];
+    if(!b){ cells+='<div style="background:#fff"></div>'; continue; }
+    var sp=b.label.indexOf(' ');
+    var icon=sp>0?b.label.slice(0,sp):b.label;
+    var txt=sp>0?b.label.slice(sp+1):'';
+    var isRed=b.cls.indexOf('red')>=0, isGreen=b.cls.indexOf('green')>=0;
+    var accent=isRed?'#E8483D':isGreen?'#06B34E':'#3a4a63';
+    var cellBg=isRed?'#FFF4F3':'#ffffff';
+    cells+='<div onclick="LOA_ROLE=\''+role+'\';'+b.fn+'" '
+      +'style="background:'+cellBg+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 2px;min-height:'+(W>=260?54:46)+'px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .1s" '
+      +'onmousedown="this.style.background=\'#eceff3\'" onmouseup="this.style.background=\''+cellBg+'\'" onmouseout="this.style.background=\''+cellBg+'\'">'
+      +'<div style="font-size:'+(W>=260?21:18)+'px;line-height:1">'+icon+'</div>'
+      +'<div style="font-size:'+(W>=260?9:8)+'px;color:'+accent+';font-weight:600;line-height:1.1;text-align:center;letter-spacing:.02em">'+txt+'</div>'
       +'</div>';
-  }).join('');
+  }
+  var richGrid=btns.length
+    ? '<div style="background:#e2e5ea;width:'+W+'px;display:grid;grid-template-columns:repeat('+cols+',1fr);gap:1px;box-sizing:border-box">'+cells+'</div>'
+    : '';
   return '<div style="text-align:center;margin-bottom:8px">'
     +'<span style="font-size:11px;font-weight:600;color:var(--text3)">'+labels[role]+'</span>'
+    +'<span style="font-size:9px;color:var(--text4)"> · '+roleNames[role]+'</span>'
     +'</div>'
     // 手機殼
     +'<div style="background:#1a1a2e;border-radius:32px;padding:8px 8px 10px;box-shadow:0 8px 28px rgba(0,0,0,.5);display:inline-block">'
@@ -3392,21 +3427,27 @@ function makeLoaPhoneShell(role, chatId, W){
     +'<div style="width:48px;height:4px;background:#333;border-radius:2px"></div></div>'
     // Line 頂欄
     +'<div style="background:#06C755;width:'+W+'px;padding:6px 10px;display:flex;align-items:center;gap:6px">'
+    +'<span style="color:#fff;font-size:13px">‹</span>'
     +'<div style="width:24px;height:24px;background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px">🏥</div>'
-    +'<div style="color:#fff;font-size:11px;font-weight:600;flex:1">慈濟 DRMS</div>'
-    +'<div style="color:rgba(255,255,255,.7);font-size:9px">OA</div>'
+    +'<div style="color:#fff;font-size:11px;font-weight:600;flex:1;line-height:1.2">慈濟 DRMS<div style="font-size:8px;font-weight:400;opacity:.8">官方帳號</div></div>'
+    +'<span style="color:#fff;font-size:13px">☰</span>'
     +'</div>'
     // 聊天區
-    +'<div id="'+chatId+'" style="background:#c8d9c2;width:'+W+'px;height:'+(W>=260?420:300)+'px;overflow-y:auto;padding:8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">'+chatHtml+'</div>'
-    // LIFF 選單（底部，嵌在手機內）
-    +(liffBtns
-      ? '<div style="background:#f8f8f8;width:'+W+'px;padding:6px 4px;display:flex;gap:2px;box-sizing:border-box;border-top:1px solid #ddd">'+liffBtns+'</div>'
-      : '')
-    // 輸入列
-    +'<div style="background:#fff;width:'+W+'px;padding:5px 8px;display:flex;gap:5px;align-items:center;box-sizing:border-box;border-top:1px solid #e0e0e0">'
-    +'<div style="flex:1;background:#f0f0f0;border-radius:14px;padding:5px 8px;font-size:10px;color:#aaa">'+roleNames[role]+'</div>'
-    +'<span style="font-size:16px">😊</span>'
+    +'<div id="'+chatId+'" style="background:#8cabd9;background:linear-gradient(#8cabd9,#93b0da);width:'+W+'px;height:'+(W>=260?372:262)+'px;overflow-y:auto;padding:8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">'+chatHtml+'</div>'
+    // 輸入列（含 rich menu 切換鈕，貼近真實 LINE）
+    +'<div style="background:#fff;width:'+W+'px;padding:6px 8px;display:flex;gap:7px;align-items:center;box-sizing:border-box;border-top:1px solid #ececec">'
+    +'<span style="font-size:16px;color:#8a8f99">☰</span>'
+    +'<div style="flex:1;background:#f0f2f5;border-radius:15px;padding:5px 11px;font-size:10px;color:#b0b4bb">輸入訊息…</div>'
+    +'<span style="font-size:15px;color:#8a8f99">🙂</span>'
     +'</div>'
+    // Rich Menu 標題列（選單把手）
+    +(richGrid?'<div style="background:#fbfbfb;width:'+W+'px;display:flex;align-items:center;padding:4px 10px;box-sizing:border-box;border-top:1px solid #eee">'
+      +'<span style="font-size:9px;color:#06B34E;font-weight:700;letter-spacing:.06em">☷ 快捷選單</span>'
+      +'<span style="flex:1"></span>'
+      +'<span style="width:20px;height:3px;background:#d3d6db;border-radius:2px"></span>'
+      +'</div>':'')
+    // Rich Menu 網格
+    +richGrid
     // 底部
     +'<div style="background:#000;width:'+W+'px;height:16px;border-radius:0 0 18px 18px;display:flex;align-items:center;justify-content:center">'
     +'<div style="width:60px;height:3px;background:#333;border-radius:2px"></div></div>'
