@@ -741,6 +741,7 @@ function rtWizAssign(vid){
 }
 function rtPickAssign(k){ RT_ASSIGN_FOR=(RT_ASSIGN_FOR===k?null:k); renderRTSync(); }
 function rtDoAssign(k,vid){
+  if(!_guardAct('ACT-T2',{},'派工（指定志工）')) return; // F7：派工守門（高風險另由 rtGuardHighRiskAssign 走 ACT-T3）
   var v=rtGet('volunteers/'+vid);
   if(v.fatigue){ toast('⚠ '+v.name+' 疲勞中，無法派工'); return; }
   var t=rtGet('tasks/'+k);
@@ -998,6 +999,7 @@ function rtReopenTask(k){
   toast('↺ 任務已重啟為「'+newStatus+'」');
 }
 function rtForceTop(k){
+  if(!_guardAct('ACT-T6',{},'強制置頂')) return; // F7：任務強制置頂守門
   var t=rtGet('tasks/'+k);
   RTDB.ref('tasks/'+k).update({forced:true,priority:'P1'});
   rtAudit('強制置頂',k+' '+t.title+' 升為最高優先（強制置頂）');
@@ -6310,14 +6312,18 @@ function unifiedRole(r){ return ROLE_MAP[r||role]||null; }
 
 // 動作目錄（§4.2）節錄——用於破窗請求顯示文字與稽核訊息
 var AUTH_ACTIONS={
-  'ACT-T3':'派工高風險任務','ACT-W2':'物財審核','ACT-W3':'物財核准','ACT-W4':'物財發放',
+  'ACT-T2':'派工（指定志工）','ACT-T3':'派工高風險任務','ACT-T6':'任務強制置頂/鎖定',
+  'ACT-W1':'申請金援/物財','ACT-W2':'物財審核','ACT-W3':'物財核准','ACT-W4':'物財發放',
   'ACT-C2':'指派個案負責人','ACT-C3':'個案階段推進/結案','ACT-S2':'物資派案','ACT-S3':'物資驗收簽收',
   'ACT-X1':'切換平時/戰時','ACT-X2':'編輯權限矩陣','ACT-X6':'動線金鑰核發'
 };
 
 // 平時基準矩陣（§4.3）。verdict：allow ✔ / compensate ◐（放行+補償控制留痕）/ breakglass ⚡（需破窗）/ deny ✗
 var AUTH_MATRIX={
+  'ACT-T2':{'R-HQ':'allow','R-IT':'allow','R-OFFICER':'allow','R-LEAD':'allow','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
   'ACT-T3':{'R-HQ':'allow','R-IT':'compensate','R-OFFICER':'compensate','R-LEAD':'breakglass','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-T6':{'R-HQ':'allow','R-IT':'allow','R-OFFICER':'allow','R-LEAD':'allow','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
+  'ACT-W1':{'R-HQ':'allow','R-IT':'deny','R-OFFICER':'allow','R-LEAD':'allow','R-LOGI':'deny','R-CARE':'allow','R-KITCHEN':'deny','R-VOL':'deny'},
   'ACT-W2':{'R-HQ':'allow','R-IT':'deny','R-OFFICER':'allow','R-LEAD':'allow','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
   'ACT-W3':{'R-HQ':'allow','R-IT':'breakglass','R-OFFICER':'allow','R-LEAD':'allow','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
   'ACT-W4':{'R-HQ':'allow','R-IT':'deny','R-OFFICER':'allow','R-LEAD':'deny','R-LOGI':'deny','R-CARE':'deny','R-KITCHEN':'deny','R-VOL':'deny'},
@@ -6500,6 +6506,7 @@ function renameRole(id) {
 function deleteRole(id) {
   var r = ROLES.find(function(x){ return x.id===id; });
   if (!r || !r.deletable) return;
+  if(!_guardAct('ACT-X2',{},'編輯權限矩陣（刪除角色）')) return; // F7：刪除角色＝改權限矩陣，走 ACT-X2 守門
   if (!confirm('確定要刪除角色「'+r.name+'」？將同步移除所有權限設定。')) return;
   ROLES = ROLES.filter(function(x){ return x.id!==id; });
   delete PERMS_PEACE[id]; delete PERMS_WAR[id];
@@ -8611,6 +8618,7 @@ function applyWelfare(i, typeKey, value, qty){
   value=(value!=null)?value:((valEl&&valEl.value)?parseInt(valEl.value,10):defVal);
   if(!value||value<0) value=defVal;
   qty=qty||1;
+  if(!_guardAct('ACT-W1',{amount:value},'申請金援/物財')) return; // F7：金援申請守門（ACT-W1）
   var ts=_welfareNow(), actor=_welfareActor();
   c.welfareChain={ reliefType:t.key, itemLabel:t.label, cat:t.cat, unit:t.unit, qty:qty,
     value:value, amount:value, stageIdx:1, steps:[{key:'apply',by:actor,ts:ts}] };
