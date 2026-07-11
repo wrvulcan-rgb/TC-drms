@@ -195,80 +195,9 @@ var ARCH_DOC={
     {from:'monitor',to:'emic',label:'未來對接',dash:true}
   ]
 };
-function renderArchGraph(){
-  var d=ARCH_DOC;
-  var sC={live:'var(--green)',partial:'var(--amber)',planned:'var(--red)'};
-  var sBg={live:'var(--green-bg)',partial:'var(--amber-bg)',planned:'var(--red-bg)'};
-  var sBd={live:'var(--green-border)',partial:'var(--amber-border)',planned:'var(--red-border)'};
-  // 節點卡片
-  function node(id,name,icon,status,sub){
-    return '<div class="topo-node" onclick="showArchNode(\''+id+'\')" style="border-color:'+sBd[status]+'">'
-      +'<div class="topo-dot" style="background:'+sC[status]+'"></div>'
-      +'<div class="topo-ico">'+icon+'</div>'
-      +'<div class="topo-name">'+name+'</div>'
-      +(sub?'<div class="topo-sub">'+sub+'</div>':'')
-      +'</div>';
-  }
-  var h='<div class="topo-map">';
-  // 層1：用戶訪問
-  h+='<div class="topo-layer"><div class="topo-layer-lbl">① 用戶訪問層</div><div class="topo-row">';
-  h+=node('user','幹部 / 志工','👤','live','Web / 手機');
-  h+=node('lineoa','Line OA','💬','partial','前線回報入口');
-  h+='</div></div>';
-  h+='<div class="topo-arrow">▼</div>';
-  // 層2：安全與路由
-  h+='<div class="topo-layer topo-dashed" style="border-color:var(--red-border)"><div class="topo-layer-lbl" style="color:var(--red)">② 安全與路由層</div><div class="topo-row">';
-  h+=node('sec_xss','輸入淨化','🛡','live','XSS 防護 esc/sanitize');
-  h+=node('sec_role','權限控管','🔑','partial','前端 role · 待後端驗證');
-  h+=node('sec_ver','版本備份','🗄','live','流水號 + 雙檔還原');
-  h+='</div></div>';
-  h+='<div class="topo-arrow">▼</div>';
-  // 層3：核心雲端服務（虛線框）
-  h+='<div class="topo-layer topo-dashed" style="border-color:var(--blue-border)"><div class="topo-layer-lbl" style="color:var(--blue)">③ 核心服務層</div><div class="topo-row">';
-  h+=node('dashboard','總控儀表板','📊','live','情境模擬 · KPI');
-  h+=node('rtsync','即時調度中台','⚡','live','派工/警報/SOS/結案');
-  h+=node('reg','報名報到','📋','live','報到+報名雙軌');
-  h+=node('monitor','全域監控','🖥️','live','高層決策視圖');
-  h+='</div><div class="topo-row" style="margin-top:8px">';
-  h+=node('warehouse','物資倉儲','📦','live','三級造冊調度');
-  h+=node('shelter','安置/個案/關懷','🏕️','live','L3 現場群');
-  h+=node('story','故事線結案','📖','live','時間軸+遙測');
-  h+='</div></div>';
-  h+='<div class="topo-arrow">▼</div>';
-  // 層4：數據基礎設施（虛線框）
-  h+='<div class="topo-layer topo-dashed" style="border-color:var(--border2)"><div class="topo-layer-lbl" style="color:var(--text3)">④ 數據基礎設施層</div><div class="topo-row">';
-  h+=node('storage','localStorage','💾','live','本機+離線+遙測');
-  h+=node('sheets','GAS + Sheets','📑','partial','報名/個案後端');
-  h+=node('firebase','Firebase RTDB','🔥','planned','多人共編·待啟用');
-  h+=node('emic','政府 EMIC','🏛️','planned','未來對接');
-  h+='</div></div>';
-  h+='</div>';
-  h+='<div id="arch-node-detail" style="display:none;margin-top:12px;padding:12px 16px;background:var(--bg2);border:1px solid var(--blue-border);border-radius:var(--r-sm)"></div>';
-  return h;
-}
-function showArchNode(id){
-  // 先查 graphNodes，沒有再用內建補充說明
-  var n=ARCH_DOC.graphNodes.filter(function(x){return x.id===id;})[0];
-  var extra={
-    sec_xss:{name:'輸入淨化',status:'live',desc:'esc() 強化（含 >、單引號）+ sanitizeInput 淨化報名姓名/任務標題/批次來源等使用者輸入，防 XSS 注入。'},
-    sec_role:{name:'權限控管',status:'partial',desc:'前端依角色 P0~P4 動態遮蔽個資與模組。但 role 判斷可被 console 竄改，需後端驗證（待辦 P1）。'},
-    sec_ver:{name:'版本備份',status:'live',desc:'每次資料變更自動遞增版本流水號並備份前兩版，被誤觸可一鍵還原，並可匯出 JSON 離線封存。'}
-  };
-  if(!n) n=extra[id];
-  if(!n) return;
-  var lbl={live:'🟢 已開通',partial:'🟡 部分/待設定',planned:'🔴 未開通/規劃中'}[n.status];
-  var box=document.getElementById('arch-node-detail');
-  if(box){
-    box.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+n.name+' <span style="font-size:11px;font-weight:400;color:var(--text4)">· '+lbl+'</span></div>'
-      +'<div style="font-size:12px;color:var(--text2);line-height:1.7">'+(n.desc||'')+'</div>';
-    box.style.display='block';
-    box.scrollIntoView({behavior:'smooth',block:'nearest'});
-  }
-}
-function renderArchDoc(){
-  // 架構心智圖已 inline 在 page-arch_doc，頁面切換時初始化
-}
-function toggleArchTodo(i){}
+// 註：ARCH_DOC 為架構文件單一事實來源（供後續 session 讀取推算影響範圍）。
+// 舊版 renderArchGraph/showArchNode/renderArchDoc/toggleArchTodo 已於 arch_doc 頁改用
+// index.html inline 心智圖（arch-script*.js）後成為孤兒碼，2026-07-11 移除。
 // ─── Line OA 總控面板 ───
 var LOA_ACTIVE_TAB='push';
 function loaLog(msg){
@@ -5240,7 +5169,6 @@ function showPage(id){
   if(id==='monitor') renderMonitor();
   var mainEl=document.querySelector('.main');
   if(mainEl) mainEl.classList.toggle('arch-fullbleed',id==='arch_doc');
-  if(id==='arch_doc') renderArchDoc();
   if(id==='persons') renderPersons();
   if(id==='persons') renderCaseMgt();
   if(id==='care_rec') renderCareRec();

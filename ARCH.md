@@ -40,7 +40,7 @@ TC-drms/
 | `sorting` | 物資整理站 | 1449 | `renderSorting()` |
 | `assets` | 慈濟資產調度 | 1461 | `renderAssets()` |
 | `rtsync` | 即時調度中台 | 1472 | `renderRTSync()` |
-| `arch_doc` | 系統架構說明（心智圖） | 1493 | `renderArchDoc()` |
+| `arch_doc` | 系統架構說明（心智圖） | — | inline arch-script*.js（無 app.js 入口函數） |
 
 ---
 
@@ -114,10 +114,10 @@ TC-drms/
 ### 心智圖（arch_doc）
 | 函數 | 行（arch-script.js） | 說明 |
 |---|---|---|
-| `renderArchDoc()` | 2482 | 心智圖入口 |
-| `renderArchGraph()` | 2412 | SVG 節點繪製 |
 | `selectNode(id)` | 2118 | 點選節點 |
 | `storyShow(i)` | 2128 | 故事導覽 |
+
+> 註：舊 app.js 的 `renderArchGraph()`/`showArchNode()`/`renderArchDoc()` 已於 2026-07-11 移除（arch_doc 頁改用 index.html inline 心智圖 arch-script*.js）。`ARCH_DOC` 資料物件保留為架構文件 SSoT。
 
 ---
 
