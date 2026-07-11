@@ -861,9 +861,9 @@ function renderRTTasks(){
     catTasks.slice(0,8).forEach(function(t){
       var aname=t.assign&&typeof t.assign==='object'?t.assign.name:(t.assign||'未指派');
       html+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">'
-        +'<span class="badge '+(catColor[t.category]||'badge-blue')+'" style="font-size:9px">'+t.category+'</span>'
-        +'<span style="flex:1">'+t.title+'</span>'
-        +'<span style="font-size:10px;color:var(--text4)">'+aname+'</span>'
+        +'<span class="badge '+(catColor[t.category]||'badge-blue')+'" style="font-size:9px">'+esc(t.category)+'</span>'
+        +'<span style="flex:1">'+esc(t.title)+'</span>'
+        +'<span style="font-size:10px;color:var(--text4)">'+esc(aname)+'</span>'
         +'</div>';
     });
     html+='</div>';
@@ -889,8 +889,8 @@ function renderRTTasks(){
         var asgName=t.assignee&&vols[t.assignee]?vols[t.assignee].name:'';
         var c=rtCardCtrls(k,t,big);
         html+='<div class="rt-bcard" style="border-left:3px solid '+(pc[t.priority]||'var(--text3)')+'">'
-          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-weight:700;font-family:monospace;font-size:'+(big?'13px':'11px')+';color:'+(pc[t.priority]||'var(--text3)')+'">'+t.priority+'</span><span style="font-size:'+f1+';font-weight:600;flex:1">'+t.title+'</span></div>'
-          +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)'+(c.btns?';margin-bottom:8px':'')+'">'+(asgName?'👤 '+asgName:k)+(locked?' · 🔒':'')+'</div>'
+          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-weight:700;font-family:monospace;font-size:'+(big?'13px':'11px')+';color:'+(pc[t.priority]||'var(--text3)')+'">'+esc(t.priority)+'</span><span style="font-size:'+f1+';font-weight:600;flex:1">'+esc(t.title)+'</span></div>'
+          +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)'+(c.btns?';margin-bottom:8px':'')+'">'+(asgName?'👤 '+esc(asgName):esc(k))+(locked?' · 🔒':'')+'</div>'
           +(c.btns?'<div style="display:flex;gap:6px;flex-wrap:wrap">'+c.btns+'</div>':'')
           +c.expand
           +'</div>';
@@ -905,9 +905,9 @@ function renderRTTasks(){
       var asgName=t.assignee&&vols[t.assignee]?vols[t.assignee].name:'';
       var c=rtCardCtrls(k,t,big);
       html+='<div style="display:flex;align-items:center;gap:10px;padding:'+(big?'14px':'10px')+';margin-bottom:8px;background:var(--bg2);border:1px solid '+(locked?'var(--amber-border)':'var(--border)')+';border-radius:var(--r-sm);flex-wrap:wrap">'
-        +'<span style="font-weight:700;font-family:monospace;color:'+(pc[t.priority]||'var(--text3)')+';font-size:'+(big?'14px':'12px')+'">'+t.priority+'</span>'
-        +'<div style="flex:1;min-width:120px"><div style="font-size:'+f1+';font-weight:600">'+t.title+'</div>'
-        +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)">'+k+' · '+t.created+(asgName?' · 指派：'+asgName:'')+(locked?' · 🔒 鎖定：'+t.lockedBy:'')+'</div></div>'
+        +'<span style="font-weight:700;font-family:monospace;color:'+(pc[t.priority]||'var(--text3)')+';font-size:'+(big?'14px':'12px')+'">'+esc(t.priority)+'</span>'
+        +'<div style="flex:1;min-width:120px"><div style="font-size:'+f1+';font-weight:600">'+esc(t.title)+'</div>'
+        +'<div style="font-size:'+(big?'12px':'10px')+';color:var(--text4)">'+esc(k)+' · '+esc(t.created)+(asgName?' · 指派：'+esc(asgName):'')+(locked?' · 🔒 鎖定：'+esc(t.lockedBy):'')+'</div></div>'
         +'<span class="badge badge-'+(t.status==='進行中'?'blue':t.status==='已完成'?'green':t.status==='待確認'?'purple':'amber')+'">'+t.status+'</span>'
         +c.btns
         +(c.expand?'<div style="flex-basis:100%">'+c.expand+'</div>':'')
@@ -2077,10 +2077,10 @@ function renderSheetReg(){
     for(var j=0;j<d.volunteers.length;j++){
       var v=d.volunteers[j];
       html+='<tr><td style="color:var(--text4);font-family:monospace">'+(j+1)+'</td>'
-        +'<td style="font-weight:500">'+maskPII(v.name,'name')+'</td>'
-        +'<td style="font-family:monospace;font-size:10px">'+maskPII(v.idno,'id')+'</td>'
-        +'<td style="font-family:monospace;font-size:10px">'+maskPII(v.phone,'phone')+'</td>'
-        +'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text3)')+'">'+maskPII(v.diet,'diet')+'</td>'
+        +'<td style="font-weight:500">'+esc(maskPII(v.name,'name'))+'</td>'
+        +'<td style="font-family:monospace;font-size:10px">'+esc(maskPII(v.idno,'id'))+'</td>'
+        +'<td style="font-family:monospace;font-size:10px">'+esc(maskPII(v.phone,'phone'))+'</td>'
+        +'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text3)')+'">'+esc(maskPII(v.diet,'diet'))+'</td>'
         +'<td style="font-size:10px">'+v.slot+'</td>'
         +'<td style="font-size:10px">'+v.lift.substring(0,4)+'</td>'
         +'<td style="font-size:11px">'+v.gender+'</td>'
@@ -5749,8 +5749,8 @@ function renderRegSignup(){
     html+='<table class="tbl"><thead><tr><th>姓名</th><th>組別</th><th>聯絡</th><th>時間</th><th></th></tr></thead><tbody>';
     for(var i=0;i<list.length;i++){
       var r=list[i];
-      html+='<tr><td style="font-weight:500">'+r.name+'</td><td><span class="badge badge-blue" style="font-size:9px">'+r.group+'</span></td>'
-        +'<td style="font-family:monospace;font-size:11px">'+r.phone+'</td>'
+      html+='<tr><td style="font-weight:500">'+esc(r.name)+'</td><td><span class="badge badge-blue" style="font-size:9px">'+esc(r.group)+'</span></td>'
+        +'<td style="font-family:monospace;font-size:11px">'+esc(r.phone)+'</td>'
         +'<td style="font-family:monospace;font-size:10px">'+r.time+'</td>'
         +'<td><button class="btn btn-ghost btn-xs" onclick="removeSignup(\''+SIGNUP_DAY+'\','+i+')">移除</button></td></tr>';
     }
@@ -5763,7 +5763,7 @@ function addSignup(){
   var name=sanitizeInput((document.getElementById('su-name').value||'').trim());
   if(!name){ toast('⚠ 請輸入姓名'); return; }
   var group=document.getElementById('su-group').value;
-  var phone=(document.getElementById('su-phone').value||'—').trim();
+  var phone=sanitizeInput((document.getElementById('su-phone').value||'—').trim());
   var time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   DATA.registry.signups[SIGNUP_DAY].push({name:name,group:group,phone:phone,time:time});
   logSys('ok','【報名】'+(SIGNUP_DAY==='today'?'今日':'明日')+'新增 '+name+'（'+group+'）');
@@ -5897,12 +5897,12 @@ function renderRegistryOuter(d,canSee){
     +'<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>報到狀態</th><th>代碼(Email)</th><th>姓名</th><th>飲食</th><th>時段</th><th>體能</th><th>報到時間</th></tr></thead><tbody>';
   for(var j2=0;j2<d.volunteers.length;j2++){
     var v=d.volunteers[j2];
-    var emailCode=canSee?v.email:maskPII(v.email,'email');
+    var emailCode=esc(canSee?v.email:maskPII(v.email,'email'));
     html+='<tr>'
       +'<td>'+(v.checkin?'<span class="badge badge-green">✓ 已報到</span> <button class="btn btn-ghost btn-xs" style="padding:1px 6px" onclick="cancelOuterCheckin(\''+v.email+'\')" title="取消報到">↺</button>':'<span class="badge badge-amber">待報到</span>')+'</td>'
       +'<td style="font-family:monospace;font-size:10px">'+emailCode+' <button class="btn btn-ghost btn-xs" style="padding:1px 6px" onclick="copyText(\''+v.email+'\')" title="複製代碼">⧉</button></td>'
-      +'<td style="font-weight:500">'+maskPII(v.name,'name')+' <span style="font-size:9px;color:var(--text4)">'+v.gender+v.age+'</span></td>'
-      +'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text4)')+'">'+maskPII(v.diet,'diet')+'</td>'
+      +'<td style="font-weight:500">'+esc(maskPII(v.name,'name'))+' <span style="font-size:9px;color:var(--text4)">'+esc(v.gender)+esc(v.age)+'</span></td>'
+      +'<td style="font-size:10px;color:'+(v.diet!=='無'?'var(--amber)':'var(--text4)')+'">'+esc(maskPII(v.diet,'diet'))+'</td>'
       +'<td style="font-size:10px">'+v.slot+'</td>'
       +'<td style="font-size:10px">'+v.lift.substring(0,4)+'</td>'
       +'<td style="font-family:monospace;font-size:11px">'+(v.checkin?v.checkinTime:'—')+'</td>'
@@ -6308,8 +6308,8 @@ function requestBreakGlass(actionId,ctx,requesterLabel,reason){
   var banner=document.getElementById('perm-banner');
   var body=document.getElementById('perm-banner-body');
   if(!banner||!body) return;
-  body.innerHTML='<strong>'+requesterLabel+'</strong> 申請破窗提權執行「'+(AUTH_ACTIONS[actionId]||actionId)+'」。'
-    +(reason?'<br><span style="color:var(--amber)">💡 '+reason+'</span>':'');
+  body.innerHTML='<strong>'+esc(requesterLabel)+'</strong> 申請破窗提權執行「'+esc(AUTH_ACTIONS[actionId]||actionId)+'」。'
+    +(reason?'<br><span style="color:var(--amber)">💡 '+esc(reason)+'</span>':'');
   banner.classList.add('show');
   rtAudit('破窗請求',requesterLabel+' 申請 '+actionId+'（'+(reason||'')+'）');
   logSys('warn','【破窗請求】'+requesterLabel+' 申請 '+(AUTH_ACTIONS[actionId]||actionId));
@@ -7696,6 +7696,12 @@ function importBackupFile(input){
     try{
       var snap=JSON.parse(e.target.result);
       if(!snap.data){ toast('檔案格式不符'); return; }
+      // 資安：匯入檔僅檢查存在性易被植入任意資料（含 XSS payload）。加結構白名單校驗：
+      // data 必須是物件，且至少含 3 個本系統 DATA_KEYS，擋掉非本系統／惡意 blob。
+      var _d=snap.data;
+      if(typeof _d!=='object'||_d===null||Array.isArray(_d)){ toast('檔案格式不符（資料結構無效）'); return; }
+      var _known=DATA_KEYS.filter(function(k){return Object.prototype.hasOwnProperty.call(_d,k);});
+      if(_known.length<3){ toast('檔案格式不符（非本系統備份檔）'); return; }
       if(!confirm('確認從檔案還原版本 v'+(snap.ver||'?')+'（'+(snap.time||'')+'）？目前狀態會先自動備份。')) return;
       var cur=localStorage.getItem('drms_data');
       if(cur){
@@ -8887,10 +8893,10 @@ function renderPersonsRebuild(){
     var psychDisp=psychFull?c.psych:maskPII(c.psych,'psych');
     var psychCls=psychFull?(psyColor[c.psych]||'badge-amber'):'badge-blue';
     html+='<tr>'
-      +'<td class="sh-time">'+c.caseId+'</td><td style="font-weight:500">'+c.name+'</td>'
-      +'<td><span class="badge '+(phColor[c.rebuildPhase]||'badge-blue')+'">'+c.rebuildPhase+'</span></td>'
+      +'<td class="sh-time">'+esc(c.caseId)+'</td><td style="font-weight:500">'+esc(c.name)+'</td>'
+      +'<td><span class="badge '+(phColor[c.rebuildPhase]||'badge-blue')+'">'+esc(c.rebuildPhase)+'</span></td>'
       +'<td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;min-width:56px"><div style="height:100%;width:'+c.rebuildPct+'%;background:var(--green)"></div></div><span style="font-size:10px;font-family:monospace">'+c.rebuildPct+'%</span></div></td>'
-      +'<td><span class="badge '+psychCls+'">'+psychDisp+'</span></td>'
+      +'<td><span class="badge '+psychCls+'">'+esc(psychDisp)+'</span></td>'
       +'<td>'+(c.longCare?'✅':'—')+'</td>'
       +'<td style="display:flex;gap:4px;flex-wrap:wrap">';
     if(c.rebuildPhase!=='重建完成'){
@@ -8989,8 +8995,8 @@ function renderRebuildPsych(){
     var psychFull=canViewFullPII();
     var pc=psychFull?({'穩定':'badge-green','焦慮':'badge-amber','需持續關懷':'badge-red','已轉介追蹤':'badge-blue'}[c.psych]||'badge-amber'):'badge-blue';
     var psychDisp=psychFull?(c.psych||'—'):maskPII(c.psych,'psych');
-    html+='<tr><td class="sh-time">'+c.caseId+'</td><td style="font-weight:500">'+c.name+'</td>'
-      +'<td><span class="badge '+pc+'">'+psychDisp+'</span></td><td>'+(c.longCare?'✅':'—')+'</td>'
+    html+='<tr><td class="sh-time">'+esc(c.caseId)+'</td><td style="font-weight:500">'+esc(c.name)+'</td>'
+      +'<td><span class="badge '+pc+'">'+esc(psychDisp)+'</span></td><td>'+(c.longCare?'✅':'—')+'</td>'
       +'<td>'+((c.psych==='焦慮'||c.psych==='需持續關懷')?'<button class="btn btn-purple btn-xs" onclick="rebuildRefer('+gi+')">🩺 轉介心理師</button>':'<span style="font-size:9px;color:var(--text4)">✓</span>')+'</td></tr>';
   });
   html+='</tbody></table></div>';
