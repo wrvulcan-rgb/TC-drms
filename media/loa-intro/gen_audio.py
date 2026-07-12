@@ -128,6 +128,8 @@ def synth_music(T, lift_t):
     n = int(T * SR)
     L = np.zeros(n)
     R = np.zeros(n)
+    Lp = np.zeros(n)   # 打擊樂 bus：不進延遲，保持 transient 乾淨
+    Rp = np.zeros(n)
     beat = 60 / 100.0
     bar = 4 * beat
     rng = np.random.default_rng(7)
@@ -136,13 +138,13 @@ def synth_music(T, lift_t):
     def f(m):
         return 440.0 * 2 ** ((m - 69) / 12)
 
-    def add(sig, t0, gl, gr):
+    def add(sig, t0, gl, gr, perc=False):
         i = int(t0 * SR)
         if i >= n:
             return
         j = min(n, i + len(sig))
-        L[i:j] += sig[:j - i] * gl
-        R[i:j] += sig[:j - i] * gr
+        (Lp if perc else L)[i:j] += sig[:j - i] * gl
+        (Rp if perc else R)[i:j] += sig[:j - i] * gr
 
     def box(midi, t0, amp, tau=0.40, staccato=False):
         if t0 >= T - 0.06:
@@ -184,23 +186,23 @@ def synth_music(T, lift_t):
         s = sum(np.sin(2 * np.pi * f(m) * t) for m in midis) * amp * env / len(midis)
         add(s, t0, 0.85, 0.60)
 
-    def kick(t0, amp=0.16):
+    def kick(t0, amp=0.20):
         N = int(0.10 * SR)
         t = np.arange(N) / SR
         fr = 110 * np.exp(-t / 0.03) + 48
         s = amp * np.exp(-t / 0.045) * np.sin(2 * np.pi * np.cumsum(fr) / SR)
-        add(s, t0, 1.0, 1.0)
+        add(s, t0, 1.0, 1.0, perc=True)
 
     def hat(t0, amp=0.040):
         N = int(0.030 * SR)
         s = np.diff(noise[:N + 1]) * amp * np.exp(-np.arange(N) / (0.008 * SR))
-        add(s, t0, 0.5, 0.7)
+        add(s, t0, 0.5, 0.7, perc=True)
 
-    def clap(t0, amp=0.070):
+    def clap(t0, amp=0.095):
         N = int(0.070 * SR)
         t = np.arange(N) / SR
         s = noise[100:100 + N] * amp * np.exp(-t / 0.028) * np.sin(2 * np.pi * 1800 * t) ** 2
-        add(s, t0, 0.8, 0.8)
+        add(s, t0, 0.8, 0.8, perc=True)
 
     chords = [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]]  # C Am F G
     roots = [48, 45, 41, 43]
@@ -230,12 +232,12 @@ def synth_music(T, lift_t):
         else:
             pad(chords[ci], t0, bar * 1.02, amp=0.028)
             for k in range(4):
-                bass(roots[ci] if k % 2 == 0 else fifth[ci], t0 + k * beat, amp=0.105)
+                bass(roots[ci] if k % 2 == 0 else fifth[ci], t0 + k * beat, amp=0.115, tau=0.15)
                 kick(t0 + k * beat) if k in (0, 2) else clap(t0 + k * beat)
-                hat(t0 + k * beat, 0.035)
-                hat(t0 + (k + 0.5) * beat, 0.050)
+                hat(t0 + k * beat, 0.045)
+                hat(t0 + (k + 0.5) * beat, 0.068)
                 if k in (1, 3):
-                    stab([m + 12 for m in chords[ci]], t0 + (k + 0.5) * beat)
+                    stab([m + 12 for m in chords[ci]], t0 + (k + 0.5) * beat, amp=0.058)
             for k, m in enumerate(phrase):  # 旋律加密：正拍主音＋後半拍經過音
                 box(m, t0 + k * beat, 0.155, staccato=False)
                 nxt = phrase[(k + 1) % 4]
@@ -265,6 +267,8 @@ def synth_music(T, lift_t):
         L[D * r:] += src_l[:n - D * r] * gl
         R[D * r:] += src_r[:n - D * r] * gl
 
+    L += Lp
+    R += Rp
     fi = int(0.8 * SR)
     L[:fi] *= np.linspace(0, 1, fi)
     R[:fi] *= np.linspace(0, 1, fi)
