@@ -4,10 +4,15 @@ LINE OA 介紹影片・旁白腳本（9 句，逐景對應）
 錄製方式二選一：
 A. 手機錄音：每句錄一個檔（安靜環境、口語自然即可，前後留白程式會自動裁掉），
    檔名照 narr_0 ~ narr_8（wav / mp3 / m4a 皆可），放進 media/loa-intro/voice/。
-B. 本機 edge-tts（台灣腔神經語音，需可連網的環境）：
+B. 本機 edge-tts（台灣腔神經語音，需可連網的環境；雲端 container 網路政策擋 TTS，只能本機跑）：
+   聲音選擇（VOICE 擇一）：
+   - zh-TW-YunJheNeural  男・雲哲：沉穩教學感，最接近 PAPAYA 電腦教室風格
+     （註：PAPAYA 本人 2026-06 受訪證實旁白是親錄真人聲，無法取得同顆聲線，雲哲是微軟唯一台灣腔男聲）
+   - zh-TW-HsiaoChenNeural 女・曉臻：溫暖可愛，配本片畫風（用它時建議 rate='+4%', pitch='+12Hz'）
    pip install edge-tts
    python - <<'PY'
    import asyncio, edge_tts, pathlib
+   VOICE = 'zh-TW-YunJheNeural'   # 換聲音改這行
    LINES = [
        "哈囉！我是救災 LINE 小幫手！一起來看看，我會做什麼吧！",
        "災區訊息又多又急？別擔心，一支手機就搞定！任務、回報、物資、平安，通通都在 LINE 裡。",
@@ -22,7 +27,7 @@ B. 本機 edge-tts（台灣腔神經語音，需可連網的環境）：
    async def main():
        pathlib.Path('voice').mkdir(exist_ok=True)
        for i, l in enumerate(LINES):
-           await edge_tts.Communicate(l, 'zh-TW-HsiaoChenNeural', rate='+4%', pitch='+12Hz').save(f'voice/narr_{i}.mp3')
+           await edge_tts.Communicate(l, VOICE).save(f'voice/narr_{i}.mp3')
    asyncio.run(main())
    PY
    產出的 voice/ 資料夾放進 media/loa-intro/ 後 commit。
