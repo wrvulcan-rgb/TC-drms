@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-# 產生影片音軌＋時間軸：旁白（可插拔）＋配樂（音樂盒開場→玩具鼓組輕快段）＋閃避混音
+# 產生影片音軌＋時間軸：全音樂版（節奏與換頁咬合，臺灣吧式頁面重音）＋可插拔旁白
 # 輸出：out/audio_mix.wav（44.1k 立體聲）＋ out/timeline.json（渲染與混音共用）
 #
-# 旁白來源（依序自動選擇）：
-#   1. voice/narr_0.* ~ narr_8.*（Mason 提供：手機錄音或 edge-tts，wav/mp3/m4a 皆可，
-#      自動裁頭尾靜音＋響度對齊；腳本見 narration_script.txt）
-#   2. --zhtts：本地 zhtts 模型合成（普通話腔，備援用）
-#   3. 都沒有 → 無旁白模式（各景用 DESIGN 秒數，配樂不閃避）
+# 音樂設計（120 BPM、4/4、bar=2s；各景長度＝整小節數 → 換頁必落小節線）：
+#   - 每景和弦循環 C→Am→F→G：頁尾停屬和弦（推力）、新頁回主和弦（到位感）
+#   - 換頁瞬間：crash＋kick＋和弦重擊；頁尾最後半拍：鼓 fill＋riser
+#   - 輕搖擺（swing 8ths ~58%）、玩具鼓組、音樂盒主旋律 A/B 樂句逐頁輪替
 #
-# 重建流程：python3 gen_audio.py [--zhtts]
-#          FFMPEG_BIN=$(python3 -c "import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())") \
-#          NODE_PATH=$(npm root -g) node render.js
-#          $FFMPEG_BIN -y -i out/video_silent.mp4 -i out/audio_mix.wav -c:v copy -c:a aac -b:a 160k \
-#            -movflags +faststart loa_intro_video.mp4
+# 旁白來源（自動選擇；全音樂版兩者皆無即可）：
+#   1. voice/narr_0.*~narr_8.*（外部音檔）  2. --zhtts（本地合成備援）  3. 無 → 全音樂
+#
+# 重建：python3 gen_audio.py && FFMPEG_BIN=$(python3 -c "import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())") \
+#       NODE_PATH=$(npm root -g) node render.js && $FFMPEG_BIN -y -i out/video_silent.mp4 -i out/audio_mix.wav \
+#       -c:v copy -c:a aac -b:a 160k -movflags +faststart loa_intro_video.mp4
 import os, json, math, glob, subprocess, sys, argparse
 
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '3')
@@ -28,13 +28,16 @@ os.makedirs(OUT, exist_ok=True)
 SR = 44100
 FPS = 30
 N_SCENE = 9
-NARR_OFFSET = 0.55   # 旁白相對景首延遲（秒）
-TAIL = 0.9           # 旁白說完到換景的緩衝
-ZHTTS_PITCH = 1.04   # zhtts 備援聲微升調
-FADE_TAIL = 0.8      # 片尾淡出
-DESIGN = [6.5, 7.5, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]  # 各景最短秒數（同 index.html 預設）
+NARR_OFFSET = 0.55
+TAIL = 0.9
+ZHTTS_PITCH = 1.04
+FADE_TAIL = 0.8
+BPM = 120.0
+BEAT = 60.0 / BPM          # 0.5s
+BAR = 4 * BEAT             # 2.0s
+SWING = 0.58               # 8 分音符搖擺比例（直拍=0.5）
+DESIGN = [6.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]  # 3+4×8 小節（同 index.html 預設）
 
-# zhtts 備援腳本（餵簡體取音較穩；Mason 錄音版腳本見 narration_script.txt）
 ZHTTS_LINES = [
     "哈啰！我是救灾小帮手！一起来看看，我会做什么吧！",
     "灾区讯息又多又急？别担心，一支手机就搞定！任务、回报、物资、平安，通通都在手机里。",
@@ -52,7 +55,7 @@ FFMPEG = subprocess.check_output(
 ).decode().strip()
 
 
-# ---------- 旁白來源 ----------
+# ---------- 旁白（插拔） ----------
 def find_voice_files():
     files = []
     for i in range(N_SCENE):
@@ -64,11 +67,9 @@ def find_voice_files():
 
 
 def prep_clip(src, dst, trim=True, pitch=1.0):
-    """任意格式 → 44.1k 單聲道 wav；可裁頭尾靜音、微移調。回傳秒數。"""
     af = []
     if pitch != 1.0:
-        sr0 = 24000  # zhtts 固定 24k
-        af.append(f'asetrate={sr0}*{pitch},aresample={SR},atempo={1/pitch:.6f}')
+        af.append(f'asetrate=24000*{pitch},aresample={SR},atempo={1/pitch:.6f}')
     if trim:
         af.append('silenceremove=start_periods=1:start_threshold=-45dB')
         af.append('areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse')
@@ -80,13 +81,12 @@ def prep_clip(src, dst, trim=True, pitch=1.0):
 
 
 def load_narrations(force_zhtts):
-    """回傳 (每段秒數, 波形 list) 或 None（無旁白模式）。各段響度對齊 RMS 0.08。"""
     ext = find_voice_files()
     if ext:
-        print('[voice] 使用 voice/ 外部旁白（Mason 提供）')
+        print('[voice] 使用 voice/ 外部旁白')
         durs = [prep_clip(f, f'{OUT}/narr_{i}.wav', trim=True) for i, f in enumerate(ext)]
     elif force_zhtts:
-        print('[voice] 使用 zhtts 本地合成（普通話腔備援）')
+        print('[voice] 使用 zhtts 本地合成（備援）')
         need = [i for i in range(N_SCENE) if not os.path.exists(f'{OUT}/narr_{i}_raw.wav')]
         if need:
             import zhtts
@@ -103,179 +103,202 @@ def load_narrations(force_zhtts):
         w = w.astype(np.float32) / 32768.0
         r = float(np.sqrt((w ** 2).mean()))
         if r > 1e-4:
-            w *= 0.08 / r          # 各段響度對齊
+            w *= 0.08 / r
         waves.append(np.clip(w, -1, 1))
     return durs, waves
 
 
 def build_timeline(narr_durs):
-    def grid(x):
-        return math.ceil(x * FPS) / FPS
+    def bar_grid(x):  # 對齊「整小節」再對齊影格（BAR=2s 是 1/30 的倍數，兩者相容）
+        return math.ceil(x / BAR) * BAR
     if narr_durs is None:
-        durs = [grid(d) for d in DESIGN]
+        durs = [bar_grid(d) for d in DESIGN]
     else:
-        durs = [grid(max(d, NARR_OFFSET + nd + TAIL)) for d, nd in zip(DESIGN, narr_durs)]
+        durs = [bar_grid(max(d, NARR_OFFSET + nd + TAIL)) for d, nd in zip(DESIGN, narr_durs)]
     starts = [0.0]
     for d in durs[:-1]:
         starts.append(round(starts[-1] + d, 6))
     fade_start = round(starts[-1] + durs[-1], 6)
     total = round(fade_start + FADE_TAIL, 6)
+    for s in starts:
+        assert abs(s / BAR - round(s / BAR)) < 1e-6, f'scene start {s} 未落在小節線'
     return durs, starts, fade_start, total
 
 
-# ---------- 配樂：C 大調 100 BPM，開場音樂盒 → lift 起玩具鼓組輕快段 ----------
-def synth_music(T, lift_t):
+# ---------- 全音樂引擎 ----------
+def synth_music(T, starts):
     n = int(T * SR)
-    L = np.zeros(n)
-    R = np.zeros(n)
-    Lp = np.zeros(n)   # 打擊樂 bus：不進延遲，保持 transient 乾淨
-    Rp = np.zeros(n)
-    beat = 60 / 100.0
-    bar = 4 * beat
+    L = np.zeros(n); R = np.zeros(n)      # 音高 bus（進延遲）
+    Lp = np.zeros(n); Rp = np.zeros(n)    # 打擊 bus（乾）
     rng = np.random.default_rng(7)
-    noise = rng.standard_normal(int(0.6 * SR)).astype(np.float64)
+    noise = rng.standard_normal(int(1.2 * SR)).astype(np.float64)
 
-    def f(m):
-        return 440.0 * 2 ** ((m - 69) / 12)
+    def f(m): return 440.0 * 2 ** ((m - 69) / 12)
 
     def add(sig, t0, gl, gr, perc=False):
         i = int(t0 * SR)
-        if i >= n:
-            return
+        if i >= n or i < 0: return
         j = min(n, i + len(sig))
         (Lp if perc else L)[i:j] += sig[:j - i] * gl
         (Rp if perc else R)[i:j] += sig[:j - i] * gr
 
-    def box(midi, t0, amp, tau=0.40, staccato=False):
-        if t0 >= T - 0.06:
-            return
-        dur = min(0.35 if staccato else 1.8, T - t0)
-        N = int(dur * SR)
-        t = np.arange(N) / SR
-        env = np.exp(-t / (0.12 if staccato else tau)) * np.minimum(1, t / 0.004)
+    def box(midi, t0, amp, tau=0.35, staccato=False):
+        if midi is None or t0 >= T - 0.05: return
+        dur = min(0.30 if staccato else 1.5, T - t0)
+        t = np.arange(int(dur * SR)) / SR
+        env = np.exp(-t / (0.10 if staccato else tau)) * np.minimum(1, t / 0.004)
         fr = f(midi)
-        w = (np.sin(2 * np.pi * fr * t)
-             + 0.26 * np.sin(2 * np.pi * fr * 3.01 * t)
-             + 0.09 * np.sin(2 * np.pi * fr * 5.4 * t))
+        w = (np.sin(2*np.pi*fr*t) + 0.26*np.sin(2*np.pi*fr*3.01*t) + 0.09*np.sin(2*np.pi*fr*5.4*t))
         add(amp * env * w, t0, 0.60, 0.80)
 
-    def pad(midis, t0, dur, amp=0.038):
+    def pad(midis, t0, dur, amp=0.032):
         dur = min(dur, T - t0)
-        if dur <= 0.1:
-            return
-        N = int(dur * SR)
-        t = np.arange(N) / SR
-        a = np.minimum(1, t / 0.10) * np.minimum(1, np.maximum(0.0, (dur - t) / 0.30))
-        s = sum(np.sin(2 * np.pi * f(m) * t) + 0.22 * np.sin(2 * np.pi * f(m) * 2 * t) for m in midis)
+        if dur <= 0.1: return
+        t = np.arange(int(dur * SR)) / SR
+        a = np.minimum(1, t / 0.08) * np.minimum(1, np.maximum(0.0, (dur - t) / 0.25))
+        s = sum(np.sin(2*np.pi*f(m)*t) + 0.22*np.sin(2*np.pi*f(m)*2*t) for m in midis)
         add(amp * a * s / len(midis), t0, 1.0, 1.0)
 
-    def bass(midi, t0, amp=0.10, tau=0.22):
-        if t0 >= T - 0.06:
-            return
-        N = int(min(beat * 0.9, T - t0) * SR)
-        t = np.arange(N) / SR
-        s = amp * np.exp(-t / tau) * np.minimum(1, t / 0.006) * np.sin(2 * np.pi * f(midi) * t)
+    def bass(midi, t0, amp=0.115, tau=0.13):
+        if t0 >= T - 0.05: return
+        t = np.arange(int(min(BEAT * 0.9, T - t0) * SR)) / SR
+        s = amp * np.exp(-t / tau) * np.minimum(1, t / 0.006) * np.sin(2*np.pi*f(midi)*t)
         add(s, t0, 1.0, 1.0)
 
-    def stab(midis, t0, amp=0.050):  # 切分伴奏（ukulele 感短促和弦）
-        if t0 >= T - 0.06:
-            return
-        N = int(0.10 * SR)
-        t = np.arange(N) / SR
-        env = np.exp(-t / 0.045) * np.minimum(1, t / 0.003)
-        s = sum(np.sin(2 * np.pi * f(m) * t) for m in midis) * amp * env / len(midis)
+    def stab(midis, t0, amp=0.058):
+        if t0 >= T - 0.05: return
+        t = np.arange(int(0.09 * SR)) / SR
+        env = np.exp(-t / 0.04) * np.minimum(1, t / 0.003)
+        s = sum(np.sin(2*np.pi*f(m)*t) for m in midis) * amp * env / len(midis)
         add(s, t0, 0.85, 0.60)
 
     def kick(t0, amp=0.20):
-        N = int(0.10 * SR)
-        t = np.arange(N) / SR
+        t = np.arange(int(0.10 * SR)) / SR
         fr = 110 * np.exp(-t / 0.03) + 48
-        s = amp * np.exp(-t / 0.045) * np.sin(2 * np.pi * np.cumsum(fr) / SR)
-        add(s, t0, 1.0, 1.0, perc=True)
+        add(amp * np.exp(-t / 0.045) * np.sin(2*np.pi*np.cumsum(fr)/SR), t0, 1.0, 1.0, perc=True)
 
-    def hat(t0, amp=0.040):
+    def hat(t0, amp=0.05):
         N = int(0.030 * SR)
-        s = np.diff(noise[:N + 1]) * amp * np.exp(-np.arange(N) / (0.008 * SR))
-        add(s, t0, 0.5, 0.7, perc=True)
+        add(np.diff(noise[:N+1]) * amp * np.exp(-np.arange(N)/(0.008*SR)), t0, 0.5, 0.7, perc=True)
 
     def clap(t0, amp=0.095):
         N = int(0.070 * SR)
         t = np.arange(N) / SR
-        s = noise[100:100 + N] * amp * np.exp(-t / 0.028) * np.sin(2 * np.pi * 1800 * t) ** 2
-        add(s, t0, 0.8, 0.8, perc=True)
+        add(noise[100:100+N] * amp * np.exp(-t/0.028) * np.sin(2*np.pi*1800*t)**2, t0, 0.8, 0.8, perc=True)
 
-    chords = [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]]  # C Am F G
-    roots = [48, 45, 41, 43]
-    fifth = [55, 52, 48, 50]
-    melody = [
-        [76, 79, 84, 79], [81, 76, 72, 76], [77, 81, 84, 81], [79, 83, 86, 83],
-        [84, 79, 76, 79], [81, 84, 88, 84], [77, 81, 84, 86], [86, 83, 79, 76],
-    ]
-    passing = {76: 77, 79: 81, 84: 86, 81: 83, 72: 74, 77: 79, 83: 84, 86: 88, 88: 89}
+    def crash(t0, amp=0.075):  # 換頁重音的亮鈸
+        N = int(0.7 * SR)
+        s = np.diff(noise[200:200+N+1]) * amp * np.exp(-np.arange(N)/(0.18*SR))
+        add(s, t0, 0.9, 0.7, perc=True)
 
-    lift_bar = max(1, round(lift_t / bar))
-    end_calm_t = T - 2 * bar  # 最後兩小節收尾
-    t0 = 0.15
-    bar_i = 0
-    while t0 < T - 0.6:
-        ci = bar_i % 4
-        upbeat = (bar_i >= lift_bar) and (t0 < end_calm_t)
-        phrase = melody[bar_i % 8]
-        if not upbeat:
-            pad(chords[ci], t0, bar * 1.02)
-            bass(roots[ci] - 12, t0, amp=0.085, tau=0.30)
-            bass(roots[ci] - 12, t0 + 2 * beat, amp=0.06, tau=0.30)
-            for k, m in enumerate(phrase):
-                box(m, t0 + k * beat, 0.15)
-                if bar_i >= 2 and k % 2 == 1:
-                    box(m + 12, t0 + k * beat + beat * 0.5, 0.04)
-        else:
-            pad(chords[ci], t0, bar * 1.02, amp=0.028)
-            for k in range(4):
-                bass(roots[ci] if k % 2 == 0 else fifth[ci], t0 + k * beat, amp=0.115, tau=0.15)
-                kick(t0 + k * beat) if k in (0, 2) else clap(t0 + k * beat)
-                hat(t0 + k * beat, 0.045)
-                hat(t0 + (k + 0.5) * beat, 0.068)
-                if k in (1, 3):
-                    stab([m + 12 for m in chords[ci]], t0 + (k + 0.5) * beat, amp=0.058)
-            for k, m in enumerate(phrase):  # 旋律加密：正拍主音＋後半拍經過音
-                box(m, t0 + k * beat, 0.155, staccato=False)
-                nxt = phrase[(k + 1) % 4]
-                mid = passing.get(m, m + 2 if nxt > m else m - 1)
-                box(mid, t0 + (k + 0.5) * beat, 0.075, staccato=True)
-            if bar_i % 2 == 1:
-                box(phrase[0] + 12, t0 + 3.5 * beat, 0.045, staccato=True)
-        bar_i += 1
-        t0 += bar
+    def riser(t_end, amp=0.035, dur=0.35):  # 進頁前的上行氣音
+        N = int(dur * SR)
+        t = np.arange(N) / SR
+        add(noise[400:400+N] * amp * (t/dur)**2, t_end - dur, 0.6, 0.6, perc=True)
 
-    # 收尾：琶音上行＋主和弦鐘聲
-    ct = max(end_calm_t, t0 - bar)
-    pad([60, 64, 67, 72], ct, T - ct, amp=0.05)
-    for k, m in enumerate([72, 76, 79, 84]):
-        box(m, ct + k * beat * 0.5, 0.12)
-    box(88, ct + 2.4 * beat, 0.10, tau=0.9)
+    # 和弦（每景內循環：主→…→屬，屬和弦把聽感推向下一頁）
+    C, Am, F, G = [60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]
+    CH_INTRO = [C, F, G]                # S0（3 小節）
+    CH_LOOP  = [C, Am, F, G]            # 4 小節景
+    CH_OUT   = [C, F, C, C]             # S8 收尾回家
+    ROOT = {tuple(C): 48, tuple(Am): 45, tuple(F): 41, tuple(G): 43}
+    FIFTH = {tuple(C): 55, tuple(Am): 52, tuple(F): 48, tuple(G): 50}
+    # 主旋律：4 小節樂句 A/B 逐頁輪替（每小節 4 個四分音符）
+    PA = [[76,79,84,79],[81,84,88,84],[77,81,84,81],[79,83,86,83]]
+    PB = [[84,79,76,79],[88,84,81,84],[81,84,89,86],[86,83,79,77]]
+    MEL_INTRO = [[72,76,79,84],[77,81,84,81],[79,83,86,None]]
+    MEL_OUT   = [[88,86,84,79],[84,79,76,74],[72,76,79,84],[84,None,None,None]]
 
-    # 乒乓延遲
-    D = int(0.30 * SR)
+    sw = SWING * BEAT  # 搖擺後半拍偏移
+    total_bars = int(round((starts[-1] + (T - FADE_TAIL - starts[-1])) / BAR))  # 到 fade_start
+    fade_start = T - FADE_TAIL
+
+    b = 0
+    t0 = 0.0
+    while t0 < fade_start - 1e-6:
+        # 此小節屬於哪一景、景內第幾小節
+        k = max(i for i, s in enumerate(starts) if t0 >= s - 1e-6)
+        bin_scene = int(round((t0 - starts[k]) / BAR))
+        n_bars = 3 if k == 0 else 4
+        chords = CH_INTRO if k == 0 else (CH_OUT if k == 8 else CH_LOOP)
+        ch = chords[bin_scene % len(chords)]
+        root, fifth = ROOT[tuple(ch)], FIFTH[tuple(ch)]
+        page_turn = (bin_scene == 0 and k >= 1)
+        last_bar = (bin_scene == n_bars - 1 and k < N_SCENE - 1)
+        mel = (MEL_INTRO if k == 0 else MEL_OUT if k == 8 else (PA if k % 2 == 1 else PB))[bin_scene % n_bars]
+
+        # 換頁重音：crash＋kick＋和弦重擊＋低音
+        if page_turn:
+            crash(t0)
+            kick(t0, 0.24)
+            stab([m + 12 for m in ch], t0, 0.10)
+            stab(ch, t0 + 0.02, 0.07)
+            bass(root - 12, t0, amp=0.15, tau=0.22)
+
+        if k == 0:  # 開場：音樂盒＋柔和墊，無鼓
+            pad(ch, t0, BAR * 1.02, amp=0.036)
+            bass(root, t0, amp=0.07, tau=0.28)
+            for q, m in enumerate(mel):
+                box(m, t0 + q * BEAT, 0.15)
+        elif k == 8:  # 收尾：重音進場後逐步收
+            pad(ch + ([72] if bin_scene >= 2 else []), t0, BAR * 1.02, amp=0.042)
+            if bin_scene < 2:
+                kick(t0)
+                hat(t0 + 2 * BEAT + sw, 0.04)
+                bass(root, t0, amp=0.10)
+                bass(fifth, t0 + 2 * BEAT, amp=0.08)
+            for q, m in enumerate(mel):
+                box(m, t0 + q * BEAT, 0.15, tau=0.5)
+            if bin_scene == 2:  # 琶音上行
+                for q, m in enumerate([72, 76, 79, 84]):
+                    box(m, t0 + q * BEAT * 0.5, 0.10, staccato=True)
+            if bin_scene == 3:  # 終止鐘聲
+                box(84, t0, 0.13, tau=0.9)
+                box(88, t0 + BEAT, 0.10, tau=0.9)
+        else:  # 功能頁：全律動（輕搖擺玩具鼓組）
+            pad(ch, t0, BAR * 1.02, amp=0.026)
+            for q in range(4):
+                bt = t0 + q * BEAT
+                if q in (0, 2):
+                    if not (q == 0 and page_turn):
+                        kick(bt)
+                else:
+                    clap(bt)
+                hat(bt, 0.040)
+                hat(bt + sw, 0.062)                        # 搖擺反拍
+                bass(root if q % 2 == 0 else fifth, bt)
+                if q in (1, 3):
+                    stab([m + 12 for m in ch], bt + sw)     # 反拍切分
+            if k == 7:  # 角色頁＝能量頂點：加密 hat
+                hat(t0 + 0.5 * BEAT, 0.035)
+                hat(t0 + 2.5 * BEAT, 0.035)
+            for q, m in enumerate(mel):
+                box(m, t0 + q * BEAT, 0.15)
+                if k >= 4 and q in (1, 3):
+                    box(m + 12, t0 + q * BEAT + sw, 0.045, staccato=True)  # 高八度回聲
+            if last_bar:  # 頁尾 fill＋riser
+                clap(t0 + 3 * BEAT + 0.5 * BEAT, 0.06)
+                clap(t0 + 3 * BEAT + 0.75 * BEAT, 0.085)
+                riser(t0 + BAR)
+        b += 1
+        t0 += BAR
+
+    # 延遲只掛音高 bus（0.25s＝八分音符，節奏內）
+    D = int(0.25 * SR)
     Ld, Rd = L.copy(), R.copy()
-    g = 0.22
+    g = 0.20
     for r in range(1, 4):
         gl = g ** r
-        if D * r >= n:
-            break
+        if D * r >= n: break
         src_l, src_r = (Rd, Ld) if r % 2 else (Ld, Rd)
-        L[D * r:] += src_l[:n - D * r] * gl
-        R[D * r:] += src_r[:n - D * r] * gl
+        L[D*r:] += src_l[:n - D*r] * gl
+        R[D*r:] += src_r[:n - D*r] * gl
 
-    L += Lp
-    R += Rp
-    fi = int(0.8 * SR)
-    L[:fi] *= np.linspace(0, 1, fi)
-    R[:fi] *= np.linspace(0, 1, fi)
-    fo = int(2.0 * SR)
-    L[-fo:] *= np.linspace(1, 0, fo)
-    R[-fo:] *= np.linspace(1, 0, fo)
-
+    L += Lp; R += Rp
+    fi = int(0.15 * SR)
+    L[:fi] *= np.linspace(0, 1, fi); R[:fi] *= np.linspace(0, 1, fi)
+    fo = int(1.6 * SR)
+    L[-fo:] *= np.linspace(1, 0, fo); R[-fo:] *= np.linspace(1, 0, fo)
     peak = max(np.abs(L).max(), np.abs(R).max(), 1e-9)
     k = 0.34 / peak
     return L * k, R * k
@@ -283,7 +306,7 @@ def synth_music(T, lift_t):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--zhtts', action='store_true', help='無 voice/ 檔時強制用 zhtts 合成旁白')
+    ap.add_argument('--zhtts', action='store_true')
     args = ap.parse_args()
 
     narr = load_narrations(args.zhtts)
@@ -291,7 +314,7 @@ def main():
     durs, starts, fade_start, total = build_timeline(narr_durs)
     n = int(total * SR)
 
-    Lm, Rm = synth_music(total, lift_t=starts[2])
+    Lm, Rm = synth_music(total, starts)
 
     if narr:
         V = np.zeros(n)
@@ -299,32 +322,29 @@ def main():
             p = int((st + NARR_OFFSET) * SR)
             V[p:p + len(w)] += w[:max(0, n - p)]
         vp = np.abs(V).max()
-        if vp > 0:
-            V *= 0.90 / vp
+        if vp > 0: V *= 0.90 / vp
         env = fftconvolve(np.abs(V), np.hanning(int(0.25 * SR)), mode='same')
         env /= max(env.max(), 1e-9)
         duck = 1.0 - 0.58 * np.clip(env * 1.5, 0, 1)
         L = V * 0.97 + Lm * duck
         R = V * 0.97 + Rm * duck
     else:
-        L, R = Lm / 0.34 * 0.85, Rm / 0.34 * 0.85  # 無旁白：配樂當主角，峰值 -1.4dB
+        L, R = Lm / 0.34 * 0.85, Rm / 0.34 * 0.85
 
     peak = max(np.abs(L).max(), np.abs(R).max())
     if peak > 0.95:
-        L *= 0.95 / peak
-        R *= 0.95 / peak
+        L *= 0.95 / peak; R *= 0.95 / peak
     wavfile.write(f'{OUT}/audio_mix.wav', SR, (np.stack([L, R], 1) * 32767).astype(np.int16))
 
     tl = {'fps': FPS, 'total': total, 'fadeStart': fade_start, 'starts': starts, 'durs': durs,
+          'bpm': BPM, 'bar': BAR,
           'narrOffsets': [round(s + NARR_OFFSET, 6) for s in starts] if narr else [],
           'narrDurs': [round(d, 3) for d in narr_durs] if narr else [],
           'voice': ('external' if find_voice_files() else 'zhtts') if narr else 'none'}
     with open(f'{OUT}/timeline.json', 'w') as fp:
         json.dump(tl, fp, indent=1)
-    if narr:
-        print('narr_durs:', [round(d, 2) for d in narr_durs])
-    print('voice:', tl['voice'], ' scene_durs:', durs)
-    print('total: %.2fs  lift@%.1fs' % (total, starts[2]))
+    print('voice:', tl['voice'], ' durs:', durs)
+    print('total: %.2fs  bpm=%d bar=%.1fs  換頁點=' % (total, BPM, BAR), starts[1:])
     print('WROTE out/audio_mix.wav, out/timeline.json')
 
 
