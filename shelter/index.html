@@ -1,0 +1,1642 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E⛺%3C/text%3E%3C/svg%3E">
+<title>安身｜慈濟大型災害收容安置管理系統（演示原型）</title>
+<style>
+/* ============ 設計 tokens（雙主題）============ */
+:root{
+  --navy:#1E4066; --navy-deep:#16334F; --navy-ink:#123; --on-navy:#F4F7FB;
+  --wood:#8A6B45;
+  --bg:#F2F4F7; --surface:#FFFFFF; --surface2:#E9EDF3; --surface3:#DFE5EE;
+  --ink:#1C2736; --ink2:#4E5E74; --ink3:#7C8AA0; --border:#D8DFE9; --border2:#C4CEDC;
+  --ok:#2E7D4F; --ok-bg:#E3F1E9; --warn:#B45309; --warn-bg:#F7ECDC; --crit:#B3372B; --crit-bg:#F8E7E4; --info-bg:#E6EDF6;
+  --c1:#3A6FB0; --c2:#C07A2E; --c3:#3E8E5C; --c4:#9061C2;
+  --shadow:0 1px 3px rgba(20,35,60,.08),0 4px 14px rgba(20,35,60,.06);
+  --shadow-lg:0 6px 28px rgba(15,25,45,.18);
+  --r:10px; --r-sm:6px;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --sans:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --focus:0 0 0 3px rgba(58,111,176,.35);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --navy:#2E5A8F; --navy-deep:#254a77; --on-navy:#EAF1F9; --wood:#C9A87A;
+    --bg:#0F1621; --surface:#182231; --surface2:#1F2C3F; --surface3:#26354B;
+    --ink:#E9EEF5; --ink2:#A6B4C8; --ink3:#71809A; --border:#2A3A52; --border2:#38496399;
+    --ok:#5BBF8A; --ok-bg:#1B3327; --warn:#E8A33D; --warn-bg:#3A2C14; --crit:#E36B5C; --crit-bg:#3B1F1B; --info-bg:#1D2E44;
+    --c1:#5C8FC7; --c2:#CE7F2B; --c3:#55A377; --c4:#A97FD1;
+    --shadow:0 1px 3px rgba(0,0,0,.35),0 4px 14px rgba(0,0,0,.28);
+    --shadow-lg:0 8px 32px rgba(0,0,0,.5);
+    --focus:0 0 0 3px rgba(92,143,199,.45);
+  }
+}
+:root[data-theme="light"]{
+  --navy:#1E4066; --navy-deep:#16334F; --on-navy:#F4F7FB; --wood:#8A6B45;
+  --bg:#F2F4F7; --surface:#FFFFFF; --surface2:#E9EDF3; --surface3:#DFE5EE;
+  --ink:#1C2736; --ink2:#4E5E74; --ink3:#7C8AA0; --border:#D8DFE9; --border2:#C4CEDC;
+  --ok:#2E7D4F; --ok-bg:#E3F1E9; --warn:#B45309; --warn-bg:#F7ECDC; --crit:#B3372B; --crit-bg:#F8E7E4; --info-bg:#E6EDF6;
+  --c1:#3A6FB0; --c2:#C07A2E; --c3:#3E8E5C; --c4:#9061C2;
+  --shadow:0 1px 3px rgba(20,35,60,.08),0 4px 14px rgba(20,35,60,.06);
+  --shadow-lg:0 6px 28px rgba(15,25,45,.18);
+  --focus:0 0 0 3px rgba(58,111,176,.35);
+}
+:root[data-theme="dark"]{
+  --navy:#2E5A8F; --navy-deep:#254a77; --on-navy:#EAF1F9; --wood:#C9A87A;
+  --bg:#0F1621; --surface:#182231; --surface2:#1F2C3F; --surface3:#26354B;
+  --ink:#E9EEF5; --ink2:#A6B4C8; --ink3:#71809A; --border:#2A3A52; --border2:#38496399;
+  --ok:#5BBF8A; --ok-bg:#1B3327; --warn:#E8A33D; --warn-bg:#3A2C14; --crit:#E36B5C; --crit-bg:#3B1F1B; --info-bg:#1D2E44;
+  --c1:#5C8FC7; --c2:#CE7F2B; --c3:#55A377; --c4:#A97FD1;
+  --shadow:0 1px 3px rgba(0,0,0,.35),0 4px 14px rgba(0,0,0,.28);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.5);
+  --focus:0 0 0 3px rgba(92,143,199,.45);
+}
+/* ============ 基底 ============ */
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+:is(button,select,input,textarea,a,[tabindex]):focus-visible{outline:none;box-shadow:var(--focus);border-radius:var(--r-sm)}
+img,svg{max-width:100%}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* ============ 版面骨架 ============ */
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+.sidebar{background:var(--navy-deep);color:var(--on-navy);padding:18px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.brand{display:flex;align-items:baseline;gap:8px;padding:2px 8px}
+.brand .zh{font-family:var(--serif);font-size:26px;font-weight:700;letter-spacing:.14em}
+.brand .en{font-size:10px;letter-spacing:.12em;opacity:.66;text-transform:uppercase}
+.brand-sub{font-size:11px;opacity:.62;padding:0 8px;letter-spacing:.05em}
+.side-nav{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.side-nav button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 10px;border-radius:8px;color:var(--on-navy);opacity:.78;font-size:14px}
+.side-nav button:hover{background:rgba(255,255,255,.09);opacity:1}
+.side-nav button.on{background:rgba(255,255,255,.16);opacity:1;font-weight:600}
+.side-nav .nicon{width:20px;text-align:center;flex:none}
+.side-nav .badge{margin-left:auto;background:var(--crit);color:#fff;font-size:11px;border-radius:99px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.side-foot{margin-top:auto;font-size:11px;opacity:.55;padding:0 8px;line-height:1.7}
+/* 頂列（行動版） */
+.topbar{display:none;position:sticky;top:0;z-index:40;background:var(--navy-deep);color:var(--on-navy);padding:10px 12px 0;box-shadow:var(--shadow)}
+.topbar-row{display:flex;align-items:center;gap:10px}
+.topbar .zh{font-family:var(--serif);font-size:19px;font-weight:700;letter-spacing:.12em}
+.tab-rail{display:flex;gap:2px;overflow-x:auto;padding:8px 2px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tab-rail::-webkit-scrollbar{display:none}
+.tab-rail button{flex:none;padding:8px 12px 10px;color:var(--on-navy);opacity:.75;font-size:13.5px;border-bottom:3px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.tab-rail button.on{opacity:1;font-weight:600;border-bottom-color:var(--on-navy)}
+.tab-rail .badge{background:var(--crit);color:#fff;font-size:10px;border-radius:99px;padding:0 6px;font-variant-numeric:tabular-nums}
+/* 主內容 */
+.main{min-width:0;padding:0 26px 60px}
+.event-strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);margin:0 -26px;padding:11px 26px;position:sticky;top:0;z-index:30}
+.event-strip .ev-name{font-weight:700;font-size:14px}
+.event-strip .lv{font-size:12px;background:var(--crit-bg);color:var(--crit);border-radius:99px;padding:2px 10px;font-weight:600}
+.event-strip .spacer{flex:1}
+.content{max-width:1180px;margin:0 auto}
+.page-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin:26px 0 4px}
+.page-head h1{font-family:var(--serif);font-size:24px;font-weight:700;letter-spacing:.06em}
+.page-head .sub{color:var(--ink3);font-size:13px}
+.page-head .actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.crumb{font-size:12px;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;margin-top:22px}
+/* ============ 元件 ============ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 18px;min-width:0}
+.card h3{font-size:14px;color:var(--ink2);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card h3 .more{margin-left:auto;font-size:12px;color:var(--c1);font-weight:500}
+.grid{display:grid;gap:14px;margin:14px 0}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.gauto{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat .k{font-size:12.5px;color:var(--ink3)}
+.stat .v{font-size:27px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat .v small{font-size:13px;font-weight:500;color:var(--ink3);margin-left:3px}
+.stat .d{font-size:12px;color:var(--ink3)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;border-radius:99px;padding:2.5px 10px;font-weight:600;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.crit{background:var(--crit-bg);color:var(--crit)}
+.chip.info{background:var(--info-bg);color:var(--c1)}
+.chip.mut{background:var(--surface2);color:var(--ink2)}
+.chip.wood{background:transparent;color:var(--wood);border:1px solid var(--wood)}
+.dot{width:8px;height:8px;border-radius:99px;flex:none}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.crit{background:var(--crit)}.dot.mut{background:var(--ink3)}
+/* 燈號警示列 */
+.alert-strip{display:flex;gap:10px;overflow-x:auto;padding:2px;margin:16px 0 0;scrollbar-width:none}
+.alert-strip::-webkit-scrollbar{display:none}
+.signal{flex:1;min-width:150px;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--ink3);border-radius:var(--r-sm);padding:10px 13px;box-shadow:var(--shadow)}
+.signal.crit{border-left-color:var(--crit)}.signal.warn{border-left-color:var(--warn)}.signal.ok{border-left-color:var(--ok)}
+.signal .n{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.signal .t{font-size:12px;color:var(--ink2);line-height:1.35}
+/* 按鈕 */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:8px;font-size:13.5px;font-weight:600;border:1px solid transparent;transition:filter .12s}
+.btn:hover{filter:brightness(1.06)}
+.btn.pri{background:var(--navy);color:var(--on-navy)}
+.btn.sec{background:var(--surface);border-color:var(--border2);color:var(--ink)}
+.btn.ok{background:var(--ok);color:#fff}
+.btn.crit-o{background:transparent;border-color:var(--crit);color:var(--crit)}
+.btn.sm{padding:5px 11px;font-size:12.5px;border-radius:7px}
+.btn.locked{opacity:.55;position:relative}
+.btn.locked::after{content:"🔒";font-size:11px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+/* 表格 */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{font-size:12px;color:var(--ink3);font-weight:600;text-align:left;letter-spacing:.04em;white-space:nowrap}
+th,td{padding:9px 12px;border-bottom:1px solid var(--border)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+/* 容量量表 */
+.meter{height:8px;background:var(--surface3);border-radius:99px;overflow:hidden;min-width:70px}
+.meter i{display:block;height:100%;background:var(--c1);border-radius:99px;transition:width .3s}
+.meter.warn i{background:var(--warn)}.meter.crit i{background:var(--crit)}
+.meter-row{display:flex;align-items:center;gap:10px}
+.meter-row .lab{font-size:12.5px;color:var(--ink2);width:110px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meter-row .val{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink2);width:72px;text-align:right;flex:none}
+/* 小型長條圖 */
+.bars{display:flex;align-items:flex-end;gap:2px;height:88px;padding-top:6px}
+.bars .bar{flex:1;background:var(--c1);border-radius:4px 4px 0 0;min-height:3px;position:relative}
+.bars .bar.b2{background:var(--c2)}.bars .bar.b3{background:var(--c3)}.bars .bar.b4{background:var(--c4)}
+.bar .bl{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:10.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.bars-x{display:flex;gap:2px;margin-top:5px}
+.bars-x span{flex:1;text-align:center;font-size:11px;color:var(--ink3)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--ink2);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+/* 表單 */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;min-width:0}
+.field>label{font-size:12.5px;color:var(--ink2);font-weight:600}
+.field input,.field select,.field textarea{background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-size:14px;width:100%}
+.field .hint{font-size:11.5px;color:var(--ink3)}
+.field.err input,.field.err select{border-color:var(--crit)}
+.field .errmsg{font-size:12px;color:var(--crit)}
+.frow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 12px}
+fieldset{border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px}
+legend{font-size:12px;color:var(--ink3);padding:0 6px;letter-spacing:.05em}
+.checks{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}
+.checks label{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+/* 步驟條 */
+.steps{display:flex;gap:0;margin:14px 0 20px;overflow-x:auto}
+.step{flex:1;min-width:86px;text-align:center;position:relative;font-size:12px;color:var(--ink3);padding-top:26px}
+.step::before{content:attr(data-n);position:absolute;top:0;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:99px;background:var(--surface3);color:var(--ink2);font-size:11.5px;line-height:22px;font-weight:700}
+.step::after{content:"";position:absolute;top:11px;left:calc(50% + 14px);width:calc(100% - 28px);height:2px;background:var(--surface3)}
+.step:last-child::after{display:none}
+.step.on{color:var(--ink);font-weight:600}
+.step.on::before{background:var(--navy);color:var(--on-navy)}
+.step.done{color:var(--ok)}
+.step.done::before{background:var(--ok);color:#fff;content:"✓"}
+.step.done::after{background:var(--ok)}
+/* 清單卡 */
+.item-list{display:flex;flex-direction:column;gap:10px}
+.item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;box-shadow:var(--shadow)}
+.item .row1{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.item .ttl{font-weight:700;font-size:14.5px}
+.item .meta{font-size:12.5px;color:var(--ink3);margin-top:3px;line-height:1.6}
+.item .acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.item .right{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+/* 時間線 */
+.tl{list-style:none;position:relative;padding-left:18px}
+.tl::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:var(--border)}
+.tl li{position:relative;padding:0 0 12px 12px;font-size:13px}
+.tl li::before{content:"";position:absolute;left:-17px;top:5px;width:8px;height:8px;border-radius:99px;background:var(--c1);outline:3px solid var(--surface)}
+.tl .t{color:var(--ink3);font-size:11.5px;font-variant-numeric:tabular-nums}
+/* Modal / Toast */
+.modal-bg{position:fixed;inset:0;background:rgba(10,18,30,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;backdrop-filter:blur(2px)}
+.modal{background:var(--surface);border-radius:14px;box-shadow:var(--shadow-lg);max-width:640px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 24px}
+.modal h2{font-family:var(--serif);font-size:19px;margin-bottom:4px;letter-spacing:.04em}
+.modal .msub{font-size:12.5px;color:var(--ink3);margin-bottom:14px}
+.modal .macts{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}
+#toasts{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:200;width:min(420px,92vw)}
+.toast{background:var(--ink);color:var(--bg);border-radius:9px;padding:10px 15px;font-size:13.5px;box-shadow:var(--shadow-lg);display:flex;gap:9px;align-items:flex-start;animation:tin .25s ease}
+.toast.crit{background:var(--crit);color:#fff}.toast.ok{background:var(--ok);color:#fff}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* 連動摘要（money shot） */
+.ripple-house{text-align:center;padding:14px 10px 6px}
+.ripple-house .hh{font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:.05em}
+.ripple-house .hs{font-size:12.5px;color:var(--ink3);margin-top:3px}
+.ripple-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.bubble{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;opacity:0;transform:scale(.7);animation:pop .38s cubic-bezier(.2,1.4,.4,1) forwards}
+.bubble .bi{font-size:17px}
+.bubble .bv{font-size:17px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.bubble .bk{font-size:11px;color:var(--ink2);margin-top:2px;line-height:1.4}
+.bubble.up .bv{color:var(--c1)}.bubble.down .bv{color:var(--warn)}.bubble.alert{border-color:var(--crit)}.bubble.alert .bv{color:var(--crit)}
+@keyframes pop{to{opacity:1;transform:none}}
+/* 制度說明（三流圖解） */
+.flow-box{border:1px solid var(--border);border-radius:var(--r);padding:16px;background:var(--surface);margin:12px 0;overflow-x:auto}
+.flow-line{display:flex;align-items:stretch;gap:0;min-width:560px}
+.fnode{flex:1;border:1.5px solid var(--border2);border-radius:9px;padding:9px 8px;text-align:center;background:var(--surface2);position:relative;min-width:76px}
+.fnode b{display:block;font-size:13px}
+.fnode span{font-size:11px;color:var(--ink3);display:block;margin-top:2px;line-height:1.4}
+.fnode.hot{border-color:var(--navy);background:var(--info-bg)}
+.fnode.okn{border-color:var(--ok);background:var(--ok-bg)}
+.farr{flex:none;display:flex;align-items:center;padding:0 5px;color:var(--ink3);font-size:15px}
+.fnote{font-size:12px;color:var(--ink3);margin-top:8px;line-height:1.7}
+.matrix-wrap{overflow-x:auto}
+.matrix{border-collapse:collapse;font-size:12px;min-width:660px}
+.matrix th,.matrix td{border:1px solid var(--border);padding:6px 8px;text-align:center}
+.matrix th{background:var(--surface2);font-size:11.5px}
+.matrix td.y{background:var(--ok-bg);color:var(--ok);font-weight:700}
+.matrix td.p{background:var(--warn-bg);color:var(--warn);font-weight:700}
+.matrix td.n{color:var(--ink3)}
+.matrix td.rl{text-align:left;font-weight:600;background:var(--surface2);white-space:nowrap}
+/* 燈箱式核取清單 */
+.check-list{list-style:none;display:flex;flex-direction:column;gap:7px}
+.check-list li{display:flex;gap:9px;align-items:flex-start;font-size:13.5px}
+.check-list .cbx{flex:none;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border2);display:grid;place-items:center;font-size:12px;margin-top:1px}
+.check-list li.done .cbx{background:var(--ok);border-color:var(--ok);color:#fff}
+.check-list li.done{color:var(--ink2)}
+/* 角色徽章 */
+.role-pill{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:99px;padding:5px 12px;font-size:12.5px;color:var(--on-navy)}
+.role-pill select{background:transparent;border:none;color:inherit;font-weight:700;font-size:13px;max-width:130px}
+.role-pill select option{color:#1C2736}
+.mini-note{font-size:11px;opacity:.6}
+/* 空區塊 */
+.empty{border:1.5px dashed var(--border2);border-radius:var(--r);padding:26px 16px;text-align:center;color:var(--ink3);font-size:13px}
+/* 分區色帶 */
+.zone-tag{display:inline-block;font-size:11px;border-radius:5px;padding:1px 7px;background:var(--surface3);color:var(--ink2);font-weight:600}
+/* 頁尾 */
+.foot{margin-top:44px;padding-top:16px;border-top:1px solid var(--border);color:var(--ink3);font-size:11.5px;line-height:1.8}
+.foot b{font-family:var(--serif);color:var(--wood);letter-spacing:.1em}
+/* 子分欄 */
+.subtabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:14px 0}
+.subtabs button{padding:7px 13px;font-size:13px;color:var(--ink3);border-bottom:2px solid transparent;margin-bottom:-1px}
+.subtabs button.on{color:var(--ink);font-weight:700;border-bottom-color:var(--navy)}
+.subtabs .cnt{font-size:11px;background:var(--surface3);border-radius:99px;padding:0 6px;margin-left:4px}
+/* RWD */
+@media (max-width:1023px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .topbar{display:block}
+  .main{padding:0 14px 40px}
+  .event-strip{margin:0 -14px;padding:9px 14px;position:static}
+  .g2,.g3,.g4{grid-template-columns:1fr 1fr}
+  .page-head h1{font-size:20px}
+  .ripple-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:520px){
+  .g3,.g4{grid-template-columns:1fr 1fr}
+  .g2{grid-template-columns:1fr}
+  .frow{grid-template-columns:1fr 1fr}
+  .modal{padding:17px 15px}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar" aria-label="主選單"></aside>
+  <div class="main">
+    <div class="topbar" id="topbar"></div>
+    <div class="event-strip" id="eventStrip"></div>
+    <div class="content" id="view" aria-live="polite"></div>
+  </div>
+</div>
+<div id="modalRoot"></div>
+<div id="toasts" aria-live="assertive"></div>
+<script>
+"use strict";
+/* ================================================================
+   安身 AnShen — 慈濟大型災害收容安置管理系統（演示原型）
+   單一資料源 S ＋集中權限表 PERM ＋單次 commit 連動
+   ================================================================ */
+const VER = 'anshen-v1';
+const $  = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const nowStr = () => { const d = new Date(); return `${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+
+/* ---------- 角色與權限（集中權限表：唯一裁決點） ---------- */
+const TABS = {
+  dash:     {name:'總覽儀表板', icon:'◉'},
+  sites:    {name:'據點與空間', icon:'⌂'},
+  intake:   {name:'報到與住民', icon:'✎'},
+  care:     {name:'個案關懷',   icon:'♡'},
+  meals:    {name:'香積餐食',   icon:'☕'},
+  supplies: {name:'物資設備',   icon:'▤'},
+  staff:    {name:'志工人力',   icon:'✻'},
+  about:    {name:'制度說明',   icon:'✦'},
+};
+const ROLES = {
+  hq:      {name:'總指揮中心',  org:'本會防災協調中心',   home:'dash',
+            tabs:['dash','sites','intake','care','meals','supplies','staff','about']},
+  cmd:     {name:'據點指揮',    org:'園區／分會（合心・和氣）', home:'dash',
+            tabs:['dash','sites','intake','care','meals','supplies','staff','about']},
+  reg:     {name:'報到組',      org:'社區志工（協力）',    home:'intake',
+            tabs:['dash','sites','intake','about']},
+  space:   {name:'空間組',      org:'總務處＋志工',       home:'sites',
+            tabs:['dash','sites','intake','supplies','about']},
+  kitchen: {name:'香積組',      org:'香積志工',           home:'meals',
+            tabs:['dash','meals','supplies','about']},
+  supply:  {name:'物資組',      org:'倉管／總務',         home:'supplies',
+            tabs:['dash','meals','supplies','about']},
+  care:    {name:'關懷組',      org:'訪視志工（安心膚慰）', home:'care',
+            tabs:['dash','intake','care','about']},
+  med:     {name:'醫療組',      org:'人醫會 TIMA',        home:'care',
+            tabs:['dash','intake','care','about']},
+};
+/* 動作 → 允許角色。UI 與 dispatcher 都查這張表，不各寫 if。 */
+const PERM = {
+  'site.applyOpen':   ['cmd'],
+  'site.approveOpen': ['hq'],
+  'intake.register':  ['reg','cmd'],
+  'intake.discharge': ['reg','cmd'],
+  'space.toggleCheck':['space'],
+  'care.log':         ['care','med'],
+  'meal.save':        ['kitchen'],
+  'req.create':       ['kitchen','supply','space','care','cmd'],
+  'req.approve':      ['cmd','hq'],      // 跨據點調撥另檢核僅 hq
+  'req.issue':        ['supply'],
+  'req.receive':      ['kitchen','supply','space','care','cmd'],
+  'donate.receive':   ['supply'],
+};
+const can = a => (PERM[a] || []).includes(S.role);
+const permOwners = a => (PERM[a] || []).map(r => ROLES[r].name).join('／');
+
+/* ---------- 物資品項目錄 ---------- */
+const ITEMS = [
+  {id:'bed',    name:'福慧床',       unit:'張', perPerson:1, returnable:true},
+  {id:'blanket',name:'環保毛毯',     unit:'件', perPerson:1, returnable:true},
+  {id:'kit',    name:'盥洗包',       unit:'份', perPerson:1, returnable:false},
+  {id:'rice',   name:'淨斯香積飯',   unit:'箱'},
+  {id:'water',  name:'瓶裝飲用水',   unit:'箱'},
+  {id:'diaper', name:'嬰幼兒尿布',   unit:'包'},
+  {id:'fem',    name:'女性衛生用品', unit:'包'},
+  {id:'mask',   name:'醫療口罩',     unit:'盒'},
+  {id:'gen',    name:'行動發電機',   unit:'台', equip:true},
+  {id:'light',  name:'LED 照明燈組', unit:'組', equip:true},
+];
+const ITEM = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+const DIETS = {normal:'一般（素）', diabetic:'糖尿病餐', soft:'軟食', infant:'嬰兒副食', allergy:'過敏註記'};
+const DIET_COLORS = {diabetic:'var(--c1)', soft:'var(--c2)', infant:'var(--c3)', allergy:'var(--c4)'};
+const NEEDS = ['慢性病','行動不便','孕婦','嬰幼兒','獨居長者','身心障礙'];
+const SITE_STATUS = {
+  standby: {t:'平時待命', cls:'mut'},  prep:    {t:'預警整備', cls:'info'},
+  applying:{t:'開設申請中', cls:'warn'}, open:   {t:'運作中', cls:'ok'},
+  scaling: {t:'縮編中', cls:'warn'},   closed:  {t:'已關閉復原', cls:'mut'},
+};
+const REQ_STATUS = {
+  pending:{t:'待核准',cls:'warn'}, approved:{t:'已核准・待出庫',cls:'info'},
+  issued:{t:'已出庫・配送中',cls:'info'}, received:{t:'已簽收',cls:'ok'}, rejected:{t:'已駁回',cls:'crit'},
+};
+
+/* ---------- 種子資料（虛構演示情境：0712 山腳斷層地震） ---------- */
+function seed(){
+  return {
+    version: VER, role:'hq', site:'banqiao', tab:'dash', theme:null, seq:100,
+    event: {name:'0712 山腳斷層地震', mag:'M6.8', level:'中央二級開設', started:'07/12 06:47', desc:'新北板橋、三重、北投多處建物受損，市府請求慈濟開設收容處所'},
+    sites: [
+      {id:'banqiao', name:'板橋靜思堂', short:'板橋', status:'open',     cmdr:'陳志明', volunteers:86, openedAt:'07/12 09:30', addr:'新北市板橋區'},
+      {id:'sanchong',name:'三重志業園區', short:'三重', status:'open',   cmdr:'林秀蘭', volunteers:42, openedAt:'07/12 11:05', addr:'新北市三重區'},
+      {id:'guandu',  name:'關渡志業園區', short:'關渡', status:'applying',cmdr:'張文華', volunteers:12, applyAt:'07/13 07:50', applyNote:'北投區收容需求增加，社會局來函請求支援 150 床', addr:'台北市北投區'},
+      {id:'songshan',name:'松山聯絡處', short:'松山', status:'standby',  cmdr:'吳靜宜', volunteers:0, addr:'台北市松山區'},
+    ],
+    spaces: [
+      {id:'sp1', siteId:'banqiao', name:'講經堂',     floor:'1F', zone:'家庭區',     cap:96},
+      {id:'sp2', siteId:'banqiao', name:'感恩堂',     floor:'2F', zone:'長者友善區', cap:40},
+      {id:'sp3', siteId:'banqiao', name:'教室 301',   floor:'3F', zone:'單身女性區', cap:24},
+      {id:'sp4', siteId:'banqiao', name:'教室 302',   floor:'3F', zone:'單身男性區', cap:24},
+      {id:'sp5', siteId:'banqiao', name:'母嬰室',     floor:'2F', zone:'母嬰區',     cap:8},
+      {id:'sp6', siteId:'banqiao', name:'隔離觀察室', floor:'3F', zone:'隔離觀察',   cap:6},
+      {id:'sp7', siteId:'banqiao', name:'醫護站（人醫會）', floor:'1F', zone:'服務空間', cap:null},
+      {id:'sp8', siteId:'banqiao', name:'齋堂（香積供餐）', floor:'1F', zone:'服務空間', cap:null},
+      {id:'sp9', siteId:'banqiao', name:'地下停車場（物資儲運）', floor:'B1', zone:'服務空間', cap:null},
+      {id:'sp10',siteId:'sanchong', name:'大講堂',   floor:'1F', zone:'家庭區',     cap:60},
+      {id:'sp11',siteId:'sanchong', name:'教室 201', floor:'2F', zone:'單身女性區', cap:20},
+      {id:'sp12',siteId:'sanchong', name:'教室 202', floor:'2F', zone:'單身男性區', cap:20},
+      {id:'sp13',siteId:'sanchong', name:'關懷室',   floor:'1F', zone:'服務空間',   cap:null},
+      {id:'sp14',siteId:'guandu',  name:'國際會議廳', floor:'1F', zone:'家庭區',    cap:120},
+      {id:'sp15',siteId:'guandu',  name:'教室群（202–205）', floor:'2F', zone:'彈性分區', cap:60},
+      {id:'sp16',siteId:'songshan',name:'佛堂',      floor:'2F', zone:'家庭區',     cap:40},
+      {id:'sp17',siteId:'songshan',name:'教室 101',  floor:'1F', zone:'彈性分區',   cap:20},
+    ],
+    households: [
+      {id:'H001', siteId:'banqiao', spaceId:'sp1', head:'林建宏', idm:'F12***4821', phone:'0912-***-331', addr:'板橋區文化路二段（紅單）', checkin:'07/12 10:20', status:'in',
+       members:[{name:'林建宏',age:41,sex:'男',diet:'normal',needs:[]},{name:'陳怡君',age:38,sex:'女',diet:'normal',needs:[]},{name:'林小威',age:8,sex:'男',diet:'normal',needs:[]},{name:'林小珍',age:5,sex:'女',diet:'normal',needs:[]},{name:'林張玉蘭',age:68,sex:'女',diet:'soft',needs:['慢性病']}],
+       reserved:{bed:5,blanket:5,kit:5}},
+      {id:'H002', siteId:'banqiao', spaceId:'sp1', head:'黃美惠', idm:'A22***7736', phone:'0933-***-208', addr:'板橋區民生路（黃單）', checkin:'07/12 11:02', status:'in',
+       members:[{name:'黃美惠',age:36,sex:'女',diet:'normal',needs:[]},{name:'吳俊賢',age:39,sex:'男',diet:'normal',needs:[]},{name:'吳品睿',age:11,sex:'男',diet:'allergy',needs:[]},{name:'吳品彤',age:9,sex:'女',diet:'normal',needs:[]}],
+       reserved:{bed:4,blanket:4,kit:4}},
+      {id:'H003', siteId:'banqiao', spaceId:'sp2', head:'王金龍', idm:'A10***2214', phone:'02-296*-**45', addr:'板橋區府中路（紅單）', checkin:'07/12 10:45', status:'in',
+       members:[{name:'王金龍',age:72,sex:'男',diet:'normal',needs:['慢性病','行動不便']},{name:'李阿香',age:70,sex:'女',diet:'diabetic',needs:['慢性病']}],
+       reserved:{bed:2,blanket:2,kit:2}},
+      {id:'H004', siteId:'banqiao', spaceId:'sp2', head:'陳金水', idm:'J10***0087', phone:'—', addr:'中和區景平路（獨居）', checkin:'07/12 14:30', status:'in',
+       members:[{name:'陳金水',age:79,sex:'男',diet:'soft',needs:['獨居長者','慢性病']}],
+       reserved:{bed:1,blanket:1,kit:1}},
+      {id:'H005', siteId:'banqiao', spaceId:'sp5', head:'張淑芬', idm:'F22***9153', phone:'0987-***-664', addr:'板橋區四川路（紅單）', checkin:'07/12 16:10', status:'in',
+       members:[{name:'張淑芬',age:29,sex:'女',diet:'normal',needs:[]},{name:'張安安',age:1,sex:'女',diet:'infant',needs:['嬰幼兒']}],
+       reserved:{bed:2,blanket:2,kit:2}},
+      {id:'H006', siteId:'banqiao', spaceId:'sp3', head:'周麗華', idm:'A21***5540', phone:'0921-***-477', addr:'板橋區漢生東路', checkin:'07/12 18:40', status:'in',
+       members:[{name:'周麗華',age:52,sex:'女',diet:'normal',needs:[]}],
+       reserved:{bed:1,blanket:1,kit:1}},
+      {id:'H007', siteId:'banqiao', spaceId:'sp4', head:'吳明德', idm:'A12***3319', phone:'0955-***-812', addr:'板橋區中山路一段', checkin:'07/12 20:15', status:'in',
+       members:[{name:'吳明德',age:45,sex:'男',diet:'normal',needs:[]}],
+       reserved:{bed:1,blanket:1,kit:1}},
+      {id:'H008', siteId:'sanchong', spaceId:'sp10', head:'劉志偉', idm:'H12***6602', phone:'0910-***-935', addr:'三重區重新路（黃單）', checkin:'07/12 12:20', status:'in',
+       members:[{name:'劉志偉',age:44,sex:'男',diet:'normal',needs:[]},{name:'許雅婷',age:41,sex:'女',diet:'normal',needs:[]},{name:'劉承恩',age:14,sex:'男',diet:'normal',needs:[]},{name:'劉承祐',age:12,sex:'男',diet:'normal',needs:[]}],
+       reserved:{bed:4,blanket:4,kit:4}},
+      {id:'H009', siteId:'sanchong', spaceId:'sp10', head:'郭素珍', idm:'H22***1178', phone:'0968-***-243', addr:'三重區三和路（紅單）', checkin:'07/12 13:05', status:'in',
+       members:[{name:'郭素珍',age:63,sex:'女',diet:'normal',needs:['慢性病']},{name:'蔡宜庭',age:33,sex:'女',diet:'normal',needs:['孕婦']},{name:'蔡小樂',age:6,sex:'男',diet:'allergy',needs:[]}],
+       reserved:{bed:3,blanket:3,kit:3}},
+      {id:'H010', siteId:'banqiao', spaceId:'sp1', head:'高進財', idm:'A11***8823', phone:'0939-***-501', addr:'板橋區莒光路', checkin:'07/12 09:50', status:'out', checkout:'07/13 08:05', followUp:true, followNote:'返家整理（黃單複評中），承租處未定，轉板橋和氣訪視關懷',
+       members:[{name:'高進財',age:58,sex:'男',diet:'normal',needs:[]},{name:'高林月娥',age:55,sex:'女',diet:'normal',needs:['慢性病']}],
+       reserved:{bed:0,blanket:0,kit:2}},
+    ],
+    stock: [
+      {siteId:'banqiao', itemId:'bed',    qty:30, safety:20},
+      {siteId:'banqiao', itemId:'blanket',qty:18, safety:15},
+      {siteId:'banqiao', itemId:'kit',    qty:34, safety:10},
+      {siteId:'banqiao', itemId:'rice',   qty:12, safety:8},
+      {siteId:'banqiao', itemId:'water',  qty:22, safety:10},
+      {siteId:'banqiao', itemId:'diaper', qty:4,  safety:5},
+      {siteId:'banqiao', itemId:'fem',    qty:9,  safety:6},
+      {siteId:'banqiao', itemId:'mask',   qty:15, safety:10},
+      {siteId:'banqiao', itemId:'gen',    qty:2,  safety:1},
+      {siteId:'banqiao', itemId:'light',  qty:4,  safety:2},
+      {siteId:'sanchong',itemId:'bed',    qty:22, safety:12},
+      {siteId:'sanchong',itemId:'blanket',qty:25, safety:12},
+      {siteId:'sanchong',itemId:'kit',    qty:18, safety:8},
+      {siteId:'sanchong',itemId:'rice',   qty:9,  safety:5},
+      {siteId:'sanchong',itemId:'water',  qty:14, safety:8},
+      {siteId:'sanchong',itemId:'gen',    qty:1,  safety:1},
+      {siteId:'guandu',  itemId:'bed',    qty:60, safety:30},
+      {siteId:'guandu',  itemId:'blanket',qty:80, safety:30},
+      {siteId:'songshan',itemId:'bed',    qty:40, safety:20},
+      {siteId:'songshan',itemId:'blanket',qty:45, safety:20},
+    ],
+    reqs: [
+      {id:'R-1042', siteId:'banqiao', itemId:'rice', qty:20, cross:false, reason:'收容人數上升，午晚餐備量不足', by:'kitchen', byName:'香積組 徐慧敏', at:'07/13 06:40', status:'pending', log:[{t:'07/13 06:40', s:'建立申請'}]},
+      {id:'R-1041', siteId:'banqiao', itemId:'blanket', qty:50, cross:true, from:'關渡志業園區', reason:'夜間低溫，毛毯接近安全庫存，自關渡調撥', by:'space', byName:'空間組 蔡明峰', at:'07/12 21:30', status:'approved', apprBy:'總指揮中心 值班 王督導', log:[{t:'07/12 21:30', s:'建立申請（跨據點調撥）'},{t:'07/12 22:05', s:'總指揮中心核准'}]},
+      {id:'R-1039', siteId:'sanchong', itemId:'water', qty:10, cross:false, reason:'飲用水日耗量提高', by:'supply', byName:'物資組 江國彬', at:'07/12 15:20', status:'received', apprBy:'據點指揮 林秀蘭', log:[{t:'07/12 15:20', s:'建立申請'},{t:'07/12 15:40', s:'據點指揮核准'},{t:'07/12 17:10', s:'總倉出庫'},{t:'07/12 19:30', s:'三重簽收入庫'}]},
+    ],
+    donations: [
+      {id:'D-201', siteId:'banqiao', donor:'新北市企業聯合會', itemId:'water', qty:80, at:'07/13 08:10', status:'pending', note:'需驗收效期與棧板數'},
+      {id:'D-200', siteId:'banqiao', donor:'善心人士（無名氏）', itemId:'mask', qty:20, at:'07/12 19:00', status:'received', recvBy:'物資組 江國彬'},
+    ],
+    careLogs: [
+      {id:'C-01', hhId:'H003', type:'醫療',     note:'王金龍伯伯血壓 158/96，已由人醫會醫師診視，調整用藥並列入每日巡診', by:'人醫會 許文賢醫師', at:'07/12 20:30', followUp:true},
+      {id:'C-02', hhId:'H003', type:'安心關懷', note:'李阿香阿嬤掛念受損老宅，志工陪伴傾聽並說明慈濟後續修繕評估', by:'訪視志工 林美玉', at:'07/12 21:10', followUp:false},
+      {id:'C-03', hhId:'H005', type:'物資協助', note:'嬰兒尿布尺寸不合，已換發 M 號並補充奶粉沖泡熱水壺', by:'訪視志工 張秀琴', at:'07/12 22:00', followUp:false},
+      {id:'C-04', hhId:'H004', type:'安心關懷', note:'陳金水伯伯獨居無親屬聯繫，情緒低落，安排志工三班陪伴', by:'訪視志工 林美玉', at:'07/13 07:20', followUp:true},
+      {id:'C-05', hhId:'H009', type:'醫療',     note:'蔡宜庭懷孕 32 週，人醫會安排產檢轉診亞東醫院，交通由志工接送', by:'人醫會 周雅萍護理師', at:'07/13 08:00', followUp:true},
+      {id:'C-06', hhId:'H010', type:'轉介',     note:'高進財戶退住返家，居所黃單複評中，轉板橋和氣社區訪視持續關懷', by:'訪視志工 張秀琴', at:'07/13 08:10', followUp:true},
+    ],
+    meals: {
+      banqiao: [
+        {k:'b', name:'早齋', time:'06:30', forecast:100, produced:110, served:104, done:true},
+        {k:'l', name:'午餐', time:'12:00', forecast:104, produced:112, served:106, done:true},
+        {k:'d', name:'晚餐', time:'17:30', planned:null, produced:null, served:null, done:false},
+      ],
+      sanchong: [
+        {k:'b', name:'早齋', time:'06:30', forecast:48, produced:55, served:50, done:true},
+        {k:'l', name:'午餐', time:'12:00', forecast:49, produced:52, served:49, done:true},
+        {k:'d', name:'晚餐', time:'17:30', planned:null, produced:null, served:null, done:false},
+      ],
+    },
+    checklists: {
+      songshan: [
+        {t:'空間平面圖與分區規劃更新', done:true},{t:'消防安檢與逃生動線確認', done:true},
+        {t:'發電機月測試', done:true},{t:'福慧床／毛毯庫存盤點', done:true},
+        {t:'飲水設備與淨水器檢查', done:true},{t:'香積廚房設備檢查', done:true},
+        {t:'無障礙動線與臨時衛浴評估', done:false},{t:'志工聯絡網季度演練', done:false},
+      ],
+      guandu: [
+        {t:'空間平面圖與分區規劃更新', done:true},{t:'消防安檢與逃生動線確認', done:true},
+        {t:'發電機月測試', done:true},{t:'福慧床／毛毯庫存盤點', done:true},
+        {t:'飲水設備與淨水器檢查', done:true},{t:'香積廚房設備檢查', done:true},
+        {t:'無障礙動線與臨時衛浴評估', done:true},{t:'志工聯絡網季度演練', done:true},
+      ],
+    },
+    staff: {
+      banqiao: [
+        {g:'報到組', e:4, a:4, l:3, la:3, n:2, na:1},
+        {g:'空間組', e:6, a:6, l:4, la:4, n:2, na:2},
+        {g:'香積組', e:12, a:14, l:10, la:11, n:0, na:0},
+        {g:'物資組', e:6, a:5, l:4, la:4, n:2, na:2},
+        {g:'關懷組', e:8, a:8, l:6, la:7, n:3, na:3},
+        {g:'醫療組（人醫會）', e:3, a:3, l:2, la:2, n:1, na:1},
+      ],
+      sanchong: [
+        {g:'報到組', e:2, a:2, l:2, la:2, n:1, na:1},
+        {g:'空間組', e:3, a:3, l:2, la:2, n:1, na:1},
+        {g:'香積組', e:8, a:7, l:6, la:6, n:0, na:0},
+        {g:'物資組', e:3, a:3, l:2, la:2, n:1, na:1},
+        {g:'關懷組', e:4, a:4, l:3, la:3, n:2, na:2},
+        {g:'醫療組（人醫會）', e:1, a:1, l:1, la:1, n:1, na:0},
+      ],
+    },
+    audit: [
+      {at:'07/12 06:52', role:'hq', action:'事件',   detail:'成立防災協調中心，發布中央二級開設'},
+      {at:'07/12 08:40', role:'cmd', action:'開設',  detail:'板橋靜思堂送出開設申請（預估收容 200 人）'},
+      {at:'07/12 09:30', role:'hq', action:'核准',   detail:'核准板橋靜思堂開設，狀態轉為運作中'},
+      {at:'07/12 10:20', role:'reg', action:'報到',  detail:'報到：林建宏戶 5 口 → 講經堂（家庭區）', ref:'H001'},
+      {at:'07/12 11:05', role:'hq', action:'核准',   detail:'核准三重志業園區開設'},
+      {at:'07/12 21:30', role:'space', action:'請領', detail:'建立跨據點調撥申請 R-1041（環保毛毯 50 件）', ref:'R-1041'},
+      {at:'07/12 22:05', role:'hq', action:'核准',   detail:'核准 R-1041 跨據點調撥（關渡 → 板橋）', ref:'R-1041'},
+      {at:'07/13 07:50', role:'cmd', action:'開設',  detail:'關渡志業園區送出開設申請（社會局需求 150 床）'},
+      {at:'07/13 08:05', role:'reg', action:'退住',  detail:'高進財戶 2 口退住，轉社區訪視追蹤', ref:'H010'},
+    ],
+  };
+}
+/* ================================================================
+   Store／派發器／衍生查詢／Reducers（單一 reducer 一次改完、單次 commit）
+   ================================================================ */
+let S = load();
+function load(){
+  try{
+    const raw = localStorage.getItem('anshen');
+    if(raw){ const d = JSON.parse(raw); if(d && d.version === VER) return d; }
+  }catch(e){/* 私隱模式等情況直接落種子 */}
+  return seed();
+}
+function save(){ try{ localStorage.setItem('anshen', JSON.stringify(S)); }catch(e){} }
+function commit(){ save(); renderShellBits(); renderView(); }
+
+/* ---------- 衍生查詢（唯一口徑） ---------- */
+const siteOf   = id  => S.sites.find(s => s.id === id);
+const spacesOf = sid => S.spaces.filter(p => p.siteId === sid);
+const hhIn     = sid => S.households.filter(h => h.siteId === sid && h.status === 'in');
+const occSpace = pid => S.households.filter(h => h.spaceId === pid && h.status === 'in')
+                          .reduce((n,h) => n + h.members.length, 0);
+const occSite  = sid => hhIn(sid).reduce((n,h) => n + h.members.length, 0);
+const capSite  = sid => spacesOf(sid).reduce((n,p) => n + (p.cap || 0), 0);
+const stockOf  = (sid,iid) => S.stock.find(r => r.siteId === sid && r.itemId === iid);
+const stockCls = r => r.qty <= Math.floor(r.safety/2) || r.qty === 0 ? 'crit' : (r.qty < r.safety ? 'warn' : 'ok');
+const lowStock = sid => S.stock.filter(r => (!sid || r.siteId === sid) && !ITEM[r.itemId].equip && r.qty < r.safety);
+const openSites = () => S.sites.filter(s => s.status === 'open');
+const dinnerForecast = sid => occSite(sid) + (siteOf(sid).volunteers || 0);
+const dietCounts = sid => {
+  const c = {diabetic:0, soft:0, infant:0, allergy:0};
+  hhIn(sid).forEach(h => h.members.forEach(m => { if(c[m.diet] !== undefined) c[m.diet]++; }));
+  return c;
+};
+const healthFlagged = sid => hhIn(sid).flatMap(h => h.members.filter(m => m.needs.length).map(m => ({...m, hh:h})));
+const followList = () => S.households.filter(h => h.status === 'out' && h.followUp);
+const pendingReqsFor = () => {
+  if(S.role === 'hq')  return S.reqs.filter(r => r.status === 'pending');
+  if(S.role === 'cmd') return S.reqs.filter(r => r.status === 'pending' && !r.cross);
+  return [];
+};
+const todoCount = () => {
+  let n = 0;
+  if(S.role === 'hq')  n += S.sites.filter(s => s.status === 'applying').length + pendingReqsFor().length;
+  if(S.role === 'cmd') n += pendingReqsFor().length;
+  if(S.role === 'supply') n += S.reqs.filter(r => r.status === 'approved' || r.status === 'issued').length
+                             + S.donations.filter(d => d.status === 'pending').length;
+  if(S.role === 'kitchen') n += openSites().filter(s => (S.meals[s.id]||[]).some(m => !m.done && m.planned == null)).length;
+  if(S.role === 'care' || S.role === 'med') n += S.careLogs.filter(l => l.followUp).length;
+  return n;
+};
+const tabBadge = t => {
+  if(t === 'sites'    && S.role === 'hq') return S.sites.filter(s => s.status === 'applying').length;
+  if(t === 'supplies' && (S.role === 'hq' || S.role === 'cmd')) return pendingReqsFor().length;
+  if(t === 'supplies' && S.role === 'supply') return S.reqs.filter(r => r.status === 'approved' || r.status === 'issued').length + S.donations.filter(d => d.status === 'pending').length;
+  if(t === 'meals'    && S.role === 'kitchen') return openSites().filter(s => (S.meals[s.id]||[]).some(m => !m.done && m.planned == null)).length;
+  if(t === 'care'     && (S.role === 'care' || S.role === 'med')) return S.careLogs.filter(l => l.followUp).length;
+  return 0;
+};
+
+/* ---------- 稽核與越權攔截（權限流的執行點） ---------- */
+function audit(action, detail, ref, siteId){
+  S.audit.push({at: nowStr(), role: S.role, action, detail, ref, siteId: siteId || S.site});
+}
+function guard(action, label){
+  if(can(action)) return true;
+  audit('越權攔截', `遭拒：「${label}」——現任「${ROLES[S.role].name}」，此操作需「${permOwners(action)}」`);
+  commit();
+  toast(`⛔ 權限不足：「${label}」需「${permOwners(action)}」。本次點擊已記入稽核軌跡。`, 'crit');
+  return false;
+}
+const lk = a => can(a) ? '' : ' locked';
+
+/* ---------- UI 暫存（不入 store：表單草稿與子分欄） ---------- */
+const UI = { intakeTab:'reg', careTab:'log', supTab:'stock', q:'', careHH:'', reqItem:'' };
+
+/* ---------- Toast / Modal ---------- */
+function toast(msg, cls=''){
+  const t = document.createElement('div');
+  t.className = 'toast ' + cls;
+  t.textContent = msg;
+  $('#toasts').append(t);
+  setTimeout(() => { t.style.transition = 'opacity .35s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 380); }, 3600);
+}
+function openModal(html){
+  $('#modalRoot').innerHTML =
+    `<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+}
+function closeModal(){ $('#modalRoot').innerHTML = ''; }
+
+/* ================================================================
+   Reducers — 每個動作：前置檢查全過 → 一次改完全部欄位 → 單次 commit
+   ================================================================ */
+
+/* 報到（六處連動 money shot） */
+function registerHousehold(d){
+  const sid = S.site;
+  const sp = S.spaces.find(p => p.id === d.spaceId);
+  const n = d.members.length;
+  if(n < 1) return {ok:false, msg:'每戶至少需登記 1 位成員'};
+  if(!sp || sp.siteId !== sid || !sp.cap) return {ok:false, msg:'請選擇收容分區'};
+  if(siteOf(sid).status !== 'open') return {ok:false, msg:'本據點尚未開設，無法收容報到'};
+  const remain = sp.cap - occSpace(sp.id);
+  if(remain < n) return {ok:false, msg:`「${sp.name}」剩餘 ${remain} 床，不足安置 ${n} 口——請改選其他分區或洽空間組調度`};
+  if(d.idm && S.households.some(h => h.status === 'in' && h.idm === d.idm))
+    return {ok:false, msg:'此證號已有在住紀錄，禁止重複報到（可至住民清單查詢）'};
+
+  const before = { spOcc: occSpace(sp.id), siteOcc: occSite(sid), dinner: dinnerForecast(sid), audit: S.audit.length };
+  const id = 'H' + String(++S.seq).padStart(3,'0');
+  const reserved = {}, shortages = [], alerts = [];
+  ['bed','blanket','kit'].forEach(iid => {
+    const st = stockOf(sid, iid);
+    const take = st ? Math.min(n, st.qty) : 0;   // clamp：庫存不得為負
+    if(st) st.qty -= take;
+    reserved[iid] = take;
+    if(take < n) shortages.push({iid, gap: n - take});
+  });
+  S.households.push({ id, siteId:sid, spaceId:sp.id, head:d.head, idm:d.idm, phone:d.phone,
+    addr:d.addr, checkin:nowStr(), status:'in', members:d.members, reserved });
+  audit('報到', `報到：${d.head}戶 ${n} 口 → ${sp.name}（${sp.zone}）`, id, sid);
+  shortages.forEach(s => audit('警示', `物資缺口：${ITEM[s.iid].name}不足 ${s.gap} ${ITEM[s.iid].unit}，需即刻請領`, id, sid));
+  ['bed','blanket','kit'].forEach(iid => {
+    const st = stockOf(sid, iid);
+    if(st && st.qty < st.safety)
+      alerts.push(`${ITEM[iid].name}低於安全庫存（現量 ${st.qty}／安全 ${st.safety}），建議請領 ${st.safety*2 - st.qty} ${ITEM[iid].unit}`);
+  });
+  const diets = d.members.filter(m => m.diet && m.diet !== 'normal');
+  return {ok:true, id, hh:d.head, sp, n, before, reserved, shortages, alerts, diets, sid};
+}
+
+/* 退住（反向釋放；床回補、消耗品不回補——預設規則，待 Mason 確認） */
+function dischargeHousehold(hhId){
+  const hh = S.households.find(h => h.id === hhId);
+  if(!hh || hh.status !== 'in'){ toast('該戶已退住，不可重複操作'); return null; }
+  const sid = hh.siteId, n = hh.members.length;
+  const before = { dinner: dinnerForecast(sid), siteOcc: occSite(sid) };
+  hh.status = 'out'; hh.checkout = nowStr();
+  hh.followUp = hh.members.some(m => m.needs.length > 0) || S.careLogs.some(l => l.hhId === hhId && l.followUp);
+  if(hh.followUp && !hh.followNote) hh.followNote = '退住評估有持續需求，轉社區訪視志工接手關懷';
+  const bedBack = hh.reserved?.bed || 0;
+  const st = stockOf(sid, 'bed');
+  if(st && bedBack) st.qty += bedBack;
+  audit('退住', `${hh.head}戶 ${n} 口退住${hh.followUp ? '，轉社區訪視追蹤' : ''}`, hhId, sid);
+  return {hh, n, sid, before, bedBack};
+}
+
+/* 據點開設工作流 */
+function applyOpen(sid){
+  const s = siteOf(sid);
+  if(s.status !== 'standby' && s.status !== 'prep'){ toast('此據點狀態不可申請開設'); return false; }
+  s.status = 'applying'; s.applyAt = nowStr();
+  s.applyNote = s.applyNote || '據點指揮評估在地收容需求後申請開設';
+  audit('開設', `${s.name}送出開設申請`, sid, sid);
+  return true;
+}
+function approveOpen(sid){
+  const s = siteOf(sid);
+  if(s.status !== 'applying'){ toast('此申請已處理，不可重複核准'); return false; }
+  s.status = 'open'; s.openedAt = nowStr();
+  if(!s.volunteers) s.volunteers = 20;
+  if(!S.meals[sid]) S.meals[sid] = [
+    {k:'b', name:'早齋', time:'06:30', planned:null, produced:null, served:null, done:false},
+    {k:'l', name:'午餐', time:'12:00', planned:null, produced:null, served:null, done:false},
+    {k:'d', name:'晚餐', time:'17:30', planned:null, produced:null, served:null, done:false},
+  ];
+  audit('核准', `核准${s.name}開設，狀態轉為運作中`, sid, sid);
+  return true;
+}
+
+/* 物資請領工作流：申請 → 核准 → 出庫 → 簽收 */
+function createReq(d){
+  const id = 'R-' + (++S.seq);
+  S.reqs.unshift({ id, siteId:S.site, itemId:d.itemId, qty:d.qty, cross:d.cross, from:d.from,
+    reason:d.reason, by:S.role, byName:`${ROLES[S.role].name}（值班）`, at:nowStr(), status:'pending',
+    log:[{t:nowStr(), s:'建立申請' + (d.cross ? '（跨據點調撥）' : '')}] });
+  audit('請領', `建立請領 ${id}：${ITEM[d.itemId].name} ${d.qty} ${ITEM[d.itemId].unit}${d.cross ? '（跨據點調撥）' : ''}`, id);
+  return id;
+}
+function approveReq(id){
+  const r = S.reqs.find(x => x.id === id);
+  if(!r || r.status !== 'pending'){ toast('此單已處理，不可重複核准'); return false; }
+  if(r.cross && S.role !== 'hq'){
+    audit('越權攔截', `遭拒：核准 ${id}——跨據點調撥需「總指揮中心」，現任「${ROLES[S.role].name}」`, id);
+    commit();
+    toast('⛔ 跨據點調撥需「總指揮中心」核准（已記入稽核）', 'crit');
+    return false;
+  }
+  r.status = 'approved'; r.apprBy = ROLES[S.role].name;
+  r.log.push({t:nowStr(), s:`${ROLES[S.role].name}核准`});
+  audit('核准', `核准請領 ${id}（${ITEM[r.itemId].name} ${r.qty} ${ITEM[r.itemId].unit}）`, id, r.siteId);
+  return true;
+}
+function rejectReq(id){
+  const r = S.reqs.find(x => x.id === id);
+  if(!r || r.status !== 'pending'){ toast('此單已處理'); return false; }
+  r.status = 'rejected';
+  r.log.push({t:nowStr(), s:`${ROLES[S.role].name}駁回`});
+  audit('駁回', `駁回請領 ${id}`, id, r.siteId);
+  return true;
+}
+function issueReq(id){
+  const r = S.reqs.find(x => x.id === id);
+  if(!r || r.status !== 'approved'){ toast('此單不在待出庫狀態'); return false; }
+  r.status = 'issued';
+  r.log.push({t:nowStr(), s:(r.cross && r.from ? r.from : '總倉') + '出庫，配送中'});
+  audit('出庫', `請領 ${id} 出庫（${ITEM[r.itemId].name} ${r.qty} ${ITEM[r.itemId].unit}）`, id, r.siteId);
+  return true;
+}
+function receiveReq(id){
+  const r = S.reqs.find(x => x.id === id);
+  if(!r || r.status !== 'issued'){ toast('此單尚未出庫或已簽收'); return false; }
+  r.status = 'received';
+  let st = stockOf(r.siteId, r.itemId);
+  if(!st){ st = {siteId:r.siteId, itemId:r.itemId, qty:0, safety:5}; S.stock.push(st); }
+  st.qty += r.qty;
+  r.log.push({t:nowStr(), s:`${siteOf(r.siteId).short}簽收入庫（庫存 ${st.qty}）`});
+  audit('簽收', `請領 ${id} 簽收入庫，${ITEM[r.itemId].name}庫存 → ${st.qty} ${ITEM[r.itemId].unit}`, id, r.siteId);
+  return true;
+}
+function receiveDonation(id){
+  const d = S.donations.find(x => x.id === id);
+  if(!d || d.status !== 'pending'){ toast('此筆捐贈已入庫'); return false; }
+  d.status = 'received'; d.recvBy = ROLES[S.role].name;
+  let st = stockOf(d.siteId, d.itemId);
+  if(!st){ st = {siteId:d.siteId, itemId:d.itemId, qty:0, safety:5}; S.stock.push(st); }
+  st.qty += d.qty;
+  audit('捐贈入庫', `${d.donor}捐贈${ITEM[d.itemId].name} ${d.qty} ${ITEM[d.itemId].unit} 驗收入庫（庫存 ${st.qty}）`, id, d.siteId);
+  return true;
+}
+
+/* 香積備餐 */
+function saveMeal(sid, k){
+  const m = (S.meals[sid] || []).find(x => x.k === k);
+  if(!m){ toast('查無此餐次'); return false; }
+  const p = $('#mp-' + k), pr = $('#mpr-' + k), sv = $('#msv-' + k);
+  const num = el => { if(!el || el.value.trim() === '') return null; const v = parseInt(el.value, 10); return Number.isFinite(v) && v >= 0 ? v : NaN; };
+  const planned = num(p), produced = num(pr), served = num(sv);
+  if([planned, produced, served].some(v => Number.isNaN(v))){ toast('請輸入 0 以上的整數', 'crit'); return false; }
+  if(planned !== null) m.planned = planned;
+  if(produced !== null) m.produced = produced;
+  if(served !== null){ m.served = served; m.done = true; }
+  if(m.forecast == null) m.forecast = dinnerForecast(sid);
+  audit('香積', `${m.name}備餐更新：計畫 ${m.planned ?? '—'}／產量 ${m.produced ?? '—'}／出餐 ${m.served ?? '—'}`, null, sid);
+  return true;
+}
+
+/* 整備檢核表 */
+function toggleCheck(sid, idx){
+  const li = (S.checklists[sid] || [])[idx];
+  if(!li) return false;
+  li.done = !li.done;
+  audit('整備', `${siteOf(sid).name}整備檢核：「${li.t}」${li.done ? '完成 ✓' : '取消勾選'}`, null, sid);
+  return true;
+}
+
+/* 關懷紀錄 */
+function addCareLog(d){
+  const id = 'C-' + (++S.seq);
+  S.careLogs.unshift({ id, hhId:d.hhId, type:d.type, note:d.note, by:d.by, at:nowStr(), followUp:d.followUp });
+  audit('關懷', `${d.type}紀錄：${d.by} → ${(S.households.find(h => h.id === d.hhId) || {}).head}戶${d.followUp ? '（列追蹤）' : ''}`, d.hhId);
+  return id;
+}
+
+/* 重置演示資料 */
+function resetData(){
+  openModal(`
+    <h2>重置演示資料</h2>
+    <div class="msub">將清除本機瀏覽器中的所有操作紀錄，還原為種子情境（0712 山腳斷層地震）。</div>
+    <div class="macts">
+      <button class="btn sec" onclick="closeModal()">取消</button>
+      <button class="btn crit-o" onclick="doReset()">確認重置</button>
+    </div>`);
+}
+function doReset(){
+  try{ localStorage.removeItem('anshen'); }catch(e){}
+  S = seed();
+  closeModal();
+  commit();
+  toast('已重置為種子演示資料', 'ok');
+}
+
+/* 主題切換：跟隨系統 → 亮 → 暗 */
+function cycleTheme(){
+  S.theme = S.theme === null ? 'light' : (S.theme === 'light' ? 'dark' : null);
+  applyTheme(); save(); renderShellBits();
+}
+function applyTheme(){
+  const el = document.documentElement;
+  if(S.theme) el.setAttribute('data-theme', S.theme); else el.removeAttribute('data-theme');
+}
+const themeLabel = () => S.theme === null ? '主題：自動' : (S.theme === 'light' ? '主題：亮' : '主題：暗');
+
+/* ================================================================
+   殼層渲染（sidebar／topbar／事件列——徽章局部更新入口）
+   ================================================================ */
+function setRole(r){
+  S.role = r; S.tab = ROLES[r].home;
+  if(r === 'med') UI.careTab = 'med'; else if(r === 'care') UI.careTab = 'log';
+  UI.intakeTab = 'reg'; UI.supTab = S.role === 'supply' ? 'reqs' : 'stock';
+  commit();
+  toast(`已切換角色：${ROLES[r].name}（${ROLES[r].org}）——導覽與可操作項已依權限更新`);
+}
+function setSite(id){ S.site = id; commit(); }
+function switchTab(t){
+  if(!ROLES[S.role].tabs.includes(t)) { toast('目前角色無此模組權限', 'crit'); return; }
+  S.tab = t; save(); renderShellBits(); renderView(); window.scrollTo({top:0});
+}
+
+function navButtons(mobile){
+  return Object.keys(TABS).filter(t => ROLES[S.role].tabs.includes(t)).map(t => {
+    const b = tabBadge(t);
+    return `<button class="${S.tab === t ? 'on' : ''}" onclick="switchTab('${t}')">
+      ${mobile ? '' : `<span class="nicon">${TABS[t].icon}</span>`}${TABS[t].name}
+      ${b ? `<span class="badge">${b}</span>` : ''}</button>`;
+  }).join('');
+}
+function rolePill(){
+  return `<span class="role-pill">角色
+    <select onchange="setRole(this.value)" aria-label="切換角色">
+      ${Object.keys(ROLES).map(r => `<option value="${r}" ${S.role === r ? 'selected' : ''}>${ROLES[r].name}</option>`).join('')}
+    </select></span>`;
+}
+function renderShellBits(){
+  $('#sidebar').innerHTML = `
+    <div class="brand"><span class="zh">安身</span><span class="en">AnShen · Shelter Ops</span></div>
+    <div class="brand-sub">慈濟大型災害收容安置管理</div>
+    ${rolePill()}
+    <div class="mini-note" style="padding:0 8px">${esc(ROLES[S.role].org)}</div>
+    <nav class="side-nav">${navButtons(false)}</nav>
+    <div class="side-foot">安身・安心・安生<br>平時整備，災時啟用<br><span style="opacity:.7">演示原型 v1｜資料皆為虛構</span></div>`;
+  $('#topbar').innerHTML = `
+    <div class="topbar-row">
+      <span class="zh">安身</span><span class="mini-note">收容安置管理</span>
+      <span style="flex:1"></span>${rolePill()}
+    </div>
+    <nav class="tab-rail">${navButtons(true)}</nav>`;
+  const e = S.event;
+  $('#eventStrip').innerHTML = `
+    <span class="dot crit"></span><span class="ev-name">${esc(e.name)}（${e.mag}）</span>
+    <span class="lv">${esc(e.level)}</span>
+    <span class="mini-note" style="color:var(--ink3)">啟動 ${e.started}</span>
+    <span class="spacer"></span>
+    <label class="mini-note" style="color:var(--ink3)">據點
+      <select onchange="setSite(this.value)" style="margin-left:4px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 6px;font-size:12.5px">
+        ${S.sites.map(s => `<option value="${s.id}" ${S.site === s.id ? 'selected' : ''}>${s.short}｜${SITE_STATUS[s.status].t}</option>`).join('')}
+      </select></label>
+    <button class="btn sec sm" onclick="cycleTheme()">${themeLabel()}</button>
+    <button class="btn sec sm" onclick="resetData()">重置演示</button>`;
+}
+/* ================================================================
+   視圖層（一）：儀表板／據點與空間／報到與住民＋連動摘要
+   ================================================================ */
+const footHTML = () => `
+  <div class="foot"><b>安身・安心・安生</b>——先安身（空間床位），再安心（關懷膚慰），後安生（生活重建追蹤）。<br>
+  本頁為 vibe coding 演示原型：人物、據點狀態與數據皆為虛構，資料僅存於本機瀏覽器（localStorage）。</div>`;
+
+function pageHead(title, sub, actions=''){
+  return `<div class="page-head"><h1>${title}</h1><span class="sub">${sub}</span>
+    ${actions ? `<span class="actions">${actions}</span>` : ''}</div>`;
+}
+function meterHTML(occ, cap){
+  const pct = cap ? Math.min(100, Math.round(occ / cap * 100)) : 0;
+  const cls = pct >= 90 ? 'crit' : pct >= 75 ? 'warn' : '';
+  return `<div class="meter ${cls}" role="img" aria-label="使用率 ${pct}%"><i style="width:${pct}%"></i></div>`;
+}
+function gotoSite(sid, tab){ S.site = sid; switchTab(tab); }
+function gotoReqs(sid){ UI.supTab = 'reqs'; gotoSite(sid, 'supplies'); }
+
+/* ---------- 總覽儀表板 ---------- */
+function vDash(){
+  const open = openSites();
+  const totalIn  = open.reduce((n,s) => n + occSite(s.id), 0);
+  const totalCap = open.reduce((n,s) => n + capSite(s.id), 0);
+  const lows = lowStock();
+  const crits = lows.filter(r => stockCls(r) === 'crit');
+  const todo = todoCount();
+  const dinnerAll = open.reduce((n,s) => n + dinnerForecast(s.id), 0);
+
+  const signals = `
+    <div class="alert-strip">
+      <button class="signal ${crits.length ? 'crit' : 'ok'}" onclick="switchTab('${ROLES[S.role].tabs.includes('supplies') ? 'supplies' : 'dash'}')">
+        <span class="n">${crits.length}</span><span class="t">緊急庫存品項<br>（低於半數安全量）</span></button>
+      <button class="signal ${lows.length ? 'warn' : 'ok'}" onclick="switchTab('${ROLES[S.role].tabs.includes('supplies') ? 'supplies' : 'dash'}')">
+        <span class="n">${lows.length}</span><span class="t">偏低庫存品項<br>（低於安全庫存）</span></button>
+      <button class="signal ${todo ? 'warn' : 'ok'}">
+        <span class="n">${todo}</span><span class="t">我的待辦<br>（${esc(ROLES[S.role].name)}）</span></button>
+      <button class="signal ok" onclick="switchTab('sites')">
+        <span class="n">${open.length}<small style="font-size:13px;color:var(--ink3)">/${S.sites.length}</small></span>
+        <span class="t">據點運作中<br>收容 ${totalIn} 人</span></button>
+    </div>`;
+
+  const stats = `
+    <div class="grid g4">
+      <div class="card stat"><span class="k">收容中人數（全據點）</span><span class="v">${totalIn}<small>人</small></span><span class="d">容量 ${totalCap} 床・使用率 ${totalCap ? Math.round(totalIn/totalCap*100) : 0}%</span></div>
+      <div class="card stat"><span class="k">在住戶數</span><span class="v">${S.households.filter(h => h.status === 'in').length}<small>戶</small></span><span class="d">已退住 ${S.households.filter(h => h.status === 'out').length} 戶（${followList().length} 戶轉社區追蹤）</span></div>
+      <div class="card stat"><span class="k">今晚餐食預估（香積）</span><span class="v">${dinnerAll}<small>份</small></span><span class="d">住民＋駐點志工，隨報到即時連動</span></div>
+      <div class="card stat"><span class="k">庫存警示</span><span class="v" style="color:${lows.length ? 'var(--warn)' : 'var(--ok)'}">${lows.length}<small>項</small></span><span class="d">${crits.length ? `含 ${crits.length} 項緊急` : '無緊急缺口'}</span></div>
+    </div>`;
+
+  const siteCards = `<div class="grid gauto">` + S.sites.map(s => {
+    const st = SITE_STATUS[s.status];
+    const occ = occSite(s.id), cap = capSite(s.id);
+    let act = '';
+    if(s.status === 'applying') act = `<button class="btn pri sm${lk('site.approveOpen')}" onclick="onApproveOpen('${s.id}')">核准開設</button>`;
+    if(s.status === 'standby')  act = `<button class="btn sec sm${lk('site.applyOpen')}" onclick="onApplyOpen('${s.id}')">申請開設</button>`;
+    return `<div class="card">
+      <h3>${esc(s.name)}<span class="chip ${st.cls}" style="margin-left:auto">${st.t}</span></h3>
+      <div class="meter-row"><span class="lab">收容 ${occ}/${cap || '—'}</span>${meterHTML(occ, cap)}<span class="val">${cap ? Math.round(occ/(cap||1)*100) + '%' : ''}</span></div>
+      <div style="font-size:12.5px;color:var(--ink3);margin-top:8px">
+        指揮：${esc(s.cmdr)}・志工 ${s.volunteers} 人${s.openedAt ? `・${s.openedAt} 開設` : s.applyAt ? `・${s.applyAt} 申請` : ''}</div>
+      <div style="margin-top:9px;display:flex;gap:7px">
+        <button class="btn sec sm" onclick="gotoSite('${s.id}','sites')">空間配置</button>${act}</div>
+    </div>`;
+  }).join('') + `</div>`;
+
+  /* 待辦（依角色） */
+  const todos = [];
+  if(S.role === 'hq'){
+    S.sites.filter(s => s.status === 'applying').forEach(s =>
+      todos.push({t:`核准據點開設：${s.name}`, d:s.applyNote, b:`onApproveOpen('${s.id}')`, bl:'核准'}));
+    pendingReqsFor().forEach(r =>
+      todos.push({t:`核准請領 ${r.id}：${ITEM[r.itemId].name} ${r.qty} ${ITEM[r.itemId].unit}${r.cross ? '（跨據點）' : ''}`, d:r.reason, b:`gotoReqs('${r.siteId}')`, bl:'查看'}));
+  }
+  if(S.role === 'cmd') pendingReqsFor().forEach(r =>
+    todos.push({t:`核准請領 ${r.id}：${ITEM[r.itemId].name} ${r.qty} ${ITEM[r.itemId].unit}`, d:r.reason, b:`gotoReqs('${r.siteId}')`, bl:'查看'}));
+  if(S.role === 'supply'){
+    S.reqs.filter(r => r.status === 'approved').forEach(r =>
+      todos.push({t:`出庫：${r.id} ${ITEM[r.itemId].name} ${r.qty} ${ITEM[r.itemId].unit} → ${siteOf(r.siteId).short}`, d:'已核准，待總倉出庫', b:`gotoReqs('${r.siteId}')`, bl:'處理'}));
+    S.reqs.filter(r => r.status === 'issued').forEach(r =>
+      todos.push({t:`待簽收：${r.id}（配送中）`, d:'到貨後簽收入庫', b:`gotoReqs('${r.siteId}')`, bl:'處理'}));
+    S.donations.filter(d => d.status === 'pending').forEach(d =>
+      todos.push({t:`捐贈驗收：${d.donor} ${ITEM[d.itemId].name} ${d.qty} ${ITEM[d.itemId].unit}`, d:d.note || '', b:`UI.supTab='donate';gotoSite('${d.siteId}','supplies')`, bl:'驗收'}));
+  }
+  if(S.role === 'kitchen') openSites().forEach(s => {
+    if((S.meals[s.id] || []).some(m => !m.done && m.planned == null))
+      todos.push({t:`${s.short}晚餐尚未排定備餐量（預估 ${dinnerForecast(s.id)} 份）`, d:'依在住人數自動預估，請填備餐計畫', b:`gotoSite('${s.id}','meals')`, bl:'排定'});
+  });
+  if(S.role === 'care' || S.role === 'med') S.careLogs.filter(l => l.followUp).slice(0,4).forEach(l => {
+    const h = S.households.find(x => x.id === l.hhId);
+    todos.push({t:`追蹤：${h ? h.head + '戶' : l.hhId}（${l.type}）`, d:l.note.slice(0, 32) + '…', b:`UI.careTab='follow';switchTab('care')`, bl:'查看'});
+  });
+  if(S.role === 'reg') todos.push({t:'受理報到登記（現場排隊由協力志工引導）', d:'以戶為單位建檔，系統自動連動空間／餐食／物資', b:`switchTab('intake')`, bl:'開始報到'});
+
+  const todoCard = `<div class="card"><h3>待辦事項<span class="chip mut" style="margin-left:auto">${esc(ROLES[S.role].name)}視角</span></h3>
+    ${todos.length ? `<div class="item-list">` + todos.map(x => `
+      <div class="item" style="box-shadow:none"><div class="row1"><span class="ttl" style="font-size:13.5px">${esc(x.t)}</span>
+        <span class="right"><button class="btn pri sm" onclick="${x.b}">${x.bl}</button></span></div>
+        ${x.d ? `<div class="meta">${esc(x.d)}</div>` : ''}</div>`).join('') + `</div>`
+      : `<div class="empty">目前無待辦，感恩 🙏</div>`}</div>`;
+
+  const lowCard = `<div class="card"><h3>庫存警示（全據點）</h3>
+    ${lows.length ? `<div class="item-list">` + lows.map(r => `
+      <div class="meter-row" style="margin:5px 0"><span class="lab">${siteOf(r.siteId).short}｜${ITEM[r.itemId].name}</span>
+        ${meterHTML(r.qty, r.safety * 2)}
+        <span class="val">${r.qty}/${r.safety}</span>
+        <span class="chip ${stockCls(r)}">${stockCls(r) === 'crit' ? '緊急' : '偏低'}</span></div>`).join('') + `</div>
+      <div class="fnote">量表刻度＝安全庫存×2；低於安全庫存即警示，並於請領單建議補量。</div>`
+      : `<div class="empty">各據點庫存均在安全水位以上</div>`}</div>`;
+
+  const dc = dietCounts(S.site);
+  const dietCard = `<div class="card"><h3>特殊餐彙總<span class="chip mut" style="margin-left:auto">${esc(siteOf(S.site).short)}據點</span></h3>
+    ${['diabetic','soft','infant','allergy'].map(k => `
+      <div class="meter-row" style="margin:6px 0"><span class="lab">${DIETS[k]}</span>
+        <div class="meter"><i style="width:${Math.min(100, dc[k] * 12)}%;background:${DIET_COLORS[k]}"></i></div>
+        <span class="val">${dc[k]} 份</span></div>`).join('')}
+    <div class="fnote">依住民飲食註記即時彙總，香積組備餐頁同步。全餐皆為素食。</div></div>`;
+
+  const seen = S.role === 'hq' ? S.audit : S.audit.filter(a => a.siteId === S.site || a.role === S.role || !a.siteId);
+  const auditCard = `<div class="card"><h3>最新稽核軌跡${S.role === 'hq' ? '（全域）' : '（本據點）'}</h3>
+    <ul class="tl">` + seen.slice(-7).reverse().map(a => `
+      <li><span class="t">${a.at}・${ROLES[a.role] ? ROLES[a.role].name : a.role}</span><br>
+        <span class="chip ${a.action === '越權攔截' ? 'crit' : a.action === '警示' ? 'warn' : 'mut'}" style="margin:2px 6px 2px 0">${esc(a.action)}</span>${esc(a.detail)}</li>`).join('') + `</ul></div>`;
+
+  return pageHead('總覽儀表板', `${esc(S.event.name)}・依「${esc(ROLES[S.role].name)}」視角顯示`) +
+    signals + stats + siteCards +
+    `<div class="grid g2">${todoCard}${lowCard}</div>` +
+    `<div class="grid g2">${dietCard}${auditCard}</div>`;
+}
+
+/* ---------- 據點與空間 ---------- */
+function onApplyOpen(sid){
+  if(!guard('site.applyOpen', '申請開設據點')) return;
+  if(applyOpen(sid)){ commit(); toast('開設申請已送出，待總指揮中心核准', 'ok'); }
+}
+function onApproveOpen(sid){
+  if(!guard('site.approveOpen', '核准據點開設')) return;
+  if(approveOpen(sid)){ commit(); toast(`已核准 ${siteOf(sid).name} 開設——狀態轉為運作中`, 'ok'); }
+}
+function onToggleCheck(sid, idx){
+  if(!guard('space.toggleCheck', '整備檢核表勾選')) return;
+  if(toggleCheck(sid, idx)) commit();
+}
+function vSites(){
+  const s = siteOf(S.site);
+  const st = SITE_STATUS[s.status];
+  const strip = `<div class="alert-strip">` + S.sites.map(x => `
+    <button class="signal ${x.status === 'open' ? 'ok' : x.status === 'applying' ? 'warn' : ''}" onclick="setSite('${x.id}')" style="${x.id === S.site ? 'outline:2px solid var(--navy);' : ''}">
+      <span class="dot ${x.status === 'open' ? 'ok' : x.status === 'applying' ? 'warn' : 'mut'}"></span>
+      <span class="t"><b style="font-size:13px;color:var(--ink)">${esc(x.short)}</b><br>${SITE_STATUS[x.status].t}・${occSite(x.id)} 人</span></button>`).join('') + `</div>`;
+
+  let statusCard = '';
+  if(s.status === 'applying') statusCard = `<div class="card" style="border-left:4px solid var(--warn)">
+    <h3>開設申請待核准</h3><div class="meta" style="font-size:13px;color:var(--ink2)">${esc(s.applyNote || '')}（${s.applyAt} 送出）</div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button class="btn pri${lk('site.approveOpen')}" onclick="onApproveOpen('${s.id}')">核准開設</button>
+      <span class="chip warn">核准鏈：據點指揮 → 總指揮中心</span></div></div>`;
+  if(s.status === 'standby') statusCard = `<div class="card" style="border-left:4px solid var(--ink3)">
+    <h3>平時待命中</h3><div class="meta" style="font-size:13px;color:var(--ink2)">平時整備到位，災時才能一鍵開設——空間建檔與檢核由總務處（空間組）平日維護。</div>
+    <div style="margin-top:10px"><button class="btn pri${lk('site.applyOpen')}" onclick="onApplyOpen('${s.id}')">申請開設</button></div></div>`;
+
+  const housing = spacesOf(s.id).filter(p => p.cap);
+  const service = spacesOf(s.id).filter(p => !p.cap);
+  const spacesTable = `<div class="card"><h3>收容分區配置</h3><div class="tbl-wrap" style="box-shadow:none;border-radius:var(--r-sm)"><table>
+    <thead><tr><th>空間</th><th>樓層</th><th>分區</th><th class="num">容量</th><th class="num">在住</th><th style="min-width:110px">使用率</th><th class="num">剩餘</th></tr></thead>
+    <tbody>` + housing.map(p => {
+      const occ = occSpace(p.id), remain = p.cap - occ;
+      return `<tr><td><b>${esc(p.name)}</b></td><td>${p.floor}</td><td><span class="zone-tag">${esc(p.zone)}</span></td>
+        <td class="num">${p.cap}</td><td class="num">${occ}</td><td>${meterHTML(occ, p.cap)}</td>
+        <td class="num" style="color:${remain === 0 ? 'var(--crit)' : remain <= 4 ? 'var(--warn)' : 'var(--ink)'}">${remain} 床</td></tr>`;
+    }).join('') + `</tbody></table></div>
+    ${service.length ? `<div class="fnote" style="margin-top:10px">服務空間：${service.map(p => `${esc(p.name)}（${p.floor}）`).join('・')}</div>` : ''}</div>`;
+
+  let checkCard = '';
+  const cl = S.checklists[s.id];
+  if(cl){
+    const done = cl.filter(x => x.done).length;
+    checkCard = `<div class="card"><h3>平時整備檢核表<span class="chip ${done === cl.length ? 'ok' : 'warn'}" style="margin-left:auto">${done}/${cl.length} 完成</span></h3>
+      <ul class="check-list">` + cl.map((x,i) => `
+        <li class="${x.done ? 'done' : ''}"><button class="cbx${lk('space.toggleCheck')}" onclick="onToggleCheck('${s.id}',${i})" aria-label="切換">${x.done ? '✓' : ''}</button>${esc(x.t)}</li>`).join('') + `</ul>
+      <div class="fnote">回應「總務處量能」痛點：平時就把空間、消防、設備、床毯盤點建檔，開設申請時檢核表即為佐證。勾選權限：空間組。</div></div>`;
+  }
+
+  const info = `<div class="card"><h3>據點資訊</h3>
+    <div class="meta" style="font-size:13.5px;color:var(--ink2);line-height:2">
+      狀態：<span class="chip ${st.cls}">${st.t}</span>　據點指揮：${esc(s.cmdr)}<br>
+      位置：${esc(s.addr)}　駐點志工：${s.volunteers} 人<br>
+      收容：${occSite(s.id)} 人／容量 ${capSite(s.id)} 床${s.openedAt ? `　開設時間：${s.openedAt}` : ''}</div></div>`;
+
+  return pageHead('據點與空間', '樓層分區・容量占用・平時整備') + strip + statusCard +
+    `<div class="grid g2">${info}${checkCard || `<div class="card"><h3>整備檢核</h3><div class="empty">運作中據點之整備已於開設時完成檢核</div></div>`}</div>` +
+    spacesTable;
+}
+
+/* ---------- 報到與住民 ---------- */
+function vIntake(){
+  const s = siteOf(S.site);
+  const inList = hhIn(S.site);
+  const outList = S.households.filter(h => h.siteId === S.site && h.status === 'out');
+  const sub = `<div class="subtabs">
+    <button class="${UI.intakeTab === 'reg' ? 'on' : ''}" onclick="UI.intakeTab='reg';renderView()">報到登記</button>
+    <button class="${UI.intakeTab === 'list' ? 'on' : ''}" onclick="UI.intakeTab='list';renderView()">住民清單<span class="cnt">${inList.length} 戶</span></button>
+    <button class="${UI.intakeTab === 'out' ? 'on' : ''}" onclick="UI.intakeTab='out';renderView()">已退住<span class="cnt">${outList.length} 戶</span></button>
+  </div>`;
+  let body = '';
+  if(UI.intakeTab === 'reg') body = intakeForm(s);
+  if(UI.intakeTab === 'list') body = hhListHTML(inList);
+  if(UI.intakeTab === 'out') body = hhOutHTML(outList);
+  return pageHead('報到與住民', `${esc(s.name)}・以「戶」為單位收容`) + sub + body;
+}
+function intakeForm(s){
+  const housing = spacesOf(s.id).filter(p => p.cap);
+  const steps = `<div class="steps">
+    <div class="step on" data-n="1">報到建檔</div><div class="step" data-n="2">健康篩檢</div>
+    <div class="step" data-n="3">分區配位</div><div class="step" data-n="4">安置完成</div></div>`;
+  if(s.status !== 'open') return steps + `<div class="empty">本據點目前為「${SITE_STATUS[s.status].t}」，尚未開放收容報到。</div>`;
+  return steps + `<div class="card">
+    <h3>戶長資料</h3>
+    <div class="frow">
+      <div class="field"><label>戶長姓名 *</label><input id="f-head" placeholder="例：王小明"></div>
+      <div class="field"><label>身分證號（遮罩填寫）</label><input id="f-idm" placeholder="A12***4567"><span class="hint">個資最小化：僅存遮罩，用於重複報到查核</span></div>
+      <div class="field"><label>聯絡電話</label><input id="f-phone" placeholder="0912-***-345"></div>
+      <div class="field"><label>原居地址／受損情形</label><input id="f-addr" placeholder="例：板橋區文化路（紅單）"></div>
+    </div>
+    <h3 style="margin-top:6px">成員與需求（健康篩檢）</h3>
+    <div id="memberRows"></div>
+    <button class="btn sec sm" onclick="addMemberRow()">＋ 新增成員</button>
+    <h3 style="margin-top:16px">分區配位</h3>
+    <div class="field" style="max-width:420px"><label>收容分區 *</label>
+      <select id="f-space">${housing.map(p => {
+        const remain = p.cap - occSpace(p.id);
+        return `<option value="${p.id}" ${remain <= 0 ? 'disabled' : ''}>${p.name}（${p.zone}）｜剩餘 ${remain} 床</option>`;
+      }).join('')}</select>
+      <span class="hint">長者・孕婦建議長者友善區／母嬰區；系統將檢核剩餘床位</span></div>
+    <div class="macts" style="justify-content:flex-start">
+      <button class="btn pri${lk('intake.register')}" onclick="submitIntake()">完成報到（系統自動連動 6 處）</button>
+    </div></div>`;
+}
+function memberRowHTML(){
+  return `<div class="mrow frow" style="border-bottom:1px dashed var(--border);padding:8px 0;margin-bottom:4px">
+    <div class="field" style="margin-bottom:4px"><label>姓名 *</label><input class="m-name"></div>
+    <div class="field" style="margin-bottom:4px"><label>年齡</label><input class="m-age" inputmode="numeric" placeholder="0–120"></div>
+    <div class="field" style="margin-bottom:4px"><label>性別</label><select class="m-sex"><option>女</option><option>男</option></select></div>
+    <div class="field" style="margin-bottom:4px"><label>飲食註記</label><select class="m-diet">
+      ${Object.entries(DIETS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+    <div class="field" style="margin-bottom:4px"><label>特殊需求</label><span class="checks">
+      ${['慢性病','行動不便','孕婦','嬰幼兒'].map(n => `<label><input type="checkbox" class="m-need" value="${n}">${n}</label>`).join('')}</span></div>
+    <div class="field" style="margin-bottom:4px"><label>&nbsp;</label><button class="btn sec sm" onclick="this.closest('.mrow').remove()">移除</button></div>
+  </div>`;
+}
+function addMemberRow(){ $('#memberRows').insertAdjacentHTML('beforeend', memberRowHTML()); }
+function submitIntake(){
+  if(!guard('intake.register', '收容報到登記')) return;
+  const head = $('#f-head').value.trim();
+  if(!head){ toast('請填寫戶長姓名', 'crit'); $('#f-head').focus(); return; }
+  const members = $$('.mrow').map(r => ({
+    name: $('.m-name', r).value.trim(),
+    age: parseInt($('.m-age', r).value, 10) || 0,
+    sex: $('.m-sex', r).value,
+    diet: $('.m-diet', r).value,
+    needs: $$('.m-need', r).filter(c => c.checked).map(c => c.value),
+  })).filter(m => m.name);
+  if(members.length < 1){ toast('每戶至少需登記 1 位成員（請填成員姓名）', 'crit'); return; }
+  const res = registerHousehold({ head, idm: $('#f-idm').value.trim(), phone: $('#f-phone').value.trim(),
+    addr: $('#f-addr').value.trim(), spaceId: $('#f-space').value, members });
+  if(!res.ok){ toast(res.msg, 'crit'); return; }
+  commit();               // 單次 commit：六處已一次改完
+  openRipple(res);        // money shot：連動摘要
+}
+/* 連動摘要（一次報到，六處連動） */
+function openRipple(r){
+  const st = iid => stockOf(r.sid, iid);
+  const dietTxt = r.diets.length ? r.diets.map(m => DIETS[m.diet]).join('、') + ' 各+1' : '無特殊餐';
+  const bubbles = [
+    {i:'⌂', k:`空間占用｜${esc(r.sp.name)}`, v:`${r.before.spOcc} → ${r.before.spOcc + r.n}`, cls:'up'},
+    {i:'☕', k:`今晚餐食預估（香積）<br>${dietTxt}`, v:`${r.before.dinner} → ${dinnerForecast(r.sid)}`, cls:'up'},
+    ...['bed','blanket','kit'].map(iid => {
+      const s2 = st(iid), low = s2 && s2.qty < s2.safety;
+      return {i:'▤', k:`${ITEM[iid].name}庫存${low ? '<br><b>已低於安全庫存！</b>' : ''}`,
+        v:`−${r.reserved[iid]} → ${s2 ? s2.qty : 0}`, cls: low ? 'alert' : 'down'};
+    }),
+    {i:'✎', k:'稽核軌跡（誰・何時・做了什麼）', v:`+${S.audit.length - r.before.audit}`, cls:'up'},
+  ];
+  openModal(`
+    <div class="ripple-house"><div class="hh">${esc(r.hh)}戶・${r.n} 口</div>
+      <div class="hs">${r.id}｜已安置於 ${esc(r.sp.name)}（${esc(r.sp.zone)}）——一次報到，六處同步連動</div></div>
+    <div class="ripple-grid">${bubbles.map((b,i) => `
+      <div class="bubble ${b.cls}" style="animation-delay:${i * 90}ms">
+        <div class="bi">${b.i}</div><div class="bv">${b.v}</div><div class="bk">${b.k}</div></div>`).join('')}</div>
+    ${r.shortages.length ? `<div class="card" style="border-left:4px solid var(--crit);margin-top:12px;padding:10px 14px">
+      <b style="color:var(--crit)">物資缺口</b>：${r.shortages.map(x => `${ITEM[x.iid].name}不足 ${x.gap} ${ITEM[x.iid].unit}`).join('、')}——已寫入稽核，請儘速請領。</div>` : ''}
+    ${r.alerts.length ? `<div class="fnote" style="margin-top:10px">⚠ ${r.alerts.join('；')}</div>` : ''}
+    <div class="macts"><button class="btn sec" onclick="closeModal();UI.intakeTab='list';renderView()">查看住民清單</button>
+      <button class="btn pri" onclick="closeModal()">完成</button></div>`);
+}
+function hhChips(h){
+  const needs = [...new Set(h.members.flatMap(m => m.needs))];
+  const diets = [...new Set(h.members.map(m => m.diet).filter(d => d !== 'normal'))];
+  return needs.map(n => `<span class="chip warn">${n}</span>`).join('') +
+         diets.map(d => `<span class="chip info">${DIETS[d]}</span>`).join('');
+}
+function hhListHTML(list){
+  const q = UI.q.trim();
+  const rows = list.filter(h => !q || h.head.includes(q) || h.members.some(m => m.name.includes(q)));
+  return `<div class="field" style="max-width:300px"><input placeholder="搜尋戶長／成員姓名…" value="${esc(UI.q)}" oninput="UI.q=this.value;refreshHHTable()"></div>
+  <div id="hhTableWrap">${hhTableInner(rows)}</div>`;
+}
+function hhTableInner(rows){
+  if(!rows.length) return `<div class="empty">無符合的在住戶</div>`;
+  return `<div class="tbl-wrap"><table>
+    <thead><tr><th>戶長</th><th class="num">口數</th><th>分區</th><th>特殊註記</th><th>報到時間</th><th>關懷</th><th>操作</th></tr></thead>
+    <tbody>` + rows.map(h => {
+      const sp = S.spaces.find(p => p.id === h.spaceId);
+      const logs = S.careLogs.filter(l => l.hhId === h.id).length;
+      return `<tr><td><b>${esc(h.head)}</b><br><span style="font-size:11.5px;color:var(--ink3)">${esc(h.id)}｜${esc(h.idm || '—')}</span></td>
+        <td class="num">${h.members.length}</td>
+        <td><span class="zone-tag">${sp ? esc(sp.name) : '—'}</span></td>
+        <td>${hhChips(h) || '<span class="chip mut">一般</span>'}</td>
+        <td style="font-variant-numeric:tabular-nums">${h.checkin}</td>
+        <td><button class="btn sec sm" onclick="UI.careHH='${h.id}';UI.careTab='log';switchTab('care')">紀錄 ${logs}</button></td>
+        <td><div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button class="btn sec sm" onclick="showLinkage('${h.id}')">連動紀錄</button>
+          <button class="btn crit-o sm${lk('intake.discharge')}" onclick="confirmDischarge('${h.id}')">退住</button></div></td></tr>`;
+    }).join('') + `</tbody></table></div>`;
+}
+function refreshHHTable(){
+  const rows = hhIn(S.site).filter(h => !UI.q.trim() || h.head.includes(UI.q.trim()) || h.members.some(m => m.name.includes(UI.q.trim())));
+  $('#hhTableWrap').innerHTML = hhTableInner(rows);
+}
+function hhOutHTML(list){
+  if(!list.length) return `<div class="empty">尚無退住紀錄</div>`;
+  return `<div class="tbl-wrap"><table>
+    <thead><tr><th>戶長</th><th class="num">口數</th><th>報到</th><th>退住</th><th>後續追蹤</th><th></th></tr></thead>
+    <tbody>` + list.map(h => `
+      <tr><td><b>${esc(h.head)}</b><br><span style="font-size:11.5px;color:var(--ink3)">${esc(h.id)}</span></td>
+      <td class="num">${h.members.length}</td>
+      <td style="font-variant-numeric:tabular-nums">${h.checkin}</td>
+      <td style="font-variant-numeric:tabular-nums">${h.checkout || '—'}</td>
+      <td>${h.followUp ? `<span class="chip wood">轉社區訪視</span><div class="fnote" style="margin-top:4px">${esc(h.followNote || '')}</div>` : '<span class="chip ok">已安穩返家</span>'}</td>
+      <td><button class="btn sec sm" onclick="showLinkage('${h.id}')">連動紀錄</button></td></tr>`).join('') + `</tbody></table></div>
+    <div class="fnote" style="margin-top:10px">退住不刪除資料——狀態轉「已退住」保留可查（安生：離所後由社區訪視志工接手）。</div>`;
+}
+function showLinkage(hhId){
+  const h = S.households.find(x => x.id === hhId);
+  const items = S.audit.filter(a => a.ref === hhId);
+  openModal(`<h2>連動紀錄｜${esc(h.head)}戶</h2>
+    <div class="msub">${esc(hhId)}・凡涉及此戶的系統連動與稽核，一處寫入、全程可回查</div>
+    ${items.length ? `<ul class="tl">` + items.map(a => `
+      <li><span class="t">${a.at}・${ROLES[a.role] ? ROLES[a.role].name : a.role}</span><br>
+      <span class="chip ${a.action === '警示' ? 'warn' : 'mut'}" style="margin:2px 6px 2px 0">${esc(a.action)}</span>${esc(a.detail)}</li>`).join('') + `</ul>` : `<div class="empty">尚無紀錄</div>`}
+    <div class="macts"><button class="btn pri" onclick="closeModal()">關閉</button></div>`);
+}
+function confirmDischarge(hhId){
+  if(!guard('intake.discharge', '住民退住')) return;
+  const h = S.households.find(x => x.id === hhId);
+  if(!h || h.status !== 'in'){ toast('該戶已退住，不可重複操作'); return; }
+  const willFollow = h.members.some(m => m.needs.length) || S.careLogs.some(l => l.hhId === hhId && l.followUp);
+  openModal(`<h2>退住確認</h2>
+    <div class="msub">此操作將釋放床位並下修餐食預估，請再次確認</div>
+    <div class="card" style="box-shadow:none">
+      <b>${esc(h.head)}戶・${h.members.length} 口</b>
+      <div class="meta">安置於 ${esc((S.spaces.find(p => p.id === h.spaceId) || {}).name || '')}・${h.checkin} 報到<br>
+      福慧床 ${h.reserved?.bed || 0} 張將回庫（毛毯／盥洗包為消耗品不回收）<br>
+      ${willFollow ? '⚠ 本戶有特殊需求或追蹤旗標——退住後將自動轉入<b>社區訪視追蹤名單</b>' : '無追蹤旗標，安穩返家'}</div></div>
+    <div class="macts"><button class="btn sec" onclick="closeModal()">取消</button>
+      <button class="btn crit-o" onclick="doDischarge('${hhId}')">確認退住</button></div>`);
+}
+function doDischarge(hhId){
+  const r = dischargeHousehold(hhId);
+  if(!r){ closeModal(); return; }
+  commit();
+  const bubbles = [
+    {i:'⌂', k:'空間釋放', v:`−${r.n} 床位`, cls:'down'},
+    {i:'☕', k:'今晚餐食預估下修', v:`${r.before.dinner} → ${dinnerForecast(r.sid)}`, cls:'down'},
+    {i:'▤', k:'福慧床回庫（消耗品不回收）', v:`+${r.bedBack}`, cls:'up'},
+    {i:'♡', k: r.hh.followUp ? '轉社區訪視追蹤名單' : '安穩返家', v: r.hh.followUp ? '+1 戶' : '✓', cls: r.hh.followUp ? 'alert' : 'up'},
+    {i:'◉', k:'在住總數', v:`${r.before.siteOcc} → ${occSite(r.sid)}`, cls:'down'},
+    {i:'✎', k:'稽核軌跡', v:'+1', cls:'up'},
+  ];
+  openModal(`
+    <div class="ripple-house"><div class="hh">${esc(r.hh.head)}戶・退住</div>
+      <div class="hs">反向連動：報到時的每一處，退住時同步釋放</div></div>
+    <div class="ripple-grid">${bubbles.map((b,i) => `
+      <div class="bubble ${b.cls}" style="animation-delay:${i * 90}ms">
+        <div class="bi">${b.i}</div><div class="bv">${b.v}</div><div class="bk">${b.k}</div></div>`).join('')}</div>
+    <div class="macts"><button class="btn pri" onclick="closeModal();renderView()">完成</button></div>`);
+}
+/* ================================================================
+   視圖層（二）：個案關懷／香積餐食／物資設備／志工人力／制度說明＋啟動
+   ================================================================ */
+const CARE_CLS = {'安心關懷':'wood', '醫療':'info', '物資協助':'mut', '轉介':'warn'};
+
+function submitCare(){
+  if(!guard('care.log', '新增關懷紀錄')) return;
+  const hhId = $('#c-hh').value, type = S.role === 'med' ? '醫療' : $('#c-type').value;
+  const by = $('#c-by').value.trim(), note = $('#c-note').value.trim();
+  if(!hhId){ toast('請選擇關懷住戶', 'crit'); return; }
+  if(!by){ toast('請填寫紀錄志工姓名（關懷紀錄必留人的名字）', 'crit'); return; }
+  if(!note){ toast('請填寫關懷內容', 'crit'); return; }
+  addCareLog({hhId, type, note, by, followUp: $('#c-fu').checked});
+  UI.careHH = '';
+  commit();
+  toast('關懷紀錄已建立，感恩付出 🙏', 'ok');
+}
+function vCare(){
+  const s = siteOf(S.site);
+  const hhs = S.households.filter(h => h.siteId === S.site);
+  const logsAll = S.careLogs.filter(l => hhs.some(h => h.id === l.hhId));
+  const medLogs = logsAll.filter(l => l.type === '醫療');
+  const fuLogs  = logsAll.filter(l => l.followUp);
+  const sub = `<div class="subtabs">
+    <button class="${UI.careTab === 'log' ? 'on' : ''}" onclick="UI.careTab='log';renderView()">關懷紀錄<span class="cnt">${logsAll.length}</span></button>
+    <button class="${UI.careTab === 'med' ? 'on' : ''}" onclick="UI.careTab='med';renderView()">醫療（人醫會）<span class="cnt">${medLogs.length}</span></button>
+    <button class="${UI.careTab === 'follow' ? 'on' : ''}" onclick="UI.careTab='follow';renderView()">追蹤名單<span class="cnt">${fuLogs.length + followList().length}</span></button>
+  </div>`;
+
+  const form = `<div class="card"><h3>${S.role === 'med' ? '新增醫療紀錄（人醫會）' : '新增關懷紀錄'}${S.role === 'med' ? '<span class="chip info" style="margin-left:auto">類型固定：醫療</span>' : ''}</h3>
+    <div class="frow">
+      <div class="field"><label>關懷住戶 *</label><select id="c-hh">
+        <option value="">— 請選擇 —</option>
+        ${hhs.map(h => `<option value="${h.id}" ${UI.careHH === h.id ? 'selected' : ''}>${esc(h.head)}戶（${h.members.length} 口${h.status === 'out' ? '・已退住' : ''}）</option>`).join('')}</select></div>
+      <div class="field"><label>類型</label>${S.role === 'med'
+        ? `<select id="c-type" disabled><option>醫療</option></select>`
+        : `<select id="c-type">${Object.keys(CARE_CLS).map(t => `<option>${t}</option>`).join('')}</select>`}</div>
+      <div class="field"><label>紀錄志工姓名 *</label><input id="c-by" placeholder="例：訪視志工 林美玉"><span class="hint">膚慰是人對人的工作——每筆紀錄都留下志工的名字</span></div>
+    </div>
+    <div class="field"><label>關懷內容 *</label><textarea id="c-note" rows="2" placeholder="傾聽・膚慰・需求記錄…"></textarea></div>
+    <label class="checks" style="font-size:13px"><input type="checkbox" id="c-fu"> 列入追蹤（退住時自動轉社區訪視）</label>
+    <div class="macts" style="justify-content:flex-start"><button class="btn pri${lk('care.log')}" onclick="submitCare()">建立紀錄</button></div></div>`;
+
+  const logList = arr => arr.length ? `<div class="item-list">` + arr.map(l => {
+    const h = S.households.find(x => x.id === l.hhId);
+    return `<div class="item"><div class="row1">
+      <span class="chip ${CARE_CLS[l.type] || 'mut'}">${esc(l.type)}</span>
+      <span class="ttl" style="font-size:13.5px">${h ? esc(h.head) + '戶' : esc(l.hhId)}</span>
+      ${l.followUp ? '<span class="chip crit">追蹤</span>' : ''}
+      <span class="right mini-note" style="color:var(--ink3)">${l.at}</span></div>
+      <div class="meta">${esc(l.note)}</div>
+      <div class="meta" style="color:var(--wood)">記錄：${esc(l.by)}</div></div>`;
+  }).join('') + `</div>` : `<div class="empty">尚無紀錄</div>`;
+
+  let body = '';
+  if(UI.careTab === 'log') body = form + `<div style="height:14px"></div>` + logList(logsAll);
+  if(UI.careTab === 'med'){
+    const flagged = healthFlagged(S.site);
+    body = form + `<div class="card" style="margin-top:14px"><h3>健康旗標住民（報到篩檢彙總）</h3>
+      ${flagged.length ? `<div class="tbl-wrap" style="box-shadow:none"><table>
+        <thead><tr><th>姓名</th><th class="num">年齡</th><th>戶別</th><th>旗標</th><th>飲食</th></tr></thead><tbody>` +
+        flagged.map(m => `<tr><td><b>${esc(m.name)}</b></td><td class="num">${m.age}</td>
+          <td>${esc(m.hh.head)}戶</td>
+          <td>${m.needs.map(n => `<span class="chip warn">${n}</span>`).join(' ')}</td>
+          <td>${m.diet !== 'normal' ? `<span class="chip info">${DIETS[m.diet]}</span>` : '—'}</td></tr>`).join('') +
+        `</tbody></table></div>` : `<div class="empty">目前無健康旗標住民</div>`}
+      <div class="fnote">資料來源：報到表單的健康篩檢欄位——報到組登錄一次，人醫會即時看到，不重複詢問災民。</div></div>
+      <div style="height:14px"></div>` + logList(medLogs);
+  }
+  if(UI.careTab === 'follow'){
+    const fl = followList();
+    body = `<div class="card"><h3>社區訪視追蹤名單（安生）</h3>
+      ${fl.length ? `<div class="item-list">` + fl.map(h => `
+        <div class="item"><div class="row1"><span class="ttl">${esc(h.head)}戶</span>
+          <span class="chip wood">已退住・轉社區訪視</span>
+          <span class="right mini-note" style="color:var(--ink3)">${h.checkout}</span></div>
+        <div class="meta">${esc(h.followNote || '')}</div></div>`).join('') + `</div>`
+        : `<div class="empty">目前無退住追蹤戶</div>`}
+      <div class="fnote">收容結束不是關懷的結束——退住帶追蹤旗標者，自動移交社區訪視志工延續關懷（銜接既有慈善訪視系統）。</div></div>
+      <div style="height:14px"></div>` + logList(fuLogs);
+  }
+  return pageHead('個案關懷', `${esc(s.name)}・安心膚慰／醫療／轉介／追蹤`) + sub + body;
+}
+
+/* ---------- 香積餐食 ---------- */
+function onSaveMeal(sid, k){
+  if(!guard('meal.save', '香積備餐更新')) return;
+  if(saveMeal(sid, k)){ commit(); toast('備餐資料已更新', 'ok'); }
+}
+function vMeals(){
+  const s = siteOf(S.site);
+  const meals = S.meals[s.id];
+  if(s.status !== 'open' || !meals)
+    return pageHead('香積餐食', esc(s.name)) + `<div class="empty">本據點尚未開設供餐（開設核准後自動建立三餐排程）。</div>`;
+  const live = dinnerForecast(s.id);
+  const dc = dietCounts(s.id);
+
+  const mealCards = `<div class="grid g3">` + meals.map(m => {
+    const fc = m.done || m.forecast != null ? m.forecast : live;
+    return `<div class="card">
+      <h3>${m.name}<span class="mini-note" style="color:var(--ink3)">${m.time}</span>
+        <span class="chip ${m.done ? 'ok' : 'warn'}" style="margin-left:auto">${m.done ? '已出餐' : m.planned != null ? '備餐中' : '待排定'}</span></h3>
+      <div class="stat" style="margin-bottom:8px"><span class="k">需求預估（住民＋駐點志工）</span>
+        <span class="v">${fc ?? live}<small>份</small></span>
+        ${!m.done ? '<span class="d">隨報到／退住即時連動</span>' : ''}</div>
+      ${m.done ? `
+        <div class="meta" style="font-size:13px;color:var(--ink2);line-height:2">
+          備餐計畫：${m.planned ?? '—'} 份　實際產量：${m.produced ?? '—'} 份<br>
+          實際出餐：<b>${m.served}</b> 份　餘量：${m.produced != null && m.served != null ? m.produced - m.served : '—'} 份</div>`
+      : `
+        <div class="frow">
+          <div class="field"><label>備餐計畫（份）</label><input id="mp-${m.k}" inputmode="numeric" value="${m.planned ?? ''}" placeholder="建議 ${Math.ceil(live * 1.08)}"></div>
+          <div class="field"><label>實際產量</label><input id="mpr-${m.k}" inputmode="numeric" value="${m.produced ?? ''}"></div>
+          <div class="field"><label>實際出餐</label><input id="msv-${m.k}" inputmode="numeric" value="${m.served ?? ''}"><span class="hint">填出餐即結餐</span></div>
+        </div>
+        <button class="btn pri sm${lk('meal.save')}" onclick="onSaveMeal('${s.id}','${m.k}')">儲存${m.name}備餐</button>`}
+    </div>`;
+  }).join('') + `</div>`;
+
+  const vals = meals.map(m => ({name:m.name, f:(m.forecast != null ? m.forecast : live), sv:m.served}));
+  const mx = Math.max(...vals.map(v => Math.max(v.f || 0, v.sv || 0)), 1);
+  const chart = `<div class="card"><h3>今日三餐｜預估 vs 實際出餐</h3>
+    <div class="bars">${vals.map(v => `
+      <div class="bar" style="height:${Math.round((v.f || 0) / mx * 100)}%"><span class="bl">${v.f || 0}</span></div>
+      <div class="bar b2" style="height:${Math.round((v.sv || 0) / mx * 100)}%"><span class="bl">${v.sv ?? '—'}</span></div>
+      <div style="flex:.6"></div>`).join('')}</div>
+    <div class="bars-x">${vals.map(v => `<span>${v.name}</span><span></span><span style="flex:.6"></span>`).join('')}</div>
+    <div class="legend"><span><i style="background:var(--c1)"></i>需求預估</span><span><i style="background:var(--c2)"></i>實際出餐</span></div></div>`;
+
+  const dietCard = `<div class="card"><h3>特殊餐備製清單</h3>
+    ${['diabetic','soft','infant','allergy'].map(k => `
+      <div class="meter-row" style="margin:6px 0"><span class="lab">${DIETS[k]}</span>
+        <div class="meter"><i style="width:${Math.min(100, dc[k] * 12)}%;background:${DIET_COLORS[k]}"></i></div>
+        <span class="val">${dc[k]} 份</span></div>`).join('')}
+    <div class="fnote">由報到健康篩檢自動彙總——香積組無須逐戶詢問。全餐素食（香積飯為後備糧）。</div></div>`;
+
+  const tmr = `<div class="card"><h3>明日預估</h3>
+    <div class="stat"><span class="k">早齋預估（依現時在住）</span><span class="v">${live}<small>份</small></span>
+    <span class="d">在住 ${occSite(s.id)} 人＋志工 ${s.volunteers} 人；夜間新報到將自動上修</span></div>
+    <div class="fnote" style="margin-top:8px">備量建議 +8%（含臨時支援與熱食外送鄰近未收容戶）。</div></div>`;
+
+  return pageHead('香積餐食', `${esc(s.name)}・齋堂供餐（全素）`) + mealCards +
+    `<div class="grid g3">${chart}${dietCard}${tmr}</div>`;
+}
+
+/* ---------- 物資設備 ---------- */
+function onApproveReq(id){ if(!guard('req.approve', '核准物資請領')) return; if(approveReq(id)){ commit(); toast('已核准，移交物資組出庫', 'ok'); } }
+function onRejectReq(id){ if(!guard('req.approve', '駁回物資請領')) return; if(rejectReq(id)){ commit(); toast('已駁回'); } }
+function onIssueReq(id){ if(!guard('req.issue', '物資出庫')) return; if(issueReq(id)){ commit(); toast('已出庫，配送中', 'ok'); } }
+function onReceiveReq(id){ if(!guard('req.receive', '到貨簽收')) return; if(receiveReq(id)){ commit(); toast('已簽收入庫，庫存同步更新', 'ok'); } }
+function onReceiveDonation(id){ if(!guard('donate.receive', '捐贈驗收入庫')) return; if(receiveDonation(id)){ commit(); toast('捐贈已驗收入庫（依規徵信）', 'ok'); } }
+function quickReq(iid){ UI.reqItem = iid; UI.supTab = 'reqs'; renderView(); window.scrollTo({top:0}); }
+function submitReq(){
+  if(!guard('req.create', '建立物資請領')) return;
+  const itemId = $('#rq-item').value, qty = parseInt($('#rq-qty').value, 10);
+  const cross = $('#rq-cross').checked, from = $('#rq-from').value.trim(), reason = $('#rq-reason').value.trim();
+  if(!Number.isFinite(qty) || qty < 1){ toast('數量需為 1 以上的整數', 'crit'); return; }
+  if(!reason){ toast('請填寫請領事由（供核准判斷）', 'crit'); return; }
+  if(cross && !from){ toast('跨據點調撥請填來源據點', 'crit'); return; }
+  const id = createReq({itemId, qty, cross, from, reason});
+  UI.reqItem = '';
+  commit();
+  toast(`請領單 ${id} 已送出${cross ? '——跨據點調撥需總指揮中心核准' : '——待據點指揮核准'}`, 'ok');
+}
+function reqSteps(r){
+  if(r.status === 'rejected') return `<span class="chip crit">已駁回</span>`;
+  const idx = {pending:1, approved:2, issued:3, received:4}[r.status];
+  const names = ['申請', '核准', '出庫', '簽收'];
+  return `<div class="steps" style="margin:10px 0 2px;max-width:420px">` + names.map((nm,i) => `
+    <div class="step ${i < idx ? 'done' : i === idx ? 'on' : ''}" data-n="${i + 1}">${nm}</div>`).join('') + `</div>`;
+}
+function vSupplies(){
+  const s = siteOf(S.site);
+  const rows = S.stock.filter(r => r.siteId === s.id && !ITEM[r.itemId].equip);
+  const equip = S.stock.filter(r => r.siteId === s.id && ITEM[r.itemId].equip);
+  const reqs = S.reqs.filter(r => S.role === 'hq' || S.role === 'supply' ? true : r.siteId === s.id);
+  const dons = S.donations.filter(d => d.siteId === s.id);
+  const sub = `<div class="subtabs">
+    <button class="${UI.supTab === 'stock' ? 'on' : ''}" onclick="UI.supTab='stock';renderView()">庫存總覽</button>
+    <button class="${UI.supTab === 'reqs' ? 'on' : ''}" onclick="UI.supTab='reqs';renderView()">請領單<span class="cnt">${reqs.filter(r => r.status !== 'received' && r.status !== 'rejected').length}</span></button>
+    <button class="${UI.supTab === 'donate' ? 'on' : ''}" onclick="UI.supTab='donate';renderView()">捐贈入庫<span class="cnt">${dons.filter(d => d.status === 'pending').length}</span></button>
+  </div>`;
+  let body = '';
+  if(UI.supTab === 'stock'){
+    body = `<div class="card"><h3>民生物資庫存<span class="chip mut" style="margin-left:auto">${esc(s.short)}據點</span></h3>
+      ${rows.length ? `<div class="tbl-wrap" style="box-shadow:none"><table>
+      <thead><tr><th>品項</th><th class="num">現量</th><th class="num">安全庫存</th><th style="min-width:110px">水位</th><th>狀態</th><th></th></tr></thead><tbody>` +
+      rows.map(r => `<tr><td><b>${ITEM[r.itemId].name}</b><span class="mini-note" style="color:var(--ink3)">（${ITEM[r.itemId].unit}）</span></td>
+        <td class="num"><b>${r.qty}</b></td><td class="num">${r.safety}</td>
+        <td>${meterHTML(r.qty, r.safety * 2)}</td>
+        <td><span class="chip ${stockCls(r)}">${stockCls(r) === 'ok' ? '正常' : stockCls(r) === 'warn' ? '偏低' : '緊急'}</span></td>
+        <td><button class="btn sec sm${lk('req.create')}" onclick="quickReq('${r.itemId}')">建立請領</button></td></tr>`).join('') +
+      `</tbody></table></div>` : `<div class="empty">本據點尚未建立庫存帳（開設後由物資組盤點建帳）</div>`}
+      <div class="fnote">福慧床／環保毛毯於報到時自動保留扣帳、退住時床自動回庫；水位刻度＝安全庫存 ×2。</div></div>
+      ${equip.length ? `<div class="card" style="margin-top:14px"><h3>設備</h3><div class="checks" style="gap:10px">` +
+        equip.map(r => `<span class="chip mut">${ITEM[r.itemId].name} ×${r.qty}（${stockCls(r) === 'ok' ? '正常' : '需補'}）</span>`).join('') +
+      `</div><div class="fnote">發電機／照明由空間組每月測試（整備檢核表項目）。</div></div>` : ''}`;
+  }
+  if(UI.supTab === 'reqs'){
+    const form = `<div class="card"><h3>建立請領單</h3>
+      <div class="frow">
+        <div class="field"><label>品項 *</label><select id="rq-item">
+          ${ITEMS.filter(i => !i.equip).map(i => `<option value="${i.id}" ${UI.reqItem === i.id ? 'selected' : ''}>${i.name}（${i.unit}）</option>`).join('')}</select></div>
+        <div class="field"><label>數量 *</label><input id="rq-qty" inputmode="numeric" placeholder="例：50"></div>
+        <div class="field"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="rq-cross" style="width:auto" onchange="$('#rq-fromwrap').style.display=this.checked?'':'none'">跨據點調撥</label>
+          <div id="rq-fromwrap" style="display:none"><input id="rq-from" placeholder="來源據點，例：關渡志業園區"></div>
+          <span class="hint">跨據點調撥需總指揮中心核准</span></div>
+      </div>
+      ${'' /* rq-from 一律存在，避免未勾選時查無元素 */}
+      <div class="field"><label>事由 *</label><textarea id="rq-reason" rows="2" placeholder="例：夜間低溫，毛毯接近安全庫存"></textarea></div>
+      <button class="btn pri${lk('req.create')}" onclick="submitReq()">送出請領</button></div>`;
+    body = form + `<div style="height:14px"></div><div class="item-list">` + (reqs.length ? reqs.map(r => `
+      <div class="item"><div class="row1">
+        <span class="ttl">${r.id}</span>
+        <span class="chip ${REQ_STATUS[r.status].cls}">${REQ_STATUS[r.status].t}</span>
+        ${r.cross ? '<span class="chip warn">跨據點調撥</span>' : ''}
+        <span class="right mini-note" style="color:var(--ink3)">${siteOf(r.siteId).short}｜${r.at}</span></div>
+      <div class="meta"><b>${ITEM[r.itemId].name} ${r.qty} ${ITEM[r.itemId].unit}</b>${r.from ? `・來源：${esc(r.from)}` : ''}・${esc(r.reason)}<br>申請：${esc(r.byName)}${r.apprBy ? `・核准：${esc(r.apprBy)}` : ''}</div>
+      ${reqSteps(r)}
+      <div class="acts">
+        ${r.status === 'pending' ? `<button class="btn ok sm${lk('req.approve')}" onclick="onApproveReq('${r.id}')">核准</button>
+          <button class="btn crit-o sm${lk('req.approve')}" onclick="onRejectReq('${r.id}')">駁回</button>` : ''}
+        ${r.status === 'approved' ? `<button class="btn pri sm${lk('req.issue')}" onclick="onIssueReq('${r.id}')">出庫</button>` : ''}
+        ${r.status === 'issued' ? `<button class="btn pri sm${lk('req.receive')}" onclick="onReceiveReq('${r.id}')">到貨簽收</button>` : ''}
+      </div></div>`).join('') : `<div class="empty">尚無請領單</div>`) + `</div>`;
+  }
+  if(UI.supTab === 'donate'){
+    body = `<div class="item-list">` + (dons.length ? dons.map(d => `
+      <div class="item"><div class="row1"><span class="ttl">${esc(d.donor)}</span>
+        <span class="chip ${d.status === 'pending' ? 'warn' : 'ok'}">${d.status === 'pending' ? '待驗收' : '已入庫'}</span>
+        <span class="right mini-note" style="color:var(--ink3)">${d.at}</span></div>
+      <div class="meta"><b>${ITEM[d.itemId].name} ${d.qty} ${ITEM[d.itemId].unit}</b>${d.note ? '・' + esc(d.note) : ''}${d.recvBy ? '・驗收：' + esc(d.recvBy) : ''}</div>
+      ${d.status === 'pending' ? `<div class="acts"><button class="btn pri sm${lk('donate.receive')}" onclick="onReceiveDonation('${d.id}')">驗收入庫</button></div>` : ''}</div>`).join('') : `<div class="empty">尚無捐贈</div>`) + `</div>
+      <div class="fnote" style="margin-top:10px">外部捐贈需驗收（效期／數量／品質）後入庫；芳名依慈濟徵信規範公開。</div>`;
+  }
+  return pageHead('物資設備', `${esc(s.name)}・庫存／請領／捐贈`) + sub + body;
+}
+
+/* ---------- 志工人力（唯讀彙整） ---------- */
+function vStaff(){
+  const s = siteOf(S.site);
+  const rows = S.staff[s.id];
+  return pageHead('志工人力', `${esc(s.name)}・排班彙整（唯讀）`,
+      `<span class="chip mut">演示版唯讀——排班由人力窗口線下維護</span>`) +
+    `<div class="grid g3">
+      <div class="card stat"><span class="k">本據點駐點志工</span><span class="v">${s.volunteers}<small>人</small></span><span class="d">四合一動員：合心協調・和氣承擔・互愛帶動・協力執行</span></div>
+      <div class="card stat"><span class="k">全事件動員</span><span class="v">${S.sites.reduce((n,x) => n + (x.volunteers || 0), 0)}<small>人</small></span><span class="d">跨據點志工總數</span></div>
+      <div class="card stat"><span class="k">香積志工佔比</span><span class="v">${rows ? Math.round((rows.find(r => r.g === '香積組') || {a:0}).a / Math.max(1, rows.reduce((n,r) => n + r.a, 0)) * 100) : 0}<small>%</small></span><span class="d">供餐是收容所最大宗人力</span></div>
+    </div>` +
+    (rows ? `<div class="tbl-wrap"><table>
+      <thead><tr><th>功能組</th><th class="num">早班 需/實</th><th class="num">午班 需/實</th><th class="num">晚班 需/實</th><th>狀態</th></tr></thead><tbody>` +
+      rows.map(r => {
+        const short = r.a < r.e || r.la < r.l || r.na < r.n;
+        return `<tr><td><b>${esc(r.g)}</b></td>
+          <td class="num">${r.e}/${r.a}</td><td class="num">${r.l}/${r.la}</td><td class="num">${r.n}/${r.na}</td>
+          <td>${short ? '<span class="chip warn">缺班</span>' : '<span class="chip ok">足班</span>'}</td></tr>`;
+      }).join('') + `</tbody></table></div>`
+    : `<div class="empty">本據點尚未建立班表（開設後由據點指揮啟動動員）</div>`);
+}
+
+/* ---------- 制度說明（三流講稿頁） ---------- */
+const TAB_SHORT = {dash:'總覽', sites:'空間', intake:'報到', care:'關懷', meals:'香積', supplies:'物資', staff:'志工', about:'制度'};
+const ACTION_LABELS = {
+  'site.applyOpen':'申請開設據點', 'site.approveOpen':'核准據點開設',
+  'intake.register':'報到登記／分區配位', 'intake.discharge':'退住（二次確認）',
+  'space.toggleCheck':'空間建檔／整備檢核', 'care.log':'關懷／醫療紀錄',
+  'meal.save':'備餐計畫／出餐登記', 'req.create':'建立物資請領',
+  'req.approve':'核准請領（跨據點限總指揮）', 'req.issue':'物資出庫',
+  'req.receive':'到貨簽收', 'donate.receive':'捐贈驗收入庫',
+};
+function flowLine(nodes){
+  return `<div class="flow-line">` + nodes.map((n,i) =>
+    `${i ? '<span class="farr">→</span>' : ''}<div class="fnode ${n.c || ''}"><b>${n.t}</b>${n.s ? `<span>${n.s}</span>` : ''}</div>`).join('') + `</div>`;
+}
+function vAbout(){
+  const intro = `<div class="card" style="border-left:4px solid var(--wood)">
+    <h3 style="font-family:var(--serif);font-size:17px;color:var(--wood)">安身・安心・安生——系統命名與慈濟賑災理念的對應</h3>
+    <div class="meta" style="font-size:14px;color:var(--ink2);line-height:2">
+    <b>安身</b>＝空間與床位（據點空間管理・福慧床毛毯配發）：先讓人有安穩的落腳處。<br>
+    <b>安心</b>＝關懷與膚慰（個案關懷・人醫會醫療・香積熱食）：訪視志工的傾聽與陪伴。<br>
+    <b>安生</b>＝生活重建（退住評估・轉社區訪視追蹤）：收容結束，關懷不斷線。<br><br>
+    本系統回應的核心課題：<b>個案管理（既有強項）× 空間管理（總務處平時能量）× 餐食物資供應（零經驗整合）</b>——三者共用同一份資料，一次寫入、全域連動。</div></div>`;
+
+  const wf = `<div class="crumb">工作流 WORKFLOW</div>
+    <div class="flow-box"><b style="font-size:13.5px">① 據點開設狀態機（平戰轉換）</b>
+      ${flowLine([{t:'平時待命',s:'空間建檔・整備檢核'},{t:'預警整備',s:'颱風／餘震預警'},{t:'開設申請',s:'據點指揮送出',c:'hot'},{t:'總指揮核准',c:'hot'},{t:'運作中',s:'收容服務',c:'okn'},{t:'縮編',s:'需求下降'},{t:'關閉復原',s:'場復・檢討'}])}
+      <div class="fnote">平時整備檢核表＝開設申請的佐證文件；「總務處零能量」的解方是把能量建在平時。</div></div>
+    <div class="flow-box"><b style="font-size:13.5px">② 收容安置流程（以戶為單位）</b>
+      ${flowLine([{t:'報到建檔',s:'戶長＋成員'},{t:'健康篩檢',s:'需求／飲食註記'},{t:'分區配位',s:'家庭／長者／母嬰',c:'hot'},{t:'安置中',s:'關懷循環',c:'okn'},{t:'退住評估',s:'二次確認'},{t:'社區訪視追蹤',s:'安生'}])}</div>
+    <div class="flow-box"><b style="font-size:13.5px">③ 物資請領（含跨據點調撥）</b>
+      ${flowLine([{t:'建立申請',s:'各功能組'},{t:'據點指揮核准',s:'跨據點→總指揮',c:'hot'},{t:'出庫',s:'物資組'},{t:'到貨簽收',s:'申請單位',c:'okn'}])}</div>
+    <div class="flow-box"><b style="font-size:13.5px">④ 香積餐食日循環</b>
+      ${flowLine([{t:'在住人數',s:'系統即時'},{t:'需求預估',s:'含特殊餐',c:'hot'},{t:'備餐計畫',s:'香積組'},{t:'出餐登記'},{t:'餘量回報',s:'修正明日'}])}</div>`;
+
+  const inf = `<div class="crumb">資訊流 INFORMATION FLOW</div>
+    <div class="flow-box">
+      <b style="font-size:13.5px">一次報到，六處連動（單一資料源，無第二份真相）</b>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap">
+        <div class="fnode hot" style="flex:none;min-width:120px;padding:16px 12px"><b>報到登記</b><span>報到組寫入一次</span></div>
+        <span class="farr" style="font-size:22px">⇒</span>
+        <div style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;min-width:280px">
+          ${['空間占用 +N', '餐食預估 +N（特殊餐分類）', '福慧床／毛毯／盥洗包 −N', '低庫存警示＋建議請領', '總指揮儀表板即時更新', '稽核軌跡 +1'].map(t => `<div class="fnode"><b style="font-size:12px">${t}</b></div>`).join('')}
+        </div></div>
+      <div class="fnote">退住＝反向釋放（床回補、消耗品不回補——預設規則可調）。所有連動在單一 reducer 內一次完成，不存在「改了空間、漏了餐食」的部分更新。稽核軌跡記錄「誰・何時・以什麼角色・做了什麼」。</div></div>`;
+
+  const visMatrix = `<div class="matrix-wrap"><table class="matrix">
+    <thead><tr><th>角色＼模組</th>${Object.keys(TABS).map(t => `<th>${TAB_SHORT[t]}</th>`).join('')}</tr></thead><tbody>` +
+    Object.keys(ROLES).map(r => `<tr><td class="rl">${ROLES[r].name}</td>` +
+      Object.keys(TABS).map(t => `<td class="${ROLES[r].tabs.includes(t) ? 'y' : 'n'}">${ROLES[r].tabs.includes(t) ? '●' : '—'}</td>`).join('') + `</tr>`).join('') +
+    `</tbody></table></div>`;
+  const actTable = `<div class="matrix-wrap"><table class="matrix" style="min-width:480px">
+    <thead><tr><th style="text-align:left">關鍵動作</th><th style="text-align:left">授權角色（其餘一律攔截＋稽核）</th></tr></thead><tbody>` +
+    Object.keys(PERM).map(a => `<tr><td class="rl">${ACTION_LABELS[a] || a}</td>
+      <td style="text-align:left">${PERM[a].map(r => ROLES[r].name).join('・')}</td></tr>`).join('') + `</tbody></table></div>`;
+  const raci = `<div class="matrix-wrap"><table class="matrix" style="min-width:560px">
+    <thead><tr><th>步驟</th><th>R 負責</th><th>A 核准</th><th>C 諮詢</th><th>I 通知</th></tr></thead><tbody>
+    <tr><td class="rl">災情通報</td><td>社區志工（協力）</td><td>據點指揮</td><td>—</td><td>總指揮中心</td></tr>
+    <tr><td class="rl">開設申請</td><td>據點指揮</td><td>總指揮中心</td><td>空間組（總務）</td><td>全體功能組</td></tr>
+    <tr><td class="rl">收容報到</td><td>報到組</td><td>據點指揮</td><td>醫療組（人醫會）</td><td>香積組・物資組</td></tr>
+    <tr><td class="rl">物資調度</td><td>物資組</td><td>據點指揮／總指揮</td><td>香積組</td><td>據點全體</td></tr>
+    <tr><td class="rl">退住追蹤</td><td>關懷組</td><td>據點指揮</td><td>醫療組</td><td>社區訪視志工</td></tr>
+    </tbody></table></div>`;
+  const pf = `<div class="crumb">權限流 AUTHORIZATION FLOW</div>
+    <div class="flow-box"><b style="font-size:13.5px">模組可見矩陣（由系統權限表即時生成，與實際行為一致）</b>${visMatrix}</div>
+    <div class="flow-box"><b style="font-size:13.5px">關鍵動作授權表</b>${actTable}
+      <div class="fnote">越權點擊不是「按鈕消失」而是<b>攔截＋提示＋寫入稽核</b>——演示時可實際點擊 🔒 按鈕觀察。</div></div>
+    <div class="flow-box"><b style="font-size:13.5px">核准鏈</b>
+      ${flowLine([{t:'據點指揮',s:'開設申請'},{t:'總指揮中心',s:'核准開設',c:'hot'}])}
+      <div style="height:8px"></div>
+      ${flowLine([{t:'功能組',s:'請領申請'},{t:'據點指揮',s:'本據點核准'},{t:'總指揮中心',s:'跨據點加核',c:'hot'},{t:'物資組',s:'出庫'},{t:'申請單位',s:'簽收',c:'okn'}])}</div>
+    <div class="flow-box"><b style="font-size:13.5px">開設流程 RACI</b>${raci}</div>`;
+
+  const demo = `<div class="crumb">演示動線（3 分鐘）</div>
+    <div class="card"><ol style="padding-left:20px;line-height:2.1;font-size:14px">
+      <li>以「<b>總指揮中心</b>」看儀表板：警示燈號、待核事項（關渡開設申請）——<b>權限流</b>的視角差異。</li>
+      <li>切「<b>報到組</b>」→ 報到登記一戶 5 口（含糖尿病長者＋嬰兒）→ <b>六氣泡連動摘要</b>——<b>資訊流</b> money shot。</li>
+      <li>毛毯跌破安全庫存 → 切「<b>空間組</b>」建立跨據點請領 → 切「<b>據點指揮</b>」點核准會被<b>攔截</b>（跨據點限總指揮）→ 切「<b>總指揮</b>」核准 → 「<b>物資組</b>」出庫 → 簽收——<b>工作流</b>全鏈。</li>
+      <li>切「<b>總指揮</b>」核准關渡開設 → 據點狀態機轉「運作中」。</li>
+      <li>「<b>報到組</b>」示範防呆：滿床拒報、重複證號攔截、退住二次確認。</li>
+      <li>回本頁講三流架構；示範任意角色點 🔒 按鈕 → 攔截寫入稽核。</li></ol>
+    <div class="fnote">重置演示資料：右上角「重置演示」→ 還原種子情境。</div></div>`;
+
+  const notes = `<div class="card"><h3>設計前提與待確認</h3>
+    <ul style="padding-left:18px;font-size:13px;color:var(--ink2);line-height:2">
+      <li>退住物資回補規則：<b>福慧床回庫、毛毯／盥洗包（消耗品）不回補</b>——預設值，待實務裁決。</li>
+      <li>個資最小化：證號僅存遮罩、電話遮碼；正式版應加驗證與加密存放。</li>
+      <li>本原型單機離線可用（localStorage）；正式版建議中央資料庫＋離線同步（災時斷網常態）。</li>
+      <li>所有人物、據點狀態、數據皆為虛構演示情境。</li></ul></div>`;
+
+  return pageHead('制度說明', '三流架構・RACI・演示講稿') + intro + wf + inf + pf + demo + notes;
+}
+
+/* ================================================================
+   Router 與啟動
+   ================================================================ */
+function renderView(){
+  if(!ROLES[S.role].tabs.includes(S.tab)) S.tab = ROLES[S.role].home;
+  const views = {dash:vDash, sites:vSites, intake:vIntake, care:vCare, meals:vMeals, supplies:vSupplies, staff:vStaff, about:vAbout};
+  $('#view').innerHTML = (views[S.tab] || vDash)() + footHTML();
+  const mr = $('#memberRows');            // 報到表單預帶一列成員，避免空表單卡住現場
+  if(mr && !mr.children.length) addMemberRow();
+}
+(function boot(){
+  if(!ROLES[S.role]) S.role = 'hq';
+  if(!ROLES[S.role].tabs.includes(S.tab)) S.tab = ROLES[S.role].home;
+  applyTheme();
+  renderShellBits();
+  renderView();
+})();
+</script>
+</body>
+</html>
