@@ -340,3 +340,21 @@ TC-DRMS 是慈濟災害應變管理系統原型：零框架單檔前端（離線
 - 架構圖掃描：arch-script.js（662 行/30 節點）／arch-script-v2.js（440 行/14 節點）／arch-style.css
 - 前次稽核：SYSTEM_AUDIT_2026-07-09.md（F 編號資安項與未修清單沿用其編號）
 - 第二輪深掘（2026-07-13）：11 個業務模組逐頁 UX 掃描（dashboard/monitor/vol_hub/warehouse+sorting+assets/shelter_mgt/relief_req/coord/persons/drive/rtsync+line_oa/admin）＋12 個橫切技術面向（render/輪詢/通知/GIS/協作/行動裝置/報表/驗證/onboarding/GAS 深化/時間/主題），量化：163 處 innerHTML= 指派、11 處 confirm、0 個 Notification/geolocation/getUserMedia/AbortController/keydown、0 個 CSV 產生、@media print 孤兒樣式
+
+---
+
+## 八、執行紀錄（2026-07-14）
+
+> 從 91 項清單挑「高槓桿 × 低回歸風險 × 此環境可驗證 × 不需外部決策」者自主執行；每項改後跑 node 兩套測試（15+26 組）＋語法檢查（scripts/check-syntax.js）驗收。分批 commit 便於回溯。
+
+| 批次 · commit | 已實作項目 | 驗收證據 |
+|---|---|---|
+| 第一批 `77b9211` | #30 CI workflow（測試＋語法＋div 報告守門）、#37 SETUP.md 測試數／ARCH.md 函數行號校正、#38 arch-v2 健檢徽章 id bug（arch-hb-→arch2-hb-）、#81 monitor 氣象/交通/CCTV 假 LIVE→示意、#83 rtFireAlert 廣播人數改真實 checkin 計算 | 兩套測試 exit 0；語法腳本 10 檔全過；CI 步驟本機模擬綠 |
+| 第二批 `acabe10` | #80 toast 假按鈕明標「規劃中」＋訊息去誤導、#82 民眾求助填報表單接真輸入（位置/人數/描述/電話/類型/緊急度） | 兩套測試綠；抽真實 sanitizeInput 對 3 種 XSS payload 淨化驗證通過 |
+| 第三批（本批） | #47 儀表板 demo KPI 加「示意」標（僅標非 apiLive/非 local 的純種子值） | 兩套測試綠 |
+
+**刻意未在此環境執行的判斷（非遺漏）**：
+- **〖決策〗項**（#17 部署、#18 Firebase 規則、#19 關 ALLOW_UNSIGNED、#31 review gate、#32 法遵簽核、#35 工作坊排期、#26 AI Agent API）：需 Mason／慈濟主責幹部拍板，非工程可自決。
+- **#89/#90 GAS 效能**（名冊 CacheService、multicast 批次）：此環境僅 node mock，改後無法真驗 GAS 執行行為，貿然改屬隱藏風險，留 Phase 0 部署階段連真機驗證。
+- **多數 P2 體驗項**（GIS 動線 #67、PWA #14、a11y #43、全域搜尋 #57、prompt→modal #48 等）：需瀏覽器實測與較大幅改動，屬後續波次，非本輪「低風險可驗」範圍。
+- **#86 PII 遮蔽**：現況 r.phone 存的已是遮蔽字串（非明文），真值風險要到接真後端存完整電話時才浮現，屆時再於顯示端統一 maskPII。

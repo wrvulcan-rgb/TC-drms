@@ -4294,9 +4294,11 @@ function renderSingleStat(i){
   var el=document.getElementById('w-stat-'+i+'-content');
   if(!el) return;
   var s=DATA.stats[i];
+  // 誠實化：apiLive=真 API、local=派案台即時計算，兩者不標；其餘為 demo 種子值 → 標「示意」不誤導決策
+  var demoTag=(!s.apiLive&&!s.local)?' <span style="font-size:8px;padding:0 4px;border-radius:3px;background:rgba(148,163,184,.15);color:var(--text4);border:1px solid rgba(148,163,184,.3);font-weight:600;vertical-align:middle">示意</span>':'';
   el.innerHTML='<div class="stat-card '+s.color+' w-stat-inner">'
     +'<div class="accent-bar"></div>'
-    +'<div class="stat-lbl">'+s.lbl+'</div>'
+    +'<div class="stat-lbl">'+s.lbl+demoTag+'</div>'
     +'<div class="stat-val" style="transition:all .3s">'+s.val+'</div>'
     +'<div class="stat-sub">'+s.sub+'</div>'
     +'</div>';
