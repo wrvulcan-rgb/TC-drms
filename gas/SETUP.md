@@ -6,8 +6,8 @@
 ## 0. 部署前可先在本機驗證
 
 ```bash
-node test_gas_handlers.js    # gas/ 後端 13 組測試（驗證策略/路由/成本紀律/Flex 卡）
-node test_loa_integration.js # 前端 21 組測試（含橋接層 T19-T21）
+node test_gas_handlers.js    # gas/ 後端 15 組測試（G1-G15：驗證策略/路由/成本紀律/Flex 卡/路徑注入/血緣）
+node test_loa_integration.js # 前端 26 組測試（T1-T26：含橋接層 T19-T21、血緣/KPI T22-T23、AI 判讀 T24）
 ```
 
 ## 1. 建立 GAS 專案

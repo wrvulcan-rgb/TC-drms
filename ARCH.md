@@ -112,12 +112,15 @@ TC-drms/
 | `loadWarModuleDefaults()` | 6639 | 讀各災型/等級預設模組清單 |
 
 ### 心智圖（arch_doc）
-| 函數 | 行（arch-script.js） | 說明 |
+> 心智圖實際由 `arch-script.js`（v1）與 `arch-script-v2.js`（v2）於頁面載入時各自 IIFE 自建；
+> app.js 的 `renderArchDoc()` 已是空殼、`renderArchGraph()` 為未呼叫死碼（待清，見 PLATFORM_SWOT_2026-07-12 #39）。
+
+| 函數 | 檔案:行 | 說明 |
 |---|---|---|
-| `renderArchDoc()` | 2482 | 心智圖入口 |
-| `renderArchGraph()` | 2412 | SVG 節點繪製 |
-| `selectNode(id)` | 2118 | 點選節點 |
-| `storyShow(i)` | 2128 | 故事導覽 |
+| `renderArchDoc()` | app.js:268 | 心智圖分頁入口（空殼，圖已 inline 自建，故無動作） |
+| `renderArchGraph()` | app.js:198 | 舊 SVG renderer（死碼，無人呼叫） |
+| `selectNode(id)` | arch-script.js:478 | 點選節點（v1；v2 對應 arch-script-v2.js:255） |
+| `storyShow()` | arch-script.js:506 | 故事導覽（v1；v2 對應 arch-script-v2.js:284） |
 
 ---
 

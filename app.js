@@ -1622,10 +1622,14 @@ function rtFireAlert(){
   var t=(document.getElementById('rt-al-title').value||'緊急警報').trim();
   var a=(document.getElementById('rt-al-area').value||'全區域').trim();
   var m=(document.getElementById('rt-al-msg').value||'請注意安全').trim();
-  rtAudit('手動警報','標題：'+t+'，區域：'+a);
-  logSys('err','【緊急警報】'+t+'（'+a+'）→ 廣播 142 位志工');
+  // 廣播對象＝目前已報到在場的志工（對內+對外），依真實 checkin 狀態計算，不用固定數字
+  var reg=DATA.registry||{};
+  var onSite=(reg.innerMembers||[]).filter(function(x){return x.checkin;}).length
+            +(reg.volunteers||[]).filter(function(x){return x.checkin;}).length;
+  rtAudit('手動警報','標題：'+t+'，區域：'+a+'，在場 '+onSite+' 位');
+  logSys('err','【緊急警報】'+t+'（'+a+'）→ 廣播 '+onSite+' 位在場志工');
   fireRollCall();
-  showModal('🚨 警報已發布','已廣播至 <b style="color:var(--green)">142 位現場志工</b> Line OA，同時觸發安全點名。','標題：'+t+'\n區域：'+a+'\n內容：'+m+'\n時間：'+new Date().toLocaleTimeString('zh-TW'));
+  showModal('🚨 警報已發布','已廣播至 <b style="color:var(--green)">'+onSite+' 位在場志工</b> Line OA，同時觸發安全點名。','標題：'+t+'\n區域：'+a+'\n內容：'+m+'\n在場志工：'+onSite+' 位\n時間：'+new Date().toLocaleTimeString('zh-TW'));
 }
 function confirmDelivery(id){
   var l=DATA.assets.loans.find(function(x){return x.id===id;});
@@ -2319,8 +2323,8 @@ function renderMonitor(){
       radar.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px';
       radar.innerHTML=
         '<div class="m-r-card"><div class="m-r-hdr"><span>🌏 地震監測</span><span class="m-live-tag">LIVE</span></div><div id="r-quake-body" class="m-r-body"><span style="color:#475569;font-size:11px">連線中…</span></div></div>'
-        +'<div class="m-r-card"><div class="m-r-hdr"><span>🌀 氣象警特報</span><span class="m-live-tag">LIVE</span></div><div id="r-wx-body" class="m-r-body"></div></div>'
-        +'<div class="m-r-card"><div class="m-r-hdr"><span>🚦 道路交通</span><span class="m-sim-tag">模擬</span></div><div id="r-traffic-body" class="m-r-body"></div></div>';
+        +'<div class="m-r-card"><div class="m-r-hdr"><span>🌀 氣象警特報</span><span class="m-sim-tag">示意</span></div><div id="r-wx-body" class="m-r-body"></div></div>'
+        +'<div class="m-r-card"><div class="m-r-hdr"><span>🚦 道路交通</span><span class="m-sim-tag">示意</span></div><div id="r-traffic-body" class="m-r-body"></div></div>';
       kpiEl.parentNode.insertBefore(radar, kpiEl);
     }
   }
@@ -2430,8 +2434,8 @@ function renderMonitor(){
           +'<span style="font-size:9px;color:#1E3A5F;font-family:monospace;letter-spacing:.1em">'+s.id+'</span>'
         +'</div>'
         +'<div style="position:absolute;top:7px;left:8px;display:flex;align-items:center;gap:4px">'
-          +'<span style="width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:blink 1.5s infinite;box-shadow:0 0 8px #4ADE80"></span>'
-          +'<span style="font-size:9px;color:#4ADE80;font-family:monospace;font-weight:700;letter-spacing:.05em">LIVE</span>'
+          +'<span style="width:6px;height:6px;border-radius:50%;background:#64748B"></span>'
+          +'<span style="font-size:9px;color:#94A3B8;font-family:monospace;font-weight:700;letter-spacing:.05em">示意</span>'
         +'</div>'
         +'<div style="position:absolute;top:7px;right:8px;font-size:9px;color:#334155;font-family:monospace">'+now+'</div>'
         +'<div style="position:absolute;bottom:0;left:0;right:0;padding:7px 10px;background:linear-gradient(transparent,rgba(0,0,0,0.75))">'

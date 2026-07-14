@@ -1,0 +1,40 @@
+name: CI
+
+# push feature branch 且驗收通過才 merge main（對齊 CLAUDE.md 部署規則）。
+# 本 workflow 把既有的 15+26 組測試從「自律」升級為「守門」。
+on:
+  push:
+    branches: [ main, 'claude/**' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: JS / GAS 語法檢查（vm.Script 編譯，涵蓋 .gs）
+        run: |
+          node scripts/check-syntax.js \
+            app.js arch-script.js arch-script-v2.js \
+            test_gas_handlers.js test_loa_integration.js \
+            gas/config.gs gas/webhook.gs gas/handlers.gs gas/push.gs gas/sheets.gs
+
+      - name: GAS 後端測試（G1–G15）
+        run: node test_gas_handlers.js
+
+      - name: 前端整合測試（T1–T26）
+        run: node test_loa_integration.js
+
+      - name: HTML div 開關配對報告（errors.md 2026-07-09 教訓）
+        # index.html 由 app.js 動態注入，靜態計數本就不會剛好平衡；此步為資訊性提示，不阻斷建置。
+        run: |
+          for f in index.html intake.html; do
+            o=$(grep -o '<div' "$f" | wc -l); c=$(grep -o '</div>' "$f" | wc -l)
+            echo "$f: <div>=$o </div>=$c diff=$((o-c))"
+          done
