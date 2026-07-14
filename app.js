@@ -8335,18 +8335,25 @@ function renderReliefMap(){
   html+='</div>';
   return html;
 }
+var RELIEF_FORM_TYPE='';
+function reliefPickType(btn){
+  RELIEF_FORM_TYPE=btn.getAttribute('data-type')||'';
+  var sibs=document.querySelectorAll('#relief-form-types .rf-type');
+  for(var i=0;i<sibs.length;i++){sibs[i].style.outline='';sibs[i].style.opacity='.5';}
+  btn.style.outline='2px solid var(--text)';btn.style.opacity='1';
+}
 function renderReliefForm(){
   return '<div class="card"><div class="card-title">📱 民眾求助填報表單（公開頁預覽）</div>'
-    +'<div style="font-size:11px;color:var(--text4);margin-bottom:14px">受災民眾掃 QR / 點 Line 連結即可填報，免登入。送出後自動進入「求助收件匣」。下方為手機端畫面預覽，按「送出」可模擬收到一筆通報。</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:14px">受災民眾掃 QR / 點 Line 連結即可填報，免登入。送出後自動進入「求助收件匣」。下方為手機端畫面預覽，按「送出」會依您填寫的內容新增一筆通報進收件匣。</div>'
     +'<div class="phone-frame" style="max-width:340px;margin:0 auto">'
     +'<div class="phone-bar"><span>🆘</span><span>慈濟災害求助通報</span><span style="margin-left:auto;color:var(--red);font-size:10px;font-weight:600">緊急</span></div>'
     +'<div class="phone-body" style="padding:16px">'
     +'<div style="font-size:12px;font-weight:700;margin-bottom:8px">您現在需要哪種協助？</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
-    +'<button class="btn btn-red btn-xs" style="justify-content:center">🚨 受困搶救</button><button class="btn btn-purple btn-xs" style="justify-content:center">🏥 緊急醫療</button>'
-    +'<button class="btn btn-blue btn-xs" style="justify-content:center">🏕️ 需要安置</button><button class="btn btn-amber btn-xs" style="justify-content:center">📦 物資需求</button></div>'
-    +'<div class="iep-lbl" style="margin-top:0">您的位置（可自動定位）</div><input class="inp" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:12px">'
-    +'<div class="iep-lbl">受困 / 需協助人數</div><input class="inp" placeholder="例：2" style="font-size:12px">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px" id="relief-form-types">'
+    +'<button type="button" class="btn btn-red btn-xs rf-type" data-type="受困搶救" onclick="reliefPickType(this)" style="justify-content:center">🚨 受困搶救</button><button type="button" class="btn btn-purple btn-xs rf-type" data-type="緊急醫療" onclick="reliefPickType(this)" style="justify-content:center">🏥 緊急醫療</button>'
+    +'<button type="button" class="btn btn-blue btn-xs rf-type" data-type="安置" onclick="reliefPickType(this)" style="justify-content:center">🏕️ 需要安置</button><button type="button" class="btn btn-amber btn-xs rf-type" data-type="物資" onclick="reliefPickType(this)" style="justify-content:center">📦 物資需求</button></div>'
+    +'<div class="iep-lbl" style="margin-top:0">您的位置（可自動定位）</div><input class="inp" id="relief-form-loc" placeholder="例：竹崎鄉緞繻村3鄰" style="font-size:12px">'
+    +'<div class="iep-lbl">受困 / 需協助人數</div><input class="inp" id="relief-form-people" type="number" min="1" placeholder="例：2" style="font-size:12px">'
     +'<div class="iep-lbl">狀況描述</div><textarea class="inp" id="relief-form-desc" placeholder="簡述現場狀況" style="min-height:54px;font-size:12px"></textarea>'
     +'<div class="iep-lbl">聯絡電話</div><input class="inp" id="relief-form-phone" placeholder="09xx-xxx-xxx" style="font-size:12px">'
     +'<div class="iep-lbl">緊急程度</div><select class="inp" id="relief-form-prio" style="font-size:12px"><option value="P1">P1 🔴 現在就要</option><option value="P2" selected>P2 🟡 今天</option><option value="P3">P3 🟢 不急</option></select>'
@@ -8357,9 +8364,18 @@ function renderReliefForm(){
 function reliefSimSubmit(){
   var tm=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
   var prioEl=document.getElementById('relief-form-prio'); var prio=prioEl?prioEl.value:'P2';
-  var newReq={id:'SOS-'+(2042+Math.floor(Math.random()*900)),time:tm,type:'物資',name:'民眾○○',phone:'09**-***-'+Math.floor(100+Math.random()*899),location:'竹崎鄉（演練模擬填報）',people:1+Math.floor(Math.random()*4),desc:'演練模擬：民眾自主填報之求助案件',status:'待處理',prio:prio,dup:false};
+  // 讀真實填報欄位；safeVal 已淨化 <> / on= / javascript:，於寫入端阻斷儲存型 XSS（收件匣多處直接插值未 esc）
+  var loc=safeVal('relief-form-loc').trim()||'（未填地點）';
+  var desc=safeVal('relief-form-desc').trim()||'民眾自主填報之求助案件';
+  var phoneDigits=safeVal('relief-form-phone').replace(/\D/g,'');
+  var phone=phoneDigits?('09**-***-'+(phoneDigits.slice(-3)||'***')):'09**-***-***';
+  var pplEl=document.getElementById('relief-form-people');
+  var ppl=(pplEl&&parseInt(pplEl.value,10)>0)?parseInt(pplEl.value,10):1;
+  var type=RELIEF_FORM_TYPE||'物資';
+  var newReq={id:'SOS-'+(2042+Math.floor(Math.random()*900)),time:tm,type:type,name:'民眾○○',phone:phone,location:loc,people:ppl,desc:desc,status:'待處理',prio:prio,dup:false};
   DATA.relief_req.requests.unshift(newReq);
-  logSys('info','【民眾求助】收到新求助通報（演練模擬填報）');
+  RELIEF_FORM_TYPE='';
+  logSys('info','【民眾求助】收到新求助通報：'+type+'·'+loc+'（'+ppl+'人）');
   toast('🆘 已收到一筆民眾求助 → 請至收件匣處理');
   if(typeof loaHook==='function') loaHook('staff','🆘 新求助通報\n'+newReq.id+' ('+newReq.type+')\n地點：'+newReq.location+'\n人數：'+newReq.people+'人\n請盡速處理！');
   setReliefTab('inbox'); saveData();
@@ -8455,7 +8471,7 @@ function renderCoordPartner(){
     });
     html+='</div></div>';
   }
-  html+='<button class="btn btn-blue" style="margin-top:6px" onclick="toast(\'＋ 登錄外部單位資源（演練模擬）\')">＋ 登錄外部單位</button></div>';
+  html+='<button class="btn btn-blue" style="margin-top:6px" onclick="toast(\'＋ 登錄外部單位：此功能規劃中，尚未實作\')">＋ 登錄外部單位（規劃中）</button></div>';
   return html;
 }
 function renderCoordZone(){
@@ -8773,7 +8789,7 @@ function renderPersonsCases(){
     }
   });
   html+='</tbody></table>'
-    +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
+    +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板：此功能規劃中，尚未實作\')">🗺 動線規劃面板（規劃中）</button></div>';
   // 結案個案完整歷程
   if(closedCases.length){
     html+='<div style="margin-top:16px"><div style="font-weight:600;font-size:13px;color:var(--green);margin-bottom:10px">✅ 已結案個案（'+closedCases.length+' 件）</div>';
@@ -9102,7 +9118,7 @@ function renderCaseMgt(){
       +'<td>'+(it.visitStatus==='已完成'?'<span style="font-size:9px;color:var(--green)">✓</span>':'<button class="btn btn-blue btn-xs" onclick="advanceCase('+gi+')">'+(it.visitStatus==='待訪視'?'▶ 開始訪視':'✓ 完成訪視')+'</button>')+'</td></tr>';
   });
   html+='</tbody></table>'
-    +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板（演練模擬）\')">🗺 動線規劃面板</button></div>';
+    +'<button class="btn btn-blue" style="margin-top:12px" onclick="toast(\'🗺 動線規劃面板：此功能規劃中，尚未實作\')">🗺 動線規劃面板（規劃中）</button></div>';
   el.innerHTML=html;
 }
 function advanceCase(i){
@@ -9407,7 +9423,7 @@ function renderWarehouse(targetId){
       +'<td><span class="badge '+(stColor[t.status]||'badge-blue')+'">'+t.status+'</span></td></tr>';
   }
   html+='</tbody></table>'
-    +'<button class="btn btn-amber" style="margin-top:12px" onclick="toast(\'🚛 大車調度請求已送出（演練模擬）\')">＋ 申請大車調度</button></div>';
+    +'<button class="btn btn-amber" style="margin-top:12px" onclick="toast(\'🚛 大車調度：此功能規劃中，尚未實作\')">＋ 申請大車調度（規劃中）</button></div>';
   el.innerHTML=html;
 }
 function renderShelterMgt(targetId){
