@@ -6,12 +6,15 @@ on:
       - feat/tzuchi-manuscript-corpus-500
     paths:
       - scripts/tzuchi_corpus.py
+      - scripts/manuscript_validate.py
       - .github/workflows/tzuchi-corpus.yml
+      - manuscript/**
   pull_request:
     branches:
       - main
     paths:
       - scripts/tzuchi_corpus.py
+      - scripts/manuscript_validate.py
       - .github/workflows/tzuchi-corpus.yml
       - manuscript/**
   workflow_dispatch:
@@ -21,7 +24,7 @@ permissions:
 
 concurrency:
   group: tzuchi-manuscript-corpus-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-corpus:
@@ -39,8 +42,29 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install parser dependencies
-        run: python -m pip install --disable-pip-version-check requests beautifulsoup4
+      - name: Install parser and validation dependencies
+        run: python -m pip install --disable-pip-version-check requests beautifulsoup4 jsonschema PyYAML
+
+      - name: Validate source and volunteer intake contract
+        run: |
+          python -m py_compile scripts/tzuchi_corpus.py scripts/manuscript_validate.py
+          python scripts/manuscript_validate.py manuscript/examples/volunteer-report.sample.json --json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          import jsonschema
+          import yaml
+
+          schema = json.loads(Path("manuscript/schemas/volunteer-report.schema.json").read_text(encoding="utf-8"))
+          sample = json.loads(Path("manuscript/examples/volunteer-report.sample.json").read_text(encoding="utf-8"))
+          jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker()).validate(sample)
+          rules = json.loads(Path("manuscript/validators/rules.json").read_text(encoding="utf-8"))
+          terms = yaml.safe_load(Path("manuscript/knowledge/terminology.yaml").read_text(encoding="utf-8"))
+          assert rules["publication_thresholds"]["human_approval_required"] is True
+          assert len(terms["terms"]) >= 20
+          print(json.dumps({"schema": "valid", "semantic_validator": "valid", "terminology_terms": len(terms["terms"])}, ensure_ascii=False))
+          PY
 
       - name: Build verified 500-article corpus
         run: |
