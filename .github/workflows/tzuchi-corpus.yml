@@ -10,6 +10,7 @@ on:
       - tests/test_manuscript_validate.py
       - .github/workflows/tzuchi-corpus.yml
       - manuscript/**
+      - '!manuscript/knowledge/generated/**'
   pull_request:
     branches:
       - main
@@ -29,28 +30,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-corpus:
+  contract-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 8
 
     steps:
       - name: Check out branch
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install parser and validation dependencies
-        run: python -m pip install --disable-pip-version-check requests beautifulsoup4 jsonschema PyYAML
+      - name: Install validation dependencies
+        run: python -m pip install -q --disable-pip-version-check jsonschema PyYAML
 
       - name: Validate source and volunteer intake contract
+        shell: bash
         run: |
+          set -euo pipefail
           python -m py_compile scripts/tzuchi_corpus.py scripts/manuscript_validate.py
-          python -m unittest tests/test_manuscript_validate.py
+          python -m unittest -v tests/test_manuscript_validate.py
           python scripts/manuscript_validate.py manuscript/examples/volunteer-report.sample.json --json
           python - <<'PY'
           import json
@@ -68,6 +69,25 @@ jobs:
           assert len(terms["terms"]) >= 20
           print(json.dumps({"schema": "valid", "semantic_validator": "valid", "terminology_terms": len(terms["terms"])}, ensure_ascii=False))
           PY
+
+  build-corpus:
+    needs: contract-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install parser dependencies
+        run: python -m pip install -q --disable-pip-version-check requests beautifulsoup4
 
       - name: Build verified 500-article corpus
         run: |
