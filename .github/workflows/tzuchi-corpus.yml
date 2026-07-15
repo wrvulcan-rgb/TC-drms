@@ -7,6 +7,7 @@ on:
     paths:
       - scripts/tzuchi_corpus.py
       - scripts/manuscript_validate.py
+      - tests/test_manuscript_validate.py
       - .github/workflows/tzuchi-corpus.yml
       - manuscript/**
   pull_request:
@@ -15,6 +16,7 @@ on:
     paths:
       - scripts/tzuchi_corpus.py
       - scripts/manuscript_validate.py
+      - tests/test_manuscript_validate.py
       - .github/workflows/tzuchi-corpus.yml
       - manuscript/**
   workflow_dispatch:
@@ -48,6 +50,7 @@ jobs:
       - name: Validate source and volunteer intake contract
         run: |
           python -m py_compile scripts/tzuchi_corpus.py scripts/manuscript_validate.py
+          python -m unittest tests/test_manuscript_validate.py
           python scripts/manuscript_validate.py manuscript/examples/volunteer-report.sample.json --json
           python - <<'PY'
           import json
