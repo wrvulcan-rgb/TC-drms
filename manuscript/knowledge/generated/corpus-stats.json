@@ -1,0 +1,1895 @@
+{
+  "candidate_count": 1400,
+  "category_counts": {
+    "Skip to content": 10,
+    "中美洲": 10,
+    "加拿大": 10,
+    "北加州分會": 10,
+    "南投": 6,
+    "南美洲": 15,
+    "南非": 9,
+    "印度": 24,
+    "史瓦帝尼": 2,
+    "嘉義": 10,
+    "土耳其": 9,
+    "基隆": 5,
+    "墨西哥": 20,
+    "夏威夷分會": 5,
+    "外島": 10,
+    "宜蘭": 10,
+    "尚比亞": 4,
+    "尼泊爾": 25,
+    "屏東": 10,
+    "彰化": 10,
+    "德州分會": 15,
+    "志業體活動報導": 10,
+    "斯里蘭卡": 3,
+    "新加坡": 5,
+    "新澤西分會": 5,
+    "新竹": 10,
+    "日本": 10,
+    "柬埔寨": 20,
+    "桃園": 10,
+    "汶萊": 1,
+    "泰國": 5,
+    "澳洲": 15,
+    "約旦": 10,
+    "紐約分會": 5,
+    "美國總會": 10,
+    "臺中": 10,
+    "臺北": 10,
+    "臺南": 10,
+    "臺東": 15,
+    "芝加哥分會": 10,
+    "花蓮": 5,
+    "苗栗": 10,
+    "莫三比克": 10,
+    "華府分會": 8,
+    "菲律賓": 8,
+    "辛巴威": 4,
+    "達拉斯分會": 8,
+    "雪隆分會": 12,
+    "雲林": 8,
+    "香港": 4,
+    "馬來西亞分會": 2,
+    "馬六甲分會": 8,
+    "馬拉威": 2,
+    "高雄": 8
+  },
+  "char_count": {
+    "max": 7748,
+    "mean": 2434.7,
+    "median": 2288,
+    "min": 520
+  },
+  "content_type_counts": {
+    "charity-care": 15,
+    "community-activity": 36,
+    "dharma-ceremony": 100,
+    "disaster-relief": 129,
+    "education-youth": 105,
+    "environment": 10,
+    "medical": 86,
+    "person-profile": 13,
+    "volunteer-training": 6
+  },
+  "discovered_categories": {
+    "Skip to content": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          22,
+          "newer"
+        ],
+        [
+          58,
+          "mid-new"
+        ],
+        [
+          104,
+          "mid-old"
+        ],
+        [
+          148,
+          "older"
+        ],
+        [
+          180,
+          "oldest"
+        ]
+      ],
+      "total_pages": 181,
+      "url": "https://tcopen.tzuchi-org.tw/community/?Itemid=370&id=145&option=com_content&view=category"
+    },
+    "中國大陸": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ]
+      ],
+      "total_pages": 1,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=416&id=175&layout=blog&option=com_content&view=category"
+    },
+    "中美洲": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "newer"
+        ],
+        [
+          4,
+          "mid-new"
+        ],
+        [
+          6,
+          "mid-old"
+        ],
+        [
+          9,
+          "older"
+        ],
+        [
+          11,
+          "oldest"
+        ]
+      ],
+      "total_pages": 12,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=379&id=153&option=com_content&view=category"
+    },
+    "加拿大": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          7,
+          "newer"
+        ],
+        [
+          18,
+          "mid-new"
+        ],
+        [
+          33,
+          "mid-old"
+        ],
+        [
+          47,
+          "older"
+        ],
+        [
+          57,
+          "oldest"
+        ]
+      ],
+      "total_pages": 58,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=369&id=144&option=com_content&view=category"
+    },
+    "北加州分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          7,
+          "newer"
+        ],
+        [
+          19,
+          "mid-new"
+        ],
+        [
+          34,
+          "mid-old"
+        ],
+        [
+          48,
+          "older"
+        ],
+        [
+          58,
+          "oldest"
+        ]
+      ],
+      "total_pages": 59,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=176&id=56&option=com_content&view=category"
+    },
+    "南投": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          16,
+          "newer"
+        ],
+        [
+          43,
+          "mid-new"
+        ],
+        [
+          77,
+          "mid-old"
+        ],
+        [
+          109,
+          "older"
+        ],
+        [
+          133,
+          "oldest"
+        ]
+      ],
+      "total_pages": 134,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=156&id=58&option=com_content&view=category"
+    },
+    "南美洲": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          2,
+          "newer"
+        ],
+        [
+          6,
+          "mid-new"
+        ],
+        [
+          12,
+          "mid-old"
+        ],
+        [
+          16,
+          "older"
+        ],
+        [
+          20,
+          "oldest"
+        ]
+      ],
+      "total_pages": 21,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=380&id=154&option=com_content&view=category"
+    },
+    "南非": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "mid-new"
+        ],
+        [
+          2,
+          "mid-old"
+        ],
+        [
+          3,
+          "older"
+        ],
+        [
+          4,
+          "oldest"
+        ]
+      ],
+      "total_pages": 5,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=427&id=182&option=com_content&view=category"
+    },
+    "印尼": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          22,
+          "newer"
+        ],
+        [
+          58,
+          "mid-new"
+        ],
+        [
+          104,
+          "mid-old"
+        ],
+        [
+          148,
+          "older"
+        ],
+        [
+          180,
+          "oldest"
+        ]
+      ],
+      "total_pages": 181,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=370&id=145&option=com_content&view=category"
+    },
+    "印度": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          5,
+          "newer"
+        ],
+        [
+          14,
+          "mid-new"
+        ],
+        [
+          25,
+          "mid-old"
+        ],
+        [
+          35,
+          "older"
+        ],
+        [
+          43,
+          "oldest"
+        ]
+      ],
+      "total_pages": 44,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=441&id=192&option=com_content&view=category"
+    },
+    "史瓦帝尼": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ]
+      ],
+      "total_pages": 1,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=426&id=181&option=com_content&view=category"
+    },
+    "吉打分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "newer"
+        ],
+        [
+          2,
+          "mid-new"
+        ],
+        [
+          4,
+          "mid-old"
+        ],
+        [
+          6,
+          "older"
+        ],
+        [
+          7,
+          "oldest"
+        ]
+      ],
+      "total_pages": 8,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=373&id=148&option=com_content&view=category"
+    },
+    "嘉義": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          30,
+          "newer"
+        ],
+        [
+          79,
+          "mid-new"
+        ],
+        [
+          144,
+          "mid-old"
+        ],
+        [
+          203,
+          "older"
+        ],
+        [
+          248,
+          "oldest"
+        ]
+      ],
+      "total_pages": 249,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=205&id=67&option=com_content&view=category"
+    },
+    "土耳其": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "mid-new"
+        ],
+        [
+          2,
+          "mid-old"
+        ],
+        [
+          3,
+          "oldest"
+        ]
+      ],
+      "total_pages": 4,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=388&id=162&option=com_content&view=category"
+    },
+    "基隆": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          8,
+          "newer"
+        ],
+        [
+          22,
+          "mid-new"
+        ],
+        [
+          41,
+          "mid-old"
+        ],
+        [
+          57,
+          "older"
+        ],
+        [
+          70,
+          "oldest"
+        ]
+      ],
+      "total_pages": 71,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=353&id=1&option=com_content&view=category"
+    },
+    "墨西哥": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "newer"
+        ],
+        [
+          2,
+          "mid-new"
+        ],
+        [
+          3,
+          "mid-old"
+        ],
+        [
+          5,
+          "older"
+        ],
+        [
+          6,
+          "oldest"
+        ]
+      ],
+      "total_pages": 7,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=433&id=188&option=com_content&view=category"
+    },
+    "夏威夷分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "mid-new"
+        ],
+        [
+          2,
+          "mid-old"
+        ],
+        [
+          3,
+          "oldest"
+        ]
+      ],
+      "total_pages": 4,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=345&id=60&option=com_content&view=category"
+    },
+    "外島": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "newer"
+        ],
+        [
+          4,
+          "mid-new"
+        ],
+        [
+          6,
+          "mid-old"
+        ],
+        [
+          9,
+          "older"
+        ],
+        [
+          11,
+          "oldest"
+        ]
+      ],
+      "total_pages": 12,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=282&id=78&option=com_content&view=category"
+    },
+    "大愛感恩科技": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          7,
+          "newer"
+        ],
+        [
+          19,
+          "mid-new"
+        ],
+        [
+          35,
+          "mid-old"
+        ],
+        [
+          49,
+          "older"
+        ],
+        [
+          60,
+          "oldest"
+        ]
+      ],
+      "total_pages": 61,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=422&id=178&option=com_content&view=category"
+    },
+    "宜蘭": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          2,
+          "newer"
+        ],
+        [
+          6,
+          "mid-new"
+        ],
+        [
+          12,
+          "mid-old"
+        ],
+        [
+          16,
+          "older"
+        ],
+        [
+          20,
+          "oldest"
+        ]
+      ],
+      "total_pages": 21,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=281&id=28&option=com_content&view=category"
+    },
+    "尚比亞": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ]
+      ],
+      "total_pages": 1,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=429&id=184&option=com_content&view=category"
+    },
+    "尼泊爾": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          4,
+          "newer"
+        ],
+        [
+          10,
+          "mid-new"
+        ],
+        [
+          18,
+          "mid-old"
+        ],
+        [
+          25,
+          "older"
+        ],
+        [
+          31,
+          "oldest"
+        ]
+      ],
+      "total_pages": 32,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=439&id=190&option=com_content&view=category"
+    },
+    "屏東": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          19,
+          "newer"
+        ],
+        [
+          50,
+          "mid-new"
+        ],
+        [
+          90,
+          "mid-old"
+        ],
+        [
+          127,
+          "older"
+        ],
+        [
+          155,
+          "oldest"
+        ]
+      ],
+      "total_pages": 156,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=319&id=119&option=com_content&view=category"
+    },
+    "彰化": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          66,
+          "newer"
+        ],
+        [
+          175,
+          "mid-new"
+        ],
+        [
+          317,
+          "mid-old"
+        ],
+        [
+          448,
+          "older"
+        ],
+        [
+          546,
+          "oldest"
+        ]
+      ],
+      "total_pages": 547,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=301&id=101&option=com_content&view=category"
+    },
+    "德州分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          6,
+          "newer"
+        ],
+        [
+          15,
+          "mid-new"
+        ],
+        [
+          27,
+          "mid-old"
+        ],
+        [
+          39,
+          "older"
+        ],
+        [
+          47,
+          "oldest"
+        ]
+      ],
+      "total_pages": 48,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=267&id=27&option=com_content&view=category"
+    },
+    "志業體活動報導": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          54,
+          "newer"
+        ],
+        [
+          143,
+          "mid-new"
+        ],
+        [
+          259,
+          "mid-old"
+        ],
+        [
+          366,
+          "older"
+        ],
+        [
+          446,
+          "oldest"
+        ]
+      ],
+      "total_pages": 447,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=420&id=177&option=com_content&view=category"
+    },
+    "斯里蘭卡": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ]
+      ],
+      "total_pages": 1,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=424&id=179&option=com_content&view=category"
+    },
+    "新加坡": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          9,
+          "newer"
+        ],
+        [
+          25,
+          "mid-new"
+        ],
+        [
+          45,
+          "mid-old"
+        ],
+        [
+          63,
+          "older"
+        ],
+        [
+          77,
+          "oldest"
+        ]
+      ],
+      "total_pages": 78,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=384&id=158&option=com_content&view=category"
+    },
+    "新澤西分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          3,
+          "newer"
+        ],
+        [
+          8,
+          "mid-new"
+        ],
+        [
+          14,
+          "mid-old"
+        ],
+        [
+          20,
+          "older"
+        ],
+        [
+          25,
+          "oldest"
+        ]
+      ],
+      "total_pages": 26,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=366&id=59&option=com_content&view=category"
+    },
+    "新竹": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          28,
+          "newer"
+        ],
+        [
+          76,
+          "mid-new"
+        ],
+        [
+          137,
+          "mid-old"
+        ],
+        [
+          194,
+          "older"
+        ],
+        [
+          237,
+          "oldest"
+        ]
+      ],
+      "total_pages": 238,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=320&id=120&option=com_content&view=category"
+    },
+    "日本": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          6,
+          "newer"
+        ],
+        [
+          15,
+          "mid-new"
+        ],
+        [
+          27,
+          "mid-old"
+        ],
+        [
+          38,
+          "older"
+        ],
+        [
+          46,
+          "oldest"
+        ]
+      ],
+      "total_pages": 47,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=377&id=151&option=com_content&view=category"
+    },
+    "柬埔寨": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "mid-new"
+        ],
+        [
+          2,
+          "mid-old"
+        ],
+        [
+          3,
+          "oldest"
+        ]
+      ],
+      "total_pages": 4,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=425&id=180&option=com_content&view=category"
+    },
+    "桃園": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          52,
+          "newer"
+        ],
+        [
+          138,
+          "mid-new"
+        ],
+        [
+          249,
+          "mid-old"
+        ],
+        [
+          353,
+          "older"
+        ],
+        [
+          430,
+          "oldest"
+        ]
+      ],
+      "total_pages": 431,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=292&id=92&option=com_content&view=category"
+    },
+    "汶萊": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ]
+      ],
+      "total_pages": 1,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=389&id=163&option=com_content&view=category"
+    },
+    "泰國": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          4,
+          "newer"
+        ],
+        [
+          10,
+          "mid-new"
+        ],
+        [
+          17,
+          "mid-old"
+        ],
+        [
+          25,
+          "older"
+        ],
+        [
+          30,
+          "oldest"
+        ]
+      ],
+      "total_pages": 31,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=385&id=159&option=com_content&view=category"
+    },
+    "澳洲": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          3,
+          "newer"
+        ],
+        [
+          9,
+          "mid-new"
+        ],
+        [
+          17,
+          "mid-old"
+        ],
+        [
+          24,
+          "older"
+        ],
+        [
+          29,
+          "oldest"
+        ]
+      ],
+      "total_pages": 30,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=381&id=155&option=com_content&view=category"
+    },
+    "約旦": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "mid-new"
+        ],
+        [
+          2,
+          "mid-old"
+        ],
+        [
+          3,
+          "older"
+        ],
+        [
+          4,
+          "oldest"
+        ]
+      ],
+      "total_pages": 5,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=387&id=161&option=com_content&view=category"
+    },
+    "紐約分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          4,
+          "newer"
+        ],
+        [
+          12,
+          "mid-new"
+        ],
+        [
+          21,
+          "mid-old"
+        ],
+        [
+          30,
+          "older"
+        ],
+        [
+          36,
+          "oldest"
+        ]
+      ],
+      "total_pages": 37,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=364&id=43&option=com_content&view=category"
+    },
+    "紐西蘭": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          2,
+          "newer"
+        ],
+        [
+          5,
+          "mid-new"
+        ],
+        [
+          9,
+          "mid-old"
+        ],
+        [
+          13,
+          "older"
+        ],
+        [
+          16,
+          "oldest"
+        ]
+      ],
+      "total_pages": 17,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=382&id=156&option=com_content&view=category"
+    },
+    "緬甸": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ]
+      ],
+      "total_pages": 1,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=428&id=183&option=com_content&view=category"
+    },
+    "美國總會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          17,
+          "newer"
+        ],
+        [
+          46,
+          "mid-new"
+        ],
+        [
+          83,
+          "mid-old"
+        ],
+        [
+          117,
+          "older"
+        ],
+        [
+          143,
+          "oldest"
+        ]
+      ],
+      "total_pages": 144,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=365&id=77&option=com_content&view=category"
+    },
+    "臺中": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          106,
+          "newer"
+        ],
+        [
+          282,
+          "mid-new"
+        ],
+        [
+          511,
+          "mid-old"
+        ],
+        [
+          722,
+          "older"
+        ],
+        [
+          881,
+          "oldest"
+        ]
+      ],
+      "total_pages": 882,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=284&id=54&option=com_content&view=category"
+    },
+    "臺北": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          308,
+          "newer"
+        ],
+        [
+          821,
+          "mid-new"
+        ],
+        [
+          1488,
+          "mid-old"
+        ],
+        [
+          2104,
+          "older"
+        ],
+        [
+          2566,
+          "oldest"
+        ]
+      ],
+      "total_pages": 2567,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=290&id=90&option=com_content&view=category"
+    },
+    "臺南": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          53,
+          "newer"
+        ],
+        [
+          141,
+          "mid-new"
+        ],
+        [
+          256,
+          "mid-old"
+        ],
+        [
+          362,
+          "older"
+        ],
+        [
+          442,
+          "oldest"
+        ]
+      ],
+      "total_pages": 443,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=283&id=62&option=com_content&view=category"
+    },
+    "臺東": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          2,
+          "newer"
+        ],
+        [
+          5,
+          "mid-new"
+        ],
+        [
+          9,
+          "mid-old"
+        ],
+        [
+          12,
+          "older"
+        ],
+        [
+          15,
+          "oldest"
+        ]
+      ],
+      "total_pages": 16,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=173&id=3&option=com_content&view=category"
+    },
+    "芝加哥分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "newer"
+        ],
+        [
+          3,
+          "mid-new"
+        ],
+        [
+          5,
+          "mid-old"
+        ],
+        [
+          7,
+          "older"
+        ],
+        [
+          9,
+          "oldest"
+        ]
+      ],
+      "total_pages": 10,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=277&id=68&option=com_content&view=category"
+    },
+    "花蓮": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          29,
+          "newer"
+        ],
+        [
+          78,
+          "mid-new"
+        ],
+        [
+          141,
+          "mid-old"
+        ],
+        [
+          199,
+          "older"
+        ],
+        [
+          243,
+          "oldest"
+        ]
+      ],
+      "total_pages": 244,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=347&id=42&option=com_content&view=category"
+    },
+    "苗栗": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          13,
+          "newer"
+        ],
+        [
+          36,
+          "mid-new"
+        ],
+        [
+          64,
+          "mid-old"
+        ],
+        [
+          91,
+          "older"
+        ],
+        [
+          111,
+          "oldest"
+        ]
+      ],
+      "total_pages": 112,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=352&id=31&option=com_content&view=category"
+    },
+    "莫三比克": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "mid-new"
+        ],
+        [
+          2,
+          "mid-old"
+        ],
+        [
+          3,
+          "oldest"
+        ]
+      ],
+      "total_pages": 4,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=431&id=186&option=com_content&view=category"
+    },
+    "華府分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          2,
+          "newer"
+        ],
+        [
+          4,
+          "mid-new"
+        ],
+        [
+          8,
+          "mid-old"
+        ],
+        [
+          11,
+          "older"
+        ],
+        [
+          13,
+          "oldest"
+        ]
+      ],
+      "total_pages": 14,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=360&id=55&option=com_content&view=category"
+    },
+    "菲律賓": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          3,
+          "newer"
+        ],
+        [
+          8,
+          "mid-new"
+        ],
+        [
+          14,
+          "mid-old"
+        ],
+        [
+          20,
+          "older"
+        ],
+        [
+          24,
+          "oldest"
+        ]
+      ],
+      "total_pages": 25,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=383&id=157&option=com_content&view=category"
+    },
+    "越南": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ]
+      ],
+      "total_pages": 1,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=386&id=160&option=com_content&view=category"
+    },
+    "辛巴威": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ]
+      ],
+      "total_pages": 1,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=432&id=187&option=com_content&view=category"
+    },
+    "達拉斯分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          1,
+          "newer"
+        ],
+        [
+          2,
+          "mid-new"
+        ],
+        [
+          4,
+          "mid-old"
+        ],
+        [
+          6,
+          "older"
+        ],
+        [
+          7,
+          "oldest"
+        ]
+      ],
+      "total_pages": 8,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=170&id=44&option=com_content&view=category"
+    },
+    "雪隆分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          11,
+          "newer"
+        ],
+        [
+          30,
+          "mid-new"
+        ],
+        [
+          54,
+          "mid-old"
+        ],
+        [
+          76,
+          "older"
+        ],
+        [
+          93,
+          "oldest"
+        ]
+      ],
+      "total_pages": 94,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=375&id=150&option=com_content&view=category"
+    },
+    "雲林": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          13,
+          "newer"
+        ],
+        [
+          35,
+          "mid-new"
+        ],
+        [
+          64,
+          "mid-old"
+        ],
+        [
+          90,
+          "older"
+        ],
+        [
+          110,
+          "oldest"
+        ]
+      ],
+      "total_pages": 111,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=271&id=71&option=com_content&view=category"
+    },
+    "香港": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          3,
+          "newer"
+        ],
+        [
+          8,
+          "mid-new"
+        ],
+        [
+          14,
+          "mid-old"
+        ],
+        [
+          20,
+          "older"
+        ],
+        [
+          25,
+          "oldest"
+        ]
+      ],
+      "total_pages": 26,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=378&id=152&option=com_content&view=category"
+    },
+    "馬來西亞分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          2,
+          "newer"
+        ],
+        [
+          6,
+          "mid-new"
+        ],
+        [
+          12,
+          "mid-old"
+        ],
+        [
+          16,
+          "older"
+        ],
+        [
+          20,
+          "oldest"
+        ]
+      ],
+      "total_pages": 21,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=372&id=147&option=com_content&view=category"
+    },
+    "馬六甲分會": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          20,
+          "newer"
+        ],
+        [
+          52,
+          "mid-new"
+        ],
+        [
+          95,
+          "mid-old"
+        ],
+        [
+          134,
+          "older"
+        ],
+        [
+          164,
+          "oldest"
+        ]
+      ],
+      "total_pages": 165,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=374&id=149&option=com_content&view=category"
+    },
+    "馬拉威": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ]
+      ],
+      "total_pages": 1,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=430&id=185&option=com_content&view=category"
+    },
+    "高雄": {
+      "sampled_pages": [
+        [
+          0,
+          "recent"
+        ],
+        [
+          105,
+          "newer"
+        ],
+        [
+          281,
+          "mid-new"
+        ],
+        [
+          510,
+          "mid-old"
+        ],
+        [
+          721,
+          "older"
+        ],
+        [
+          879,
+          "oldest"
+        ]
+      ],
+      "total_pages": 880,
+      "url": "https://tcopen.tzuchi-org.tw/community/index.php?Itemid=273&id=45&option=com_content&view=category"
+    }
+  },
+  "fetch_errors": 0,
+  "generated_at": "2026-07-15T18:28:57.310581+00:00",
+  "grade_counts": {
+    "A": 495,
+    "B": 5
+  },
+  "headline_pattern_counts": {
+    "action-impact": 76,
+    "crisis-response": 45,
+    "direct-theme": 20,
+    "quoted-image": 23,
+    "transformation": 18,
+    "two-part": 318
+  },
+  "lead_type_counts": {
+    "context-first": 71,
+    "fact-first": 212,
+    "quote-first": 194,
+    "scene-first": 23
+  },
+  "region_counts": {
+    "中美洲": 10,
+    "加拿大": 10,
+    "北加州分會": 10,
+    "南投": 6,
+    "南美洲": 15,
+    "南非": 9,
+    "印尼": 10,
+    "印度": 24,
+    "史瓦帝尼": 2,
+    "嘉義": 10,
+    "土耳其": 9,
+    "基隆": 5,
+    "墨西哥": 20,
+    "夏威夷分會": 5,
+    "外島": 10,
+    "宜蘭": 10,
+    "尚比亞": 4,
+    "尼泊爾": 25,
+    "屏東": 10,
+    "彰化": 10,
+    "德州分會": 15,
+    "志業體活動": 10,
+    "斯里蘭卡": 3,
+    "新加坡": 5,
+    "新澤西分會": 5,
+    "新竹": 10,
+    "日本": 10,
+    "柬埔寨": 20,
+    "桃園": 10,
+    "汶萊": 1,
+    "泰國": 5,
+    "澳洲": 15,
+    "約旦": 10,
+    "紐約分會": 5,
+    "美國總會": 10,
+    "臺中": 10,
+    "臺北": 10,
+    "臺南": 10,
+    "臺東": 15,
+    "芝加哥分會": 10,
+    "花蓮": 5,
+    "苗栗": 10,
+    "莫三比克": 10,
+    "華府分會": 8,
+    "菲律賓": 8,
+    "辛巴威": 4,
+    "達拉斯分會": 8,
+    "雪隆分會": 12,
+    "雲林": 8,
+    "香港": 4,
+    "馬來西亞分會": 2,
+    "馬六甲分會": 8,
+    "馬拉威": 2,
+    "高雄": 8
+  },
+  "target": 500,
+  "term_group_counts": {
+    "dharma": 1259,
+    "humanities": 120,
+    "medical": 1532,
+    "relief": 1524,
+    "values": 8886,
+    "volunteer_ops": 1244
+  },
+  "top_authors": {
+    "劉嘉麗": 3,
+    "劉怡君": 6,
+    "吳秀玲,吳惠蘭": 3,
+    "吳秀玲,林綠卿": 3,
+    "廖月鳳": 4,
+    "張淑宜": 3,
+    "張美齡": 4,
+    "張翠娥": 9,
+    "朱秀蓮": 4,
+    "李侑達": 3,
+    "李意如": 6,
+    "杜微": 3,
+    "林綠卿": 4,
+    "林靜君": 3,
+    "柯德桂": 3,
+    "桑瑞蓮": 5,
+    "白如璐": 13,
+    "胡媛甄,邱俊良": 3,
+    "莊雯琦": 4,
+    "葉晉宏,朱秀蓮": 3,
+    "蔡白球": 4,
+    "蔡蕙菁": 8,
+    "蔡藜旭,郭素霞,陳麗英": 2,
+    "蔡藜旭,陳麗英": 3,
+    "袁淑珍": 5,
+    "裘柏年": 4,
+    "鍾貴滿": 6,
+    "駱淑麗": 15,
+    "黃湘卉": 14,
+    "黃湘卉,潘曉彤": 3
+  },
+  "top_terms": {
+    "互愛": 21,
+    "人品典範": 11,
+    "人文真善美": 53,
+    "人醫會": 110,
+    "以工代賑": 8,
+    "修繕": 150,
+    "傳承": 184,
+    "傳揚美善": 1,
+    "入經藏": 186,
+    "共善": 77,
+    "出班": 5,
+    "初心": 102,
+    "功能組": 31,
+    "動線": 82,
+    "勘災": 96,
+    "協力": 84,
+    "合和互協": 59,
+    "合心": 87,
+    "和氣": 55,
+    "善念": 274,
+    "圓滿": 303,
+    "報到": 51,
+    "報導": 19,
+    "場勘": 12,
+    "大藏經": 26,
+    "守護": 273,
+    "守護健康": 24,
+    "守護生命": 23,
+    "安心": 178,
+    "安置": 43,
+    "安身": 27,
+    "尊重": 215,
+    "希望": 1451,
+    "往診": 27,
+    "急難救助": 35,
+    "惜福": 39,
+    "愛": 2889,
+    "感恩": 1387,
+    "慈濟宗門": 10,
+    "承擔": 431,
+    "拔除病苦": 1,
+    "接花香": 19,
+    "攝影者": 2,
+    "歷史紀錄": 2,
+    "永久屋": 19,
+    "求醫": 8,
+    "法喜": 143,
+    "法親": 116,
+    "法髓": 78,
+    "溫暖": 484,
+    "災後關懷": 3,
+    "為時代作見證": 2,
+    "留史": 4,
+    "病患": 278,
+    "發放": 724,
+    "祝吉祥": 2,
+    "禮佛足": 25,
+    "窗口": 61,
+    "竹筒歲月": 162,
+    "精進": 244,
+    "結緣": 130,
+    "經藏演繹": 207,
+    "義診": 858,
+    "膚慰": 44,
+    "良能": 24,
+    "補位": 27,
+    "訪視": 208,
+    "造冊": 27,
+    "造福": 77,
+    "醫療團隊": 66,
+    "醫護": 113,
+    "重建": 138,
+    "關懷戶": 17,
+    "陪伴": 796,
+    "靜思法脈": 10,
+    "願力": 121,
+    "願心": 16,
+    "願行": 36,
+    "香積": 122,
+    "馳援": 12
+  },
+  "unique_body_hashes": 500,
+  "unique_urls": 500,
+  "valid_articles": 500,
+  "year_counts": {
+    "2024": 118,
+    "2025": 158,
+    "2026": 224
+  }
+}

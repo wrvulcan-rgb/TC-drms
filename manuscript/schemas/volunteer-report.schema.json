@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wrvulcan-rgb/TC-drms/manuscript/schemas/volunteer-report.schema.json",
+  "title": "TC-DRMS Volunteer Manuscript Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["report_id", "mode", "event", "actions", "verified_facts", "consent", "submitted_by", "submitted_at"],
+  "properties": {
+    "report_id": {"type": "string", "pattern": "^MR-[A-Z0-9-]{6,40}$"},
+    "mode": {"enum": ["breaking-news", "disaster-relief", "community-record", "medical-outreach", "person-profile", "ceremony-dharma", "photo-caption"]},
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "name", "start_at", "location", "purpose"],
+      "properties": {
+        "event_id": {"type": "string", "minLength": 1, "maxLength": 80},
+        "name": {"type": "string", "minLength": 2, "maxLength": 120},
+        "start_at": {"type": "string", "format": "date-time"},
+        "end_at": {"type": ["string", "null"], "format": "date-time"},
+        "location": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["display_name", "privacy_level"],
+          "properties": {
+            "display_name": {"type": "string", "minLength": 2, "maxLength": 160},
+            "privacy_level": {"enum": ["public", "internal", "sensitive"]},
+            "source_id": {"type": ["string", "null"], "maxLength": 80}
+          }
+        },
+        "purpose": {"type": "string", "minLength": 10, "maxLength": 1000},
+        "background": {"type": ["string", "null"], "maxLength": 2000}
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["task_id", "actor", "action", "status", "verified_by"],
+        "properties": {
+          "task_id": {"type": "string", "minLength": 1, "maxLength": 80},
+          "actor": {"type": "string", "minLength": 1, "maxLength": 120},
+          "action": {"type": "string", "minLength": 5, "maxLength": 600},
+          "status": {"enum": ["completed", "verified"]},
+          "completed_at": {"type": ["string", "null"], "format": "date-time"},
+          "verified_by": {"type": "string", "minLength": 1, "maxLength": 120},
+          "source_ids": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 80}, "uniqueItems": true, "maxItems": 20}
+        }
+      }
+    },
+    "verified_facts": {"type": "array", "minItems": 1, "maxItems": 100, "items": {"$ref": "#/$defs/fact"}},
+    "people": {
+      "type": "array",
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["person_ref", "display_name", "role", "name_consent", "privacy_level"],
+        "properties": {
+          "person_ref": {"type": "string", "minLength": 1, "maxLength": 80},
+          "display_name": {"type": "string", "minLength": 1, "maxLength": 80},
+          "role": {"type": "string", "minLength": 1, "maxLength": 120},
+          "name_consent": {"type": "boolean"},
+          "image_consent": {"type": "boolean", "default": false},
+          "privacy_level": {"enum": ["public", "internal", "sensitive"]},
+          "approved_role_source": {"type": ["string", "null"], "maxLength": 160}
+        }
+      }
+    },
+    "quotations": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["speaker_person_ref", "exact_text", "source_type", "source_reference", "transcript_verified", "publication_consent"],
+        "properties": {
+          "speaker_person_ref": {"type": "string", "minLength": 1, "maxLength": 80},
+          "exact_text": {"type": "string", "minLength": 2, "maxLength": 1200},
+          "context": {"type": ["string", "null"], "maxLength": 800},
+          "source_type": {"enum": ["audio", "video", "transcript", "field_notes"]},
+          "source_reference": {"type": "string", "minLength": 1, "maxLength": 240},
+          "captured_at": {"type": ["string", "null"], "format": "date-time"},
+          "transcript_verified": {"type": "boolean"},
+          "publication_consent": {"type": "boolean"},
+          "allowed_edits": {"enum": ["verbatim", "remove_fillers_only", "light_grammar"]}
+        }
+      }
+    },
+    "scene_observations": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["observation", "observed_at", "observer", "source_reference"],
+        "properties": {
+          "observation": {"type": "string", "minLength": 5, "maxLength": 1000},
+          "observed_at": {"type": "string", "format": "date-time"},
+          "observer": {"type": "string", "minLength": 1, "maxLength": 120},
+          "source_reference": {"type": "string", "minLength": 1, "maxLength": 240}
+        }
+      }
+    },
+    "media": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["media_id", "kind", "objective_caption", "credit", "publication_consent"],
+        "properties": {
+          "media_id": {"type": "string", "minLength": 1, "maxLength": 100},
+          "kind": {"enum": ["photo", "video", "audio"]},
+          "objective_caption": {"type": "string", "minLength": 5, "maxLength": 800},
+          "credit": {"type": "string", "minLength": 1, "maxLength": 120},
+          "captured_at": {"type": ["string", "null"], "format": "date-time"},
+          "publication_consent": {"type": "boolean"},
+          "depicted_person_refs": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 80}, "uniqueItems": true, "maxItems": 50}
+        }
+      }
+    },
+    "next_steps": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/fact"}},
+    "unresolved_questions": {"type": "array", "maxItems": 30, "items": {"type": "string", "minLength": 3, "maxLength": 500}},
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checked_by", "checked_at", "contains_case_data", "privacy_review_required"],
+      "properties": {
+        "checked_by": {"type": "string", "minLength": 1, "maxLength": 120},
+        "checked_at": {"type": "string", "format": "date-time"},
+        "contains_case_data": {"type": "boolean"},
+        "privacy_review_required": {"type": "boolean"},
+        "notes": {"type": ["string", "null"], "maxLength": 1000}
+      }
+    },
+    "submitted_by": {"type": "string", "minLength": 1, "maxLength": 120},
+    "submitted_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fact_id", "kind", "value", "source_entity", "source_id", "verified_by", "verified_at", "privacy_level", "publishable"],
+      "properties": {
+        "fact_id": {"type": "string", "minLength": 1, "maxLength": 80},
+        "kind": {"enum": ["date", "location", "person_count", "household_count", "item_quantity", "service_count", "action", "result", "background", "next_step", "other"]},
+        "value": {
+          "anyOf": [
+            {"type": "string", "minLength": 1, "maxLength": 1500},
+            {"type": "number"},
+            {"type": "boolean"}
+          ]
+        },
+        "unit": {"type": ["string", "null"], "maxLength": 40},
+        "time_window": {"type": ["string", "null"], "maxLength": 120},
+        "source_entity": {"enum": ["Event", "Case", "Task", "Person", "Squad", "Vehicle", "Inventory", "Fund", "Feedback", "Interview", "ExternalOfficialSource"]},
+        "source_id": {"type": "string", "minLength": 1, "maxLength": 120},
+        "source_field": {"type": ["string", "null"], "maxLength": 120},
+        "verified_by": {"type": "string", "minLength": 1, "maxLength": 120},
+        "verified_at": {"type": "string", "format": "date-time"},
+        "privacy_level": {"enum": ["public", "internal", "sensitive"]},
+        "publishable": {"type": "boolean"},
+        "notes": {"type": ["string", "null"], "maxLength": 1000}
+      }
+    }
+  }
+}

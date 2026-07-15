@@ -1,0 +1,147 @@
+{
+  "report_id": "MR-DEMO-20260716",
+  "mode": "disaster-relief",
+  "event": {
+    "event_id": "EVT-DEMO-001",
+    "name": "豪雨後社區關懷與物資發放演示",
+    "start_at": "2026-07-16T08:00:00+08:00",
+    "end_at": "2026-07-16T15:30:00+08:00",
+    "location": {
+      "display_name": "演示社區活動中心",
+      "privacy_level": "public",
+      "source_id": "SITE-DEMO-001"
+    },
+    "purpose": "完成受影響家庭需求確認、物資發放與後續關懷安排。",
+    "background": "本資料為系統驗證用虛構情境，不包含真實人物或個案。"
+  },
+  "actions": [
+    {
+      "task_id": "TSK-DEMO-001",
+      "actor": "關懷協力隊",
+      "action": "依核准名冊完成需求確認與物資交付，並將結果回寫任務紀錄。",
+      "status": "verified",
+      "completed_at": "2026-07-16T14:30:00+08:00",
+      "verified_by": "演示覆核員",
+      "source_ids": ["TSK-DEMO-001", "INV-DEMO-001"]
+    }
+  ],
+  "verified_facts": [
+    {
+      "fact_id": "FACT-DEMO-001",
+      "kind": "household_count",
+      "value": 24,
+      "unit": "戶",
+      "time_window": "2026-07-16 08:00–14:30 Asia/Taipei",
+      "source_entity": "Task",
+      "source_id": "TSK-DEMO-001",
+      "source_field": "verified_households",
+      "verified_by": "演示覆核員",
+      "verified_at": "2026-07-16T15:00:00+08:00",
+      "privacy_level": "public",
+      "publishable": true,
+      "notes": "已與物資出庫及簽收紀錄對帳。"
+    },
+    {
+      "fact_id": "FACT-DEMO-002",
+      "kind": "item_quantity",
+      "value": 24,
+      "unit": "份",
+      "time_window": "2026-07-16 當日完成並對帳",
+      "source_entity": "Inventory",
+      "source_id": "INV-DEMO-001",
+      "source_field": "reconciled_delivered_quantity",
+      "verified_by": "演示物資覆核員",
+      "verified_at": "2026-07-16T15:10:00+08:00",
+      "privacy_level": "public",
+      "publishable": true,
+      "notes": "本範例不代表任何真實發放。"
+    },
+    {
+      "fact_id": "FACT-DEMO-003",
+      "kind": "next_step",
+      "value": "關懷團隊將依已同意聯繫方式進行後續需求追蹤。",
+      "unit": null,
+      "time_window": "2026-07-17 起",
+      "source_entity": "Task",
+      "source_id": "TSK-DEMO-002",
+      "source_field": "planned_follow_up",
+      "verified_by": "演示覆核員",
+      "verified_at": "2026-07-16T15:15:00+08:00",
+      "privacy_level": "public",
+      "publishable": true,
+      "notes": null
+    }
+  ],
+  "people": [
+    {
+      "person_ref": "PERSON-DEMO-A",
+      "display_name": "受訪者A",
+      "role": "演示受訪居民",
+      "name_consent": false,
+      "image_consent": false,
+      "privacy_level": "public",
+      "approved_role_source": "CONSENT-DEMO-A"
+    }
+  ],
+  "quotations": [
+    {
+      "speaker_person_ref": "PERSON-DEMO-A",
+      "exact_text": "完成登記後，我知道接下來會有人再聯繫需要協助的事項。",
+      "context": "演示訪談，描述後續流程理解。",
+      "source_type": "transcript",
+      "source_reference": "TRANSCRIPT-DEMO-A-001",
+      "captured_at": "2026-07-16T13:00:00+08:00",
+      "transcript_verified": true,
+      "publication_consent": true,
+      "allowed_edits": "remove_fillers_only"
+    }
+  ],
+  "scene_observations": [
+    {
+      "observation": "志工依編號核對名冊，物資交付後由另一位志工確認數量並完成簽收。",
+      "observed_at": "2026-07-16T11:20:00+08:00",
+      "observer": "演示記錄志工",
+      "source_reference": "FIELD-NOTE-DEMO-001"
+    }
+  ],
+  "media": [
+    {
+      "media_id": "PHOTO-DEMO-001",
+      "kind": "photo",
+      "objective_caption": "演示志工在活動中心依名冊核對物資份數；畫面人物皆為虛構演示資料。",
+      "credit": "演示攝影志工",
+      "captured_at": "2026-07-16T11:20:00+08:00",
+      "publication_consent": true,
+      "depicted_person_refs": []
+    }
+  ],
+  "next_steps": [
+    {
+      "fact_id": "NEXT-DEMO-001",
+      "kind": "next_step",
+      "value": "依任務紀錄追蹤尚待確認的生活需求。",
+      "unit": null,
+      "time_window": "2026-07-17 起",
+      "source_entity": "Task",
+      "source_id": "TSK-DEMO-002",
+      "source_field": "description",
+      "verified_by": "演示覆核員",
+      "verified_at": "2026-07-16T15:15:00+08:00",
+      "privacy_level": "public",
+      "publishable": true,
+      "notes": null
+    }
+  ],
+  "unresolved_questions": [
+    "正式成稿前確認對外可使用的活動正式名稱。"
+  ],
+  "consent": {
+    "checked_by": "演示隱私覆核員",
+    "checked_at": "2026-07-16T15:20:00+08:00",
+    "contains_case_data": false,
+    "privacy_review_required": false,
+    "notes": "全部資料均為虛構演示用途。"
+  },
+  "submitted_by": "演示記錄志工",
+  "submitted_at": "2026-07-16T15:30:00+08:00"
+}
