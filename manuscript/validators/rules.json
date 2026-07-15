@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "required_gates": [
+    "fact_provenance",
+    "names_and_roles",
+    "privacy_and_consent",
+    "narrative_quality",
+    "ai_tone"
+  ],
+  "blocking_rules": [
+    {
+      "id": "FACT-001",
+      "gate": "fact_provenance",
+      "description": "Every published fact must have a source entity, source ID, verifier, verification time and publishable=true."
+    },
+    {
+      "id": "FACT-002",
+      "gate": "fact_provenance",
+      "description": "Numeric facts must include a unit and time window when the value can change over time."
+    },
+    {
+      "id": "FACT-003",
+      "gate": "fact_provenance",
+      "description": "Incomplete, estimated, planned and reconciled quantities must not be described as the same status."
+    },
+    {
+      "id": "QUOTE-001",
+      "gate": "fact_provenance",
+      "description": "Direct quotations require a source reference, transcript verification and publication consent."
+    },
+    {
+      "id": "ROLE-001",
+      "gate": "names_and_roles",
+      "description": "Formal titles, Dharma titles, medical roles and organizational positions require an approved source."
+    },
+    {
+      "id": "PRIV-001",
+      "gate": "privacy_and_consent",
+      "description": "Sensitive or internal facts must not be published."
+    },
+    {
+      "id": "PRIV-002",
+      "gate": "privacy_and_consent",
+      "description": "A person's name or image must not be published without separate consent."
+    },
+    {
+      "id": "PRIV-003",
+      "gate": "privacy_and_consent",
+      "description": "Case, medical, financial and precise-address data require privacy review before approval."
+    },
+    {
+      "id": "DIGNITY-001",
+      "gate": "privacy_and_consent",
+      "description": "Do not infer emotions, faith, family relationships, diagnosis or helplessness from appearance or circumstance."
+    },
+    {
+      "id": "FLOW-001",
+      "gate": "narrative_quality",
+      "description": "The draft must contain a clear event, action and result or next step; activity schedules alone are insufficient."
+    },
+    {
+      "id": "AI-001",
+      "gate": "ai_tone",
+      "description": "Do not replace missing facts with abstract value language."
+    }
+  ],
+  "warning_rules": [
+    {
+      "id": "AI-101",
+      "pattern": "不僅.{0,80}更",
+      "max_occurrences": 2,
+      "description": "Repeated not-only-but-also phrasing is a common generated-text pattern."
+    },
+    {
+      "id": "AI-102",
+      "pattern": "這不只是.{0,80}更是",
+      "max_occurrences": 1,
+      "description": "Abstract contrast phrasing should be replaced by specific impact."
+    },
+    {
+      "id": "AI-103",
+      "terms": ["感恩", "溫暖", "希望", "圓滿", "善念", "愛"],
+      "max_total_per_500_chars": 8,
+      "description": "High value-term density weakens factual credibility."
+    },
+    {
+      "id": "AI-104",
+      "terms": ["感動地說", "深受感動", "重燃希望", "生命翻轉"],
+      "max_total": 2,
+      "description": "Emotion and transformation claims require direct evidence."
+    },
+    {
+      "id": "DIGNITY-101",
+      "terms": ["可憐", "悲慘", "無助的災民", "弱勢族群"],
+      "max_total": 0,
+      "description": "Use precise circumstances and person-first language instead of labels."
+    },
+    {
+      "id": "STATUS-101",
+      "terms": ["預計完成", "預計發放", "預計受惠", "將完成"],
+      "description": "Check that planned outcomes are not presented as completed results."
+    }
+  ],
+  "publication_thresholds": {
+    "minimum_total_score": 26,
+    "maximum_total_score": 32,
+    "minimum_fact_score": 3,
+    "minimum_privacy_dignity_score": 3,
+    "blocking_rule_failures_allowed": 0,
+    "human_approval_required": true
+  }
+}
