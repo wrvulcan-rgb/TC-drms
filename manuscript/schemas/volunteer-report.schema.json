@@ -4,32 +4,10 @@
   "title": "TC-DRMS Volunteer Manuscript Report",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "report_id",
-    "mode",
-    "event",
-    "actions",
-    "verified_facts",
-    "consent",
-    "submitted_by",
-    "submitted_at"
-  ],
+  "required": ["report_id", "mode", "event", "actions", "verified_facts", "consent", "submitted_by", "submitted_at"],
   "properties": {
-    "report_id": {
-      "type": "string",
-      "pattern": "^MR-[A-Z0-9-]{6,40}$"
-    },
-    "mode": {
-      "enum": [
-        "breaking-news",
-        "disaster-relief",
-        "community-record",
-        "medical-outreach",
-        "person-profile",
-        "ceremony-dharma",
-        "photo-caption"
-      ]
-    },
+    "report_id": {"type": "string", "pattern": "^MR-[A-Z0-9-]{6,40}$"},
+    "mode": {"enum": ["breaking-news", "disaster-relief", "community-record", "medical-outreach", "person-profile", "ceremony-dharma", "photo-caption"]},
     "event": {
       "type": "object",
       "additionalProperties": false,
@@ -68,21 +46,11 @@
           "status": {"enum": ["completed", "verified"]},
           "completed_at": {"type": ["string", "null"], "format": "date-time"},
           "verified_by": {"type": "string", "minLength": 1, "maxLength": 120},
-          "source_ids": {
-            "type": "array",
-            "items": {"type": "string", "minLength": 1, "maxLength": 80},
-            "uniqueItems": true,
-            "maxItems": 20
-          }
+          "source_ids": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 80}, "uniqueItems": true, "maxItems": 20}
         }
       }
     },
-    "verified_facts": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 100,
-      "items": {"$ref": "#/$defs/fact"}
-    },
+    "verified_facts": {"type": "array", "minItems": 1, "maxItems": 100, "items": {"$ref": "#/$defs/fact"}},
     "people": {
       "type": "array",
       "maxItems": 30,
@@ -107,14 +75,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "speaker_person_ref",
-          "exact_text",
-          "source_type",
-          "source_reference",
-          "transcript_verified",
-          "publication_consent"
-        ],
+        "required": ["speaker_person_ref", "exact_text", "source_type", "source_reference", "transcript_verified", "publication_consent"],
         "properties": {
           "speaker_person_ref": {"type": "string", "minLength": 1, "maxLength": 80},
           "exact_text": {"type": "string", "minLength": 2, "maxLength": 1200},
@@ -157,25 +118,12 @@
           "credit": {"type": "string", "minLength": 1, "maxLength": 120},
           "captured_at": {"type": ["string", "null"], "format": "date-time"},
           "publication_consent": {"type": "boolean"},
-          "depicted_person_refs": {
-            "type": "array",
-            "items": {"type": "string", "minLength": 1, "maxLength": 80},
-            "uniqueItems": true,
-            "maxItems": 50
-          }
+          "depicted_person_refs": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 80}, "uniqueItems": true, "maxItems": 50}
         }
       }
     },
-    "next_steps": {
-      "type": "array",
-      "maxItems": 20,
-      "items": {"$ref": "#/$defs/fact"}
-    },
-    "unresolved_questions": {
-      "type": "array",
-      "maxItems": 30,
-      "items": {"type": "string", "minLength": 3, "maxLength": 500}
-    },
+    "next_steps": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/fact"}},
+    "unresolved_questions": {"type": "array", "maxItems": 30, "items": {"type": "string", "minLength": 3, "maxLength": 500}},
     "consent": {
       "type": "object",
       "additionalProperties": false,
@@ -195,47 +143,20 @@
     "fact": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "fact_id",
-        "kind",
-        "value",
-        "source_entity",
-        "source_id",
-        "verified_by",
-        "verified_at",
-        "privacy_level",
-        "publishable"
-      ],
+      "required": ["fact_id", "kind", "value", "source_entity", "source_id", "verified_by", "verified_at", "privacy_level", "publishable"],
       "properties": {
         "fact_id": {"type": "string", "minLength": 1, "maxLength": 80},
-        "kind": {
-          "enum": [
-            "date",
-            "location",
-            "person_count",
-            "household_count",
-            "item_quantity",
-            "service_count",
-            "action",
-            "result",
-            "background",
-            "next_step",
-            "other"
-          ]
-        },
+        "kind": {"enum": ["date", "location", "person_count", "household_count", "item_quantity", "service_count", "action", "result", "background", "next_step", "other"]},
         "value": {
-          "oneOf": [
+          "anyOf": [
             {"type": "string", "minLength": 1, "maxLength": 1500},
             {"type": "number"},
-            {"type": "integer"},
             {"type": "boolean"}
           ]
         },
         "unit": {"type": ["string", "null"], "maxLength": 40},
         "time_window": {"type": ["string", "null"], "maxLength": 120},
-        "source_entity": {
-          "enum": ["Event", "Case", "Task", "Person", "Squad", "Vehicle", "Inventory", "Fund", "Feedback", "Interview", "ExternalOfficialSource"]
-        },
+        "source_entity": {"enum": ["Event", "Case", "Task", "Person", "Squad", "Vehicle", "Inventory", "Fund", "Feedback", "Interview", "ExternalOfficialSource"]},
         "source_id": {"type": "string", "minLength": 1, "maxLength": 120},
         "source_field": {"type": ["string", "null"], "maxLength": 120},
         "verified_by": {"type": "string", "minLength": 1, "maxLength": 120},
