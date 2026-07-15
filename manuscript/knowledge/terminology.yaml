@@ -1,0 +1,177 @@
+version: 1
+language: zh-Hant-TW
+principles:
+  - 專業詞必須符合實際工作流程，不得只為模仿語氣而插入。
+  - 價值詞必須由具體行動、人物原話或可觀察結果支撐。
+  - 法義與醫療用詞需要具資格或核准來源覆核。
+  - 同一人物、組織與角色稱謂在全文保持一致。
+
+terms:
+  - term: 勘災
+    domain: disaster_relief
+    definition: 災後到現場查核受災範圍、損害與需求的行動。
+    require_evidence: [event_id, location, observed_at, reporter]
+    avoid_when: [僅依社群轉傳、尚未到場、只有預估]
+
+  - term: 訪視
+    domain: charity_care
+    definition: 經授權人員與家庭或個案接觸，了解需求並持續關懷。
+    require_evidence: [case_id, visited_at, visitor_role]
+    privacy: sensitive
+
+  - term: 造冊
+    domain: disaster_relief
+    definition: 依核定口徑建立受影響或受惠名冊並完成必要查核。
+    require_evidence: [case_ids, verification_status, roster_version]
+    avoid_when: [初步登記、尚未去重、僅估計戶數]
+
+  - term: 發放
+    domain: disaster_relief
+    definition: 經核准將物資、現值卡、祝福禮或其他援助交付受惠者。
+    require_evidence: [task_id, item_or_assistance, reconciled_quantity, completed_at]
+    avoid_when: [尚在募集、在途、預計發放]
+
+  - term: 安心祝福禮
+    domain: disaster_relief
+    definition: 依當次專案正式核定內容提供的關懷物資組合。
+    require_evidence: [approved_program_name, item_list]
+    caution: 不得將一般物資包自行改稱安心祝福禮。
+
+  - term: 以工代賑
+    domain: disaster_relief
+    definition: 受災居民參與環境整理或重建並依方案獲得生活支持。
+    require_evidence: [approved_program, participation_record, compensation_rule]
+    caution: 需符合專案正式定義，不等同一般志工服務。
+
+  - term: 膚慰
+    domain: charity_care
+    definition: 以尊重、傾聽與陪伴安定受災者或關懷對象。
+    require_evidence: [observable_action_or_quote]
+    avoid_when: [只送物資未互動、作者推測對方已安心]
+
+  - term: 人醫會
+    domain: medical
+    definition: 慈濟人醫會或經正式確認的人醫會團隊。
+    require_evidence: [organization_name, medical_activity]
+    caution: 不得泛指所有參與義診的醫護人員。
+
+  - term: 義診
+    domain: medical
+    definition: 依活動核准範圍提供的免費醫療服務。
+    require_evidence: [medical_services, licensed_team, date, location]
+    caution: 不得推論療效或診斷。
+
+  - term: 合心
+    domain: volunteer_organization
+    definition: 慈濟志工組織與運作層級用語之一，亦可指共同一心的協作精神。
+    require_evidence: [official_role_or_context]
+    caution: 與和氣、互愛、協力不可任意互換。
+
+  - term: 和氣
+    domain: volunteer_organization
+    definition: 慈濟志工組織與運作層級用語之一。
+    require_evidence: [official_role_or_context]
+    caution: 與合心、互愛、協力不可任意互換。
+
+  - term: 互愛
+    domain: volunteer_organization
+    definition: 慈濟志工組織與運作層級用語之一。
+    require_evidence: [official_role_or_context]
+    caution: 與合心、和氣、協力不可任意互換。
+
+  - term: 協力
+    domain: volunteer_organization
+    definition: 慈濟志工組織與運作層級用語之一，或描述具體共同執行。
+    require_evidence: [official_role_or_action]
+    caution: 作組織層級使用時需確認正式名稱。
+
+  - term: 合和互協
+    domain: volunteer_organization
+    definition: 合心、和氣、互愛、協力之整體精神與組織協作概念。
+    require_evidence: [official_context]
+
+  - term: 香積
+    domain: volunteer_operations
+    definition: 慈濟活動中負責餐食準備與供應的功能或志工。
+    require_evidence: [squad_or_function, meal_activity]
+    caution: 不等同所有廚房或餐飲人員。
+
+  - term: 人文真善美
+    domain: humanities
+    definition: 以文字、攝影與影像等方式記錄真實、傳揚美善並為時代留史的志工功能。
+    require_evidence: [role_or_team]
+
+  - term: 大藏經
+    domain: humanities
+    definition: 在慈濟文稿脈絡中，指保存時代、社區與人物行動的歷史紀錄意涵。
+    require_evidence: [recording_context]
+    caution: 避免脫離慈濟脈絡泛用。
+
+  - term: 竹筒歲月
+    domain: dharma_humanities
+    definition: 慈濟早期以日存小額善款匯聚助人力量的歷史與精神象徵。
+    require_evidence: [official_context]
+
+  - term: 靜思法脈
+    domain: dharma_humanities
+    definition: 慈濟法脈相關正式用語。
+    require_evidence: [approved_dharma_source]
+    review_required: dharma_reviewer
+
+  - term: 慈濟宗門
+    domain: dharma_humanities
+    definition: 慈濟宗門相關正式用語。
+    require_evidence: [approved_dharma_source]
+    review_required: dharma_reviewer
+
+  - term: 經藏演繹
+    domain: dharma_humanities
+    definition: 依正式法會或活動規劃進行的經文、手語、音樂與隊形演繹。
+    require_evidence: [event_name, approved_program]
+    review_required: dharma_reviewer
+
+value_terms:
+  supported_by_action:
+    - 感恩
+    - 尊重
+    - 愛
+    - 善念
+    - 共善
+    - 結緣
+    - 圓滿
+    - 安心
+    - 希望
+    - 溫暖
+    - 陪伴
+    - 守護
+    - 傳承
+    - 初心
+    - 惜福
+    - 造福
+    - 願力
+    - 法喜
+    - 精進
+  density_rules:
+    max_same_term_per_paragraph: 2
+    warning_total_value_terms_per_500_chars: 8
+    warning_abstract_conclusion_terms: 3
+
+prohibited_substitutions:
+  - from: 災民
+    prefer: 受災居民
+    note: 依情境可使用受災鄉親、受災家庭；避免標籤化。
+  - from: 弱勢
+    prefer: 說明具體處境或需求
+    note: 除非為正式政策或方案分類。
+  - from: 可憐
+    prefer: 客觀描述已核准的困難
+  - from: 救濟
+    prefer: 援助或關懷
+    note: 仍須依正式方案名稱。
+
+names_and_roles:
+  rules:
+    - 法師、師父、證嚴上人、執行長、主任、醫師、護理師等稱謂須由核准名冊或官方來源確認。
+    - 初次出現寫完整姓名與角色；後續依編輯規範一致簡稱。
+    - 未取得公開同意者使用匿名代稱，且不得留下可反推身分的組合資訊。
+    - 志工身分不得由服裝、地點或作者推測。
