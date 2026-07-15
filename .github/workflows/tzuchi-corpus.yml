@@ -7,6 +7,13 @@ on:
     paths:
       - scripts/tzuchi_corpus.py
       - .github/workflows/tzuchi-corpus.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/tzuchi_corpus.py
+      - .github/workflows/tzuchi-corpus.yml
+      - manuscript/**
   workflow_dispatch:
 
 permissions:
@@ -61,6 +68,7 @@ jobs:
           PY
 
       - name: Commit derived corpus artifacts
+        if: github.event_name != 'pull_request'
         run: |
           if git diff --quiet -- manuscript/knowledge/generated; then
             echo "No generated changes"
