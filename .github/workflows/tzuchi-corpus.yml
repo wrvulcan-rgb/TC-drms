@@ -1,16 +1,6 @@
 name: Build Tzu Chi manuscript corpus
 
 on:
-  push:
-    branches:
-      - feat/tzuchi-manuscript-corpus-500
-    paths:
-      - scripts/tzuchi_corpus.py
-      - scripts/manuscript_validate.py
-      - tests/test_manuscript_validate.py
-      - .github/workflows/tzuchi-corpus.yml
-      - manuscript/**
-      - '!manuscript/knowledge/generated/**'
   pull_request:
     branches:
       - main
@@ -20,13 +10,14 @@ on:
       - tests/test_manuscript_validate.py
       - .github/workflows/tzuchi-corpus.yml
       - manuscript/**
+      - '!manuscript/knowledge/generated/**'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: tzuchi-manuscript-corpus-${{ github.ref }}
+  group: tzuchi-manuscript-corpus-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -35,8 +26,10 @@ jobs:
     timeout-minutes: 8
 
     steps:
-      - name: Check out branch
+      - name: Check out source branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -74,11 +67,14 @@ jobs:
     needs: contract-tests
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    env:
+      TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
 
     steps:
-      - name: Check out branch
+      - name: Check out source branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -115,7 +111,6 @@ jobs:
           PY
 
       - name: Commit derived corpus artifacts
-        if: github.event_name != 'pull_request'
         run: |
           if git diff --quiet -- manuscript/knowledge/generated; then
             echo "No generated changes"
@@ -125,4 +120,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add manuscript/knowledge/generated
           git commit -m "data: generate verified 500-article manuscript corpus"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git push origin HEAD:"${TARGET_BRANCH}"
