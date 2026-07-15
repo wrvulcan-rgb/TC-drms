@@ -112,10 +112,11 @@ jobs:
 
       - name: Commit derived corpus artifacts
         run: |
-          if git diff --quiet -- manuscript/knowledge/generated; then
+          if [ -z "$(git status --porcelain -- manuscript/knowledge/generated)" ]; then
             echo "No generated changes"
             exit 0
           fi
+          git status --short -- manuscript/knowledge/generated
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add manuscript/knowledge/generated
