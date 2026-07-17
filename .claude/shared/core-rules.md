@@ -1,6 +1,6 @@
 # 通用行為規則（母艦 exports — 勿在子 repo 手改，同步會覆蓋）
 
-> 來源：mason-claude-memory/CLAUDE.md 的跨專案通用部分。**本檔是生成物**（生成日 2026-07-14）：規則本體以 CLAUDE.md 為準，改源後照 maintenance.md §2 第 5 步重新導出，禁直接在本檔新增/修改規則。
+> 來源：mason-claude-memory/CLAUDE.md 的跨專案通用部分。**本檔是生成物**（生成日 2026-07-16）：規則本體以 CLAUDE.md 為準，改源後照 maintenance.md §2 第 5 步重新導出，禁直接在本檔新增/修改規則。
 > 優先權：子 repo 自己的 CLAUDE.md > 本檔。子 repo 有專案特定理由時以子 repo 為準。
 > 同步：聯邦同步 Routine 推送（現況與停用狀態見 system/automations.md）；發現本檔與母艦版不一致 → 以母艦為準。
 
@@ -30,6 +30,10 @@
 1. 驗收條件逐條有證據地通過（fresh-context 驗證，不是「我覺得好了」）。
 2. 產出已落檔且已 commit+push（container 是暫時性的，沒 push＝沒發生）。
 3. 回報裡沒有隱藏壞消息：跳過的步驟、失敗的測試、未驗證的部分都明說。
+
+# 跨 AI 待辦
+- 「待辦」或完成計劃書需交棒 → 讀母艦 `coordination/README.md`，以母艦 GitHub Issues 作唯一任務狀態。
+- 領取、成果、證據與反駁更新同一 Issue；禁止另寫 handoff、backlog 或 exchange。
 
 # Token 紀律
 - 主對話不放原始資料：大量讀取/掃描/查網頁派 subagent，只收結論。
