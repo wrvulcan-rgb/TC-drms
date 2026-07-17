@@ -1,5 +1,10 @@
 # TC-drms 專案 CLAUDE 規則
 
+## 專案定位（2026-07-17 Mason 確認，權威優先於任何舊文件）
+
+TC-drms 是功能／骨架測試沙盒，**不是**要推上線的正式產品。慈濟災害應變中心的正式頁面範例由學長（pichiu／joeyuping 帳號下的 `disaster-response-center`）各自維護，鐵律是不得修改他們的東西（見母艦 `errors.md` 已內化鐵律）。
+分支 `docs/v4.1-prepilot-handoff` 上的 `CLAUDE_HANDOFF_V4.1_PREPILOT.md`（ChatGPT 撰寫，主張把 TC-drms 當正式產品推 Pre-Pilot）與此定位矛盾，**已被本節取代作廢**；該分支未合併 main，若之後有 session 撿到該分支接手任務，先看本節，不要照該文件的框架執行。
+
 # 開場（每個 session，順序固定）
 1. 讀 `.claude/shared/iron-laws.md`（全局鐵律）＋ `.claude/shared/core-rules.md`（通用行為規則）。
 2. 讀本 repo `errors.md` 最近 10 筆。
