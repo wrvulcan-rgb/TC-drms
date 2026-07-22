@@ -40,7 +40,7 @@
 3. 回報裡沒有隱藏壞消息：跳過的步驟、失敗的測試、未驗證的部分都明說。
 
 # 跨 AI 待辦
-- 「待辦」或完成計劃書需交棒 → 讀母艦 `coordination/README.md`，以母艦 GitHub Issues 作唯一任務狀態。
+- 「待辦」（含常打成的「代辦」，視為同義）或完成計劃書需交棒 → 讀母艦 `coordination/README.md`，以母艦 GitHub Issues 作唯一任務狀態。
 - 領取、成果、證據與反駁更新同一 Issue；禁止另寫 handoff、backlog 或 exchange。
 
 # Token 紀律
