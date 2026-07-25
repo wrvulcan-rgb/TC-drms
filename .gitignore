@@ -1,1 +1,23 @@
 .mcp.json
+
+# 憑證與金鑰（絕不進版控）
+.env
+.env.*
+*.key
+*.pem
+credentials.json
+client_secret*.json
+token.json
+.clasprc.json
+
+# 工具產出的暫存與快取
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+.DS_Store
+*.log
+*.tmp
+*.bak
+*.swp
