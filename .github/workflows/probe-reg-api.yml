@@ -16,51 +16,69 @@ jobs:
       - name: Fetch and summarize (no raw personal data in logs)
         shell: python
         run: |
-          import json, re, urllib.request
+          import json, re, urllib.request, urllib.error
 
-          URL = "https://script.google.com/macros/s/AKfycbymV8F2XtPGeSUTupj8zOqY8P_p8hKjLLWsNnuy7dyj9YGID06wvqoWXJT8D-1WnHZS/exec"
-          req = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0"})
-          with urllib.request.urlopen(req, timeout=30) as r:
-              body = r.read().decode("utf-8", "replace")
-              print("final_url_host:", r.geturl().split("/")[2])
-              print("status:", r.status)
-              print("content_type:", r.headers.get("Content-Type"))
-          print("body_bytes:", len(body.encode()))
+          BASE = "https://script.google.com/macros/s/AKfycbymV8F2XtPGeSUTupj8zOqY8P_p8hKjLLWsNnuy7dyj9YGID06wvqoWXJT8D-1WnHZS/exec"
+          VARIANTS = ["", "?action=count", "?action=today", "?mode=count"]
 
           def mask(v):
               s = str(v)
               s = re.sub(r"\d", "#", s)
               s = re.sub(r"[一-鿿]", "○", s)
               s = re.sub(r"[A-Za-z]", "x", s)
-              return s[:40]
+              return s[:60]
 
-          try:
-              data = json.loads(body)
-          except Exception:
-              print("json: NO (not JSON)")
-              print("masked_head:", mask(body[:200]))
-              raise SystemExit(0)
+          def looks_like_google_system_page(html):
+              low = html.lower()
+              return any(t in low for t in ["accounts.google", "signin", "usercodeapppanel",
+                                            "moved temporarily", "docs.google.com", "meta http-equiv"])
 
-          print("json: YES, top_type:", type(data).__name__)
-          if isinstance(data, dict):
-              print("top_keys:", sorted(data.keys()))
-              for k, v in data.items():
-                  if isinstance(v, list):
-                      data = v
-                      print("array_under_key:", k)
-                      break
-          if isinstance(data, list):
-              print("array_length:", len(data))
-              if data:
-                  first = data[0]
-                  if isinstance(first, dict):
-                      print("record_keys:", sorted(first.keys()))
-                      print("first_record_masked:", {k: mask(v) for k, v in first.items()})
+          for suffix in VARIANTS:
+              url = BASE + suffix
+              print("\n===== VARIANT:", repr(suffix), "=====")
+              try:
+                  req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      body = r.read().decode("utf-8", "replace")
+                      print("final_host:", r.geturl().split("/")[2], "status:", r.status,
+                            "ctype:", r.headers.get("Content-Type"), "bytes:", len(body.encode()))
+              except urllib.error.HTTPError as e:
+                  print("HTTPError:", e.code)
+                  continue
+              except Exception as e:
+                  print("error:", type(e).__name__)
+                  continue
+
+              try:
+                  data = json.loads(body)
+              except Exception:
+                  # Non-JSON. If it's a Google system/login page, show raw (no PII there).
+                  if looks_like_google_system_page(body):
+                      print("=> Google system/login page (no data). Raw first 500 chars:")
+                      print(body[:500])
                   else:
-                      print("first_item_masked:", mask(first))
-              phones = sum(1 for item in data if re.search(r"09\d{8}|\d{4}[- ]?\d{3}[- ]?\d{3}", json.dumps(item, ensure_ascii=False)))
-              print("items_with_phone_shaped_values:", phones)
-          elif isinstance(data, (int, float)):
-              print("scalar_count_value:", data)
-          else:
-              print("object_masked:", {k: mask(v) for k, v in data.items()} if isinstance(data, dict) else mask(data))
+                      print("=> Non-JSON, non-Google-page. Masked first 300:")
+                      print(mask(body[:300]))
+                  continue
+
+              print("JSON top_type:", type(data).__name__)
+              if isinstance(data, dict):
+                  print("top_keys:", sorted(data.keys()))
+                  for k, v in list(data.items()):
+                      if isinstance(v, list):
+                          print("array_under_key:", k, "len:", len(v))
+                          if v and isinstance(v[0], dict):
+                              print("  record_keys:", sorted(v[0].keys()))
+                              print("  first_masked:", {kk: mask(vv) for kk, vv in v[0].items()})
+                      else:
+                          print("  scalar", repr(k), "=", mask(v) if isinstance(v, str) else v)
+              elif isinstance(data, list):
+                  print("array_length:", len(data))
+                  if data and isinstance(data[0], dict):
+                      print("record_keys:", sorted(data[0].keys()))
+                      print("first_masked:", {k: mask(v) for k, v in data[0].items()})
+              else:
+                  print("scalar_value:", data)
+
+              phones = len(re.findall(r"09\d{8}|\d{4}[- ]?\d{3}[- ]?\d{3}", body))
+              print("phone_shaped_matches_in_body:", phones)
