@@ -1,0 +1,66 @@
+name: Probe registration API (privacy check, masked output)
+
+on:
+  push:
+    branches: [claude/artifacts-privacy-scan-kixkrn]
+    paths: [".github/workflows/probe-reg-api.yml"]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch and summarize (no raw personal data in logs)
+        shell: python
+        run: |
+          import json, re, urllib.request
+
+          URL = "https://script.google.com/macros/s/AKfycbymV8F2XtPGeSUTupj8zOqY8P_p8hKjLLWsNnuy7dyj9YGID06wvqoWXJT8D-1WnHZS/exec"
+          req = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0"})
+          with urllib.request.urlopen(req, timeout=30) as r:
+              body = r.read().decode("utf-8", "replace")
+              print("final_url_host:", r.geturl().split("/")[2])
+              print("status:", r.status)
+              print("content_type:", r.headers.get("Content-Type"))
+          print("body_bytes:", len(body.encode()))
+
+          def mask(v):
+              s = str(v)
+              s = re.sub(r"\d", "#", s)
+              s = re.sub(r"[一-鿿]", "○", s)
+              s = re.sub(r"[A-Za-z]", "x", s)
+              return s[:40]
+
+          try:
+              data = json.loads(body)
+          except Exception:
+              print("json: NO (not JSON)")
+              print("masked_head:", mask(body[:200]))
+              raise SystemExit(0)
+
+          print("json: YES, top_type:", type(data).__name__)
+          if isinstance(data, dict):
+              print("top_keys:", sorted(data.keys()))
+              for k, v in data.items():
+                  if isinstance(v, list):
+                      data = v
+                      print("array_under_key:", k)
+                      break
+          if isinstance(data, list):
+              print("array_length:", len(data))
+              if data:
+                  first = data[0]
+                  if isinstance(first, dict):
+                      print("record_keys:", sorted(first.keys()))
+                      print("first_record_masked:", {k: mask(v) for k, v in first.items()})
+                  else:
+                      print("first_item_masked:", mask(first))
+              phones = sum(1 for item in data if re.search(r"09\d{8}|\d{4}[- ]?\d{3}[- ]?\d{3}", json.dumps(item, ensure_ascii=False)))
+              print("items_with_phone_shaped_values:", phones)
+          elif isinstance(data, (int, float)):
+              print("scalar_count_value:", data)
+          else:
+              print("object_masked:", {k: mask(v) for k, v in data.items()} if isinstance(data, dict) else mask(data))
