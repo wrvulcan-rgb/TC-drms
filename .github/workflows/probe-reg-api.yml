@@ -13,94 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Fetch and summarize (no raw personal data in logs)
+      - name: Dump wrapper (guarded PII-free)
         shell: python
         run: |
-          import json, re, html, urllib.request, urllib.error
-          from http.cookiejar import CookieJar
-
-          BASE = "https://script.google.com/macros/s/AKfycbymV8F2XtPGeSUTupj8zOqY8P_p8hKjLLWsNnuy7dyj9YGID06wvqoWXJT8D-1WnHZS/exec"
-
-          cj = CookieJar()
-          opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
-          opener.addheaders = [("User-Agent", "Mozilla/5.0")]
-
-          def get(url):
-              with opener.open(url, timeout=30) as r:
-                  return r.geturl(), r.status, r.headers.get("Content-Type", ""), r.read().decode("utf-8", "replace")
-
-          def mask(v):
-              s = str(v)
-              s = re.sub(r"\d", "#", s); s = re.sub(r"[一-鿿]", "○", s); s = re.sub(r"[A-Za-z]", "x", s)
-              return s[:60]
-
-          def has_pii_shape(s):
-              return bool(re.search(r"09\d{8}", s)) or len(re.findall(r"[一-鿿]", s)) > 8
-
-          def summarize(tag, body):
-              try:
-                  data = json.loads(body)
-              except Exception:
-                  print(tag, "NOT JSON, bytes:", len(body.encode()))
-                  return False
-              print(tag, "JSON top_type:", type(data).__name__)
-              node = data
-              if isinstance(data, dict):
-                  print("  top_keys:", sorted(data.keys()))
-                  for k, v in data.items():
-                      if isinstance(v, (int, float)) and not isinstance(v, bool):
-                          print("  scalar", repr(k), "=", v)
-                      elif isinstance(v, list):
-                          node = v; print("  array_under_key:", k, "len:", len(v))
-              if isinstance(node, list):
-                  print("  array_length:", len(node))
-                  if node and isinstance(node[0], dict):
-                      print("  RECORD_KEYS:", sorted(node[0].keys()))
-                      print("  first_masked:", {k: mask(v) for k, v in node[0].items()})
-              elif isinstance(node, (int, float)) and not isinstance(node, bool):
-                  print("  SCALAR_COUNT:", node)
-              print("  phone_shaped_in_body:", len(re.findall(r"09\d{8}", body)))
-              return True
-
-          # Step 1: hit /exec, expect the GAS wrapper HTML
-          url1, st1, ct1, body1 = get(BASE)
-          print("STEP1 host:", url1.split('/')[2], "status:", st1, "ctype:", ct1, "bytes:", len(body1.encode()))
-          if summarize("STEP1", body1):
-              raise SystemExit(0)
-
-          # It's HTML. If it's a Google scaffold page with no PII, show raw to identify it.
-          is_google_scaffold = ("googleusercontent" in body1 or "script.google" in body1
-                                or "gwt" in body1.lower() or "app is currently" in body1.lower()
-                                or "sign in" in body1.lower() or "signin" in body1.lower()
-                                or re.search(r"meta[^>]+refresh", body1, re.I) is not None)
-          if is_google_scaffold and not has_pii_shape(body1):
-              print("STEP1 RAW (Google scaffold, no PII shapes):")
-              print(body1)
-          else:
-              print("STEP1 masked:", mask(body1[:200]), "| pii_shape:", has_pii_shape(body1))
-
-          # Step 2: extract candidate content URL and follow it (this is what a browser does)
-          cands = re.findall(r'https://script\.googleusercontent\.com/[^\s"\'<>\\]+', body1)
-          cands += [html.unescape(u) for u in re.findall(r'"(https:[^"]+googleusercontent[^"]+)"', body1)]
-          seen = []
-          for u in cands:
-              u = html.unescape(u)
-              if u in seen: continue
-              seen.append(u)
-              try:
-                  url2, st2, ct2, body2 = get(u)
-                  print("\nSTEP2 followed ->", url2.split('/')[2], "status:", st2, "ctype:", ct2, "bytes:", len(body2.encode()))
-                  if not summarize("STEP2", body2):
-                      if not has_pii_shape(body2):
-                          print("STEP2 first 300 raw:", body2[:300])
-                      else:
-                          print("STEP2 masked:", mask(body2[:200]), "| PII_SHAPE=TRUE")
-                  raise SystemExit(0)
-              except urllib.error.HTTPError as e:
-                  print("STEP2 HTTPError:", e.code, "for candidate")
-              except SystemExit:
-                  raise
-              except Exception as e:
-                  print("STEP2 error:", type(e).__name__)
-          if not seen:
-              print("No googleusercontent content URL found in wrapper.")
+          import re, urllib.request
+          URL = "https://script.google.com/macros/s/AKfycbymV8F2XtPGeSUTupj8zOqY8P_p8hKjLLWsNnuy7dyj9YGID06wvqoWXJT8D-1WnHZS/exec"
+          req = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0"})
+          with urllib.request.urlopen(req, timeout=30) as r:
+              body = r.read().decode("utf-8", "replace")
+              print("status:", r.status, "ctype:", r.headers.get("Content-Type"), "bytes:", len(body.encode()))
+          # Guard: refuse to print if any PII shape sneaks in
+          if re.search(r"09\d{8}", body) or len(re.findall(r"[一-鿿]", body)) > 8:
+              print("PII SHAPE DETECTED — withholding raw."); raise SystemExit(0)
+          print("----- RAW BODY -----")
+          print(body)
