@@ -15,6 +15,20 @@
       "Bash(ls)",
       "Bash(ls -la)",
       "Bash(wc -l)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./**/.env)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Read(./**/*.pfx)",
+      "Read(./**/credentials*.json)",
+      "Read(./**/token*.json)",
+      "Read(./**/.clasprc.json)",
+      "Read(./**/service-account*.json)",
+      "Bash(printenv)",
+      "Bash(printenv *)",
+      "Bash(env)"
     ]
   },
   "hooks": {
@@ -23,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"${CLAUDE_PROJECT_DIR:-/home/user/TC-drms}\" && [ \"$(git branch --show-current)\" = \"main\" ] && { git diff --quiet && git diff --cached --quiet || (git add -A && git commit -m \"auto-sync $(date -u +%FT%TZ)\" && git push origin main); } || true",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-/home/user/TC-drms}\" && [ \"$(git branch --show-current)\" = \"main\" ] && { git diff --quiet && git diff --cached --quiet || (git add -A -- . ':(exclude).github' ':(exclude).claude' ':(exclude)manuscript/knowledge/generated' && git commit -m \"auto-sync $(date -u +%FT%TZ)\" && git push origin main); } || true",
             "timeout": 30
           }
         ]
