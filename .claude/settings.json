@@ -15,6 +15,20 @@
       "Bash(ls)",
       "Bash(ls -la)",
       "Bash(wc -l)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./**/.env)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Read(./**/*.pfx)",
+      "Read(./**/credentials*.json)",
+      "Read(./**/token*.json)",
+      "Read(./**/.clasprc.json)",
+      "Read(./**/service-account*.json)",
+      "Bash(printenv)",
+      "Bash(printenv *)",
+      "Bash(env)"
     ]
   },
   "hooks": {
