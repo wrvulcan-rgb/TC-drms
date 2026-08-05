@@ -1,6 +1,6 @@
 # 通用行為規則（母艦 exports — 勿在子 repo 手改，同步會覆蓋）
 
-> 來源：mason-claude-memory/CLAUDE.md 的跨專案通用部分。**本檔是生成物**（生成日 2026-08-01）：規則本體以 CLAUDE.md 為準，改源後照 maintenance.md §2 第 5 步重新導出，禁直接在本檔新增/修改規則。
+> 來源：mason-claude-memory/CLAUDE.md 的跨專案通用部分。**本檔是生成物**（生成日 2026-08-03）：規則本體以 CLAUDE.md 為準，改源後照 maintenance.md §2 第 5 步重新導出，禁直接在本檔新增/修改規則。
 > 優先權：子 repo 自己的 CLAUDE.md > 本檔。子 repo 有專案特定理由時以子 repo 為準。
 > 同步：聯邦同步 Routine 推送（現況與停用狀態見 system/automations.md）；發現本檔與母艦版不一致 → 以母艦為準。
 
@@ -52,4 +52,5 @@
 # Token 紀律
 - 主對話不放原始資料：大量讀取/掃描/查網頁派 subagent，只收結論。
 - 回應 >25 行 → 壓縮成結論＋必要證據。
+
 
